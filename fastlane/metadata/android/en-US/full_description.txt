@@ -1,0 +1,29 @@
+Eighteen small puzzle games in one app that runs offline.
+
+* Hexsweeper: Minesweeper on hex tiles, on a sphere, a fixed board or an endless one (Sphere, Classic, Infinite)
+* Notan: a black-and-white nonogram that reveals a small picture
+* Akari: light every open square; bulbs must never shine on each other
+* Spiral Galaxies: build shapes that match after a half-turn
+* Bridges: join the islands and match each number
+* Slant: a diagonal in every square, matching the numbers with no loops
+* Fold: fold the paper until a dot shows through every hole
+* Bending: move planets so their pull bends each beam into its light
+* Tilt: tip stacked trays to drop the marble through the holes
+* Horologist: place wheels so every clock runs forwards
+
+Motor-accessible puzzles, in their own grid:
+
+* Glance: turn tiles over until every one is dark
+* Glyph: trace a faint figure on a square of points
+* Pursuit: follow a ring with a pointer until it comes to rest in the picture
+* Shoo: herd the bees into the hive
+* Nod: tip stacked trays with a drag, a swipe or the arrow keys
+* Noon: a nonogram played with one switch, pressing as a cell's clock reaches noon
+* Sweep: one switch and a highlight that sweeps the rows to turn tiles dark
+* Ticker: one button, played by ear, pressing as each note of the tune comes round
+
+Most games have an Access setting. One switch steps a highlight through the game's keys, in groups or one at a time; any key, tap or click is a press, and speed and timing can be changed. Look and hold puts the keys beside the board; rest a finger, mouse or head mouse on one until its ring fills. Glance, Glyph and Shoo also take a tap or a resting pointer on the board, Pursuit follows the pointer, Nod tips with a drag, a swipe or the arrow keys, and Noon, Sweep and Ticker take any key or a tap anywhere as their one switch.
+
+No camera input and no camera permission. No internet permission: nothing loads from the network, and links open in your browser. Saves and scores stay on the phone and out of cloud backup and device transfer. The only permission is vibration, for haptic feedback.
+
+Games and collection by Luke Steuber, MIT License. Hexsweeper Sphere geometry inspired by Rob Scanlon's hexasphere.js (MIT). Earth and Moon textures: Solar System Scope, CC BY 4.0. IBM Plex fonts: SIL Open Font License.

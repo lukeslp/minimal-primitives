@@ -1,0 +1,46 @@
+/* Minimal control frame. Local to each standalone game. Luke Steuber. */
+body[data-control-frame] .control-toolbar {
+  position:fixed!important;left:max(8px,env(safe-area-inset-left))!important;right:max(8px,env(safe-area-inset-right))!important;
+  top:auto!important;bottom:max(6px,env(safe-area-inset-bottom))!important;width:auto!important;height:auto!important;
+  display:flex!important;flex-direction:row!important;justify-content:space-between!important;align-items:center!important;
+  grid-template-columns:none!important;grid-template-rows:none!important;padding:0!important;gap:0!important;
+  margin:0!important;border:0!important;border-radius:0!important;background:none!important;box-shadow:none!important;
+  z-index:60;pointer-events:none;
+}
+body[data-control-frame] .control-actions,body[data-control-frame] .control-meta {
+  display:flex!important;flex-direction:row!important;gap:0!important;align-items:center!important;pointer-events:auto;
+}
+body[data-control-frame] .control-icon,body[data-control-frame] .control-close {
+  appearance:none;display:inline-grid;place-items:center;width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;
+  padding:12px!important;border:0!important;border-radius:0!important;box-shadow:none!important;cursor:pointer;pointer-events:auto;touch-action:manipulation;
+}
+body[data-control-frame] .control-icon:not([aria-pressed="true"]):not(.is-armed),body[data-control-frame] .control-close {background:transparent!important;}
+body[data-control-frame] .control-icon svg,body[data-control-frame] .control-close svg {width:24px!important;height:24px!important;}
+body[data-control-frame] .control-icon svg [stroke],body[data-control-frame] .control-icon svg [stroke-width],body[data-control-frame] .control-icon svg,body[data-control-frame] .control-close svg {stroke-width:1.6px!important;}
+body[data-control-frame] .control-icon:focus-visible,body[data-control-frame] .control-close:focus-visible {outline:2px solid currentColor!important;outline-offset:2px!important;box-shadow:none!important;}
+body[data-control-frame] .control-icon:hover:not(:disabled) {opacity:1;}
+body[data-control-frame] .control-icon:hover:not(:disabled):not([aria-pressed="true"]):not(.is-armed),body[data-control-frame] .control-close:hover {background:var(--band,var(--wash,rgba(127,127,127,.1)))!important;}
+body[data-control-frame] .control-restart {
+  position:fixed!important;left:max(8px,env(safe-area-inset-left))!important;top:max(0px,env(safe-area-inset-top))!important;
+  right:auto!important;bottom:auto!important;transform:none!important;z-index:60;
+}
+body[data-control-frame] .control-completion {
+  position:fixed!important;left:50%!important;right:auto!important;top:auto!important;bottom:max(64px,calc(env(safe-area-inset-bottom) + 64px))!important;
+  transform:translateX(-50%)!important;z-index:50;
+}
+body[data-control-frame] .control-completion:not(button) {width:max-content!important;max-width:calc(100vw - 32px);}
+body[data-control-frame] .control-sheet button {min-width:44px;min-height:44px;}
+body[data-control-frame] .control-sheet .modal-content {box-sizing:border-box;max-height:calc(100dvh - 16px);overflow:auto;}
+body[data-control-frame] .control-toolbar [hidden],body[data-control-frame] .control-completion[hidden] {display:none!important;}
+@media(max-height:520px) and (min-width:560px) {
+  body[data-control-frame] .control-toolbar {
+    left:auto!important;right:max(8px,env(safe-area-inset-right))!important;top:12px!important;bottom:max(12px,env(safe-area-inset-bottom))!important;
+    width:48px!important;flex-direction:column!important;
+  }
+  body[data-control-frame] .control-actions,body[data-control-frame] .control-meta {flex-direction:column!important;}
+  body[data-control-frame] .control-completion {bottom:max(12px,env(safe-area-inset-bottom))!important;}
+  body[data-control-frame="notan"] #app {padding-right:64px;}
+}
+@media(forced-colors:active) {
+  body[data-control-frame] .control-icon:focus-visible,body[data-control-frame] .control-close:focus-visible {outline-color:Highlight!important;}
+}

@@ -1,0 +1,28 @@
+{
+  "id": "glance",
+  "entry": "index.html",
+  "files": [
+    "THIRD_PARTY.md",
+    "boards.js",
+    "engine.js",
+    "favicon.svg",
+    "fonts/IBMPlexMono-500.woff2",
+    "fonts/IBMPlexSans-400.woff2",
+    "fonts/OFL.txt",
+    "gaze.js",
+    "glance.css",
+    "glance.js",
+    "index.html",
+    "payoff.js",
+    "track.js",
+    "vendor/LICENSE-MEDIAPIPE.txt",
+    "vendor/face_landmarker.task",
+    "vendor/vision_bundle.mjs",
+    "vendor/vision_wasm_internal.js",
+    "vendor/vision_wasm_internal.wasm",
+    "controls.css",
+    "controls.js",
+    "access.js",
+    "bridge-client.js"
+  ]
+}

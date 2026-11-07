@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shown while the collection loads before Android 12: the Hexsweeper Sphere tile, light on the library's dark ground. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/shell_background" />
+    <item
+        android:width="160dp"
+        android:height="160dp"
+        android:drawable="@mipmap/ic_launcher_monochrome"
+        android:gravity="center" />
+</layer-list>

@@ -1,0 +1,27 @@
+<!doctype html>
+<!-- Glyph. By Luke Steuber. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="description" content="A faint figure on a square of points, traced from corner to corner by looking.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' ws://127.0.0.1:47913; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; font-src 'self'; object-src 'none'; base-uri 'none'">
+<title>Glyph</title>
+<link rel="icon" href="./favicon.svg">
+<link rel="stylesheet" href="./glyph.css?v=468cd937">
+<link rel="stylesheet" href="./controls.css?v=2e033f1e">
+</head>
+<body>
+<header><h1 class="sr-only">Glyph</h1><button id="restart-btn" class="ib" aria-label="Restart board"></button><div id="readout" class="readout"></div><span id="live" class="live" role="img" aria-label="Camera on" hidden></span></header>
+<main id="board-shell"><div id="stage"><svg id="board" role="group" tabindex="0" aria-label="Board"></svg><div id="completion"><button id="next-btn" class="ib" aria-label="Next board" hidden></button></div></div><button id="camera-start" class="camera-start" aria-label="Start the camera" hidden></button></main>
+<svg id="gaze-layer" aria-hidden="true" focusable="false"></svg>
+<video id="camera" playsinline muted aria-hidden="true"></video>
+<p id="announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+<nav class="toolbar" aria-label="Game controls"><div><button id="undo-btn" class="ib" aria-label="Undo"></button><button id="hint-btn" class="ib" aria-label="Hint"></button><button id="camera-btn" class="ib" aria-label="Camera" aria-pressed="false"></button></div><div><button id="settings-btn" class="ib" aria-label="Settings"></button><button id="help-btn" class="ib" aria-label="Help"></button></div></nav>
+<dialog id="settings" class="sheet" aria-labelledby="settings-title"><div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body"><label class="row">Input <select id="input"><option value="head">Head</option><option value="eyes">Eyes</option><option value="pointer">Pointer</option></select></label><label class="row">Select by <select id="select"><option value="dwell">Look and hold</option><option value="tap">Tap</option></select></label><label class="row">Hold <select id="dwell"><option value="600">0.6 s</option><option value="800">0.8 s</option><option value="1000">1 s</option><option value="1400">1.4 s</option></select></label><div class="row">Calibration <button id="calibrate" class="text-btn" type="button">Calibrate</button></div><label class="row">Theme <select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label class="row">Motion <select id="motion"><option value="system">System</option><option value="reduce">Reduced</option></select></label><label class="row">Rewards <select id="rewards"><option value="colour">Colour</option><option value="calm">Calm</option></select></label><label class="row">Sound <select id="sound"><option value="off">Off</option><option value="on">On</option></select></label><section aria-labelledby="catalog-title"><h3 id="catalog-title">Boards</h3><ol id="board-catalog" class="campaign-catalog"></ol></section></div><footer class="sheet-foot"><a href="https://lukesteuber.com">Luke Steuber</a></footer></dialog>
+<dialog id="help" class="sheet" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">How to play</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body"><p>Hold your look on a point until its ring fills, or tap it, to set the pen down; then look or drag from point to point.</p><p>Ink every grey line once, visiting as few points as you can; rest your look off the points, or tap between them, to lift the pen.</p><p>Camera frames never leave this device and nothing is stored; the camera stops when you leave or choose Pointer.</p></div><footer class="sheet-foot"><a href="https://lukesteuber.com">Luke Steuber</a></footer></dialog>
+<script src="./engine.js?v=396f96e6"></script><script src="./boards.js?v=8d5f42f6"></script><script src="./gaze.js?v=47f4df1c"></script><script src="./payoff.js?v=32304d04"></script><script src="./trace.js?v=af3675e1"></script><script src="./track.js?v=8777a1d6"></script><script src="./glyph.js?v=dc95b85c"></script>
+<script defer src="./controls.js?v=57c4f001"></script>
+</body>
+</html>

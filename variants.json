@@ -1,0 +1,7 @@
+{
+  "fdroid": {
+    "summary": "Camera-free build for F-Droid: no MediaPipe and no head, eye or eye-tracker input. Every game stays, with touch, keyboard, pointer dwell and switch play.",
+    "omitShared": ["mediapipe"],
+    "camera": false
+  }
+}

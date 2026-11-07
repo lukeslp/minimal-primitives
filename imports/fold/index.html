@@ -1,0 +1,35 @@
+<!doctype html>
+<!-- Fold. Luke Steuber. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#5a5c5e"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Fold · Luke Steuber</title><link rel="icon" href="./favicon.svg"><link rel="stylesheet" href="./fold.css?v=df43cc13">
+<meta name="description" content="Fold the paper until a dot shows through every hole.">
+<meta property="og:title" content="Fold">
+<meta property="og:description" content="Fold the paper until a dot shows through every hole.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://lukesteuber.com/games/fold/">
+<meta property="og:image" content="https://lukesteuber.com/games/social/fold-preview-c4bc085a5f2a.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="A paper sheet with three dots, three cutout holes and dotted creases.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Fold">
+<meta name="twitter:description" content="Fold the paper until a dot shows through every hole.">
+<meta name="twitter:image" content="https://lukesteuber.com/games/social/fold-preview-c4bc085a5f2a.png">
+<meta name="twitter:image:alt" content="A paper sheet with three dots, three cutout holes and dotted creases.">
+<link rel="stylesheet" href="./controls.css?v=2e033f1e">
+</head>
+<body><header><button id="restart-btn" class="ib" aria-label="Restart puzzle"></button><h1 class="sr-only">Fold</h1><div id="readout" class="readout"></div></header>
+<main id="board-shell" aria-label="Fold puzzle"><div class="board-stage"><div id="paper-stage"><div id="paper-depth" aria-hidden="true" inert></div><div id="board" class="board" role="grid" aria-label="Paper sheet"></div><div id="handles" aria-label="Fold creases"></div></div></div></main>
+<div id="completion" class="completion" hidden><div class="completion-actions"><button id="share-btn" class="ib" aria-label="Share this puzzle"></button><button id="next-btn" class="ib" aria-label="Next campaign puzzle"></button></div><p id="milestone" class="milestone" hidden></p></div>
+<div id="dead-end" class="completion" hidden><div class="completion-actions"><button id="back-btn" class="ib" aria-label="Undo the last fold"></button></div></div>
+<p id="feedback" role="status" aria-live="polite"></p><p id="share-status" class="sr-only" role="status"></p>
+<nav class="toolbar" aria-label="Game controls"><div><button id="undo-btn" class="ib" aria-label="Undo"></button><button id="hint-btn" class="ib" aria-label="Hint"></button></div><div><button id="settings-btn" class="ib" aria-label="Settings"></button><button id="help-btn" class="ib" aria-label="Help"></button></div></nav>
+<dialog id="settings" class="sheet" aria-labelledby="settings-title"><div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
+<label class="row">Campaign <select id="campaign"></select></label><div class="row"><button id="previous">Previous</button><button id="following">Next</button></div><div class="row"><span>New Game+</span><button id="new-game">New board</button></div><label class="row">Difficulty <select id="difficulty"><option>Easy</option><option>Normal</option><option selected>Hard</option></select></label><div class="row"><span>Generated board</span><button id="return-generated">Return</button></div><div id="generation-details" class="quiet"></div>
+<label class="row">Theme <select id="theme"><option value="dark">Dark</option><option value="light">Light</option><option value="system">System</option></select></label><label class="row">Motion <select id="motion"><option value="system">System</option><option value="reduce">Reduced</option></select></label><div class="row"><span>Current board</span><button id="reset">Clear board</button></div><div class="row"><span>Share</span><button id="share">Copy link</button></div><p id="settings-feedback" role="status"></p></div><footer class="sheet-foot"><a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
+<dialog id="help" class="sheet" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">How to play</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
+<p>Fold the paper until a dot shows through every hole. A fold turns its side over onto the rest, so the hole has to land on the dot. A dot that has been turned over only shows through the paper, and does not count until it is turned back. Either side can fold if it fits on the other.</p><p><button id="replay-opening" class="text-action">Play the opening boards again</button></p>
+<div class="controls"><p>Drag a square across a fold line. The paper follows your finger; let go past the line and it lands.</p><p>Or tap a square, then a highlighted fold line.</p><p>An arrow at the edge folds along its line. Where either side could fold, it asks which.</p><p>To unfold, swipe the folded side back the way it came, or press the arrow on its edge. Undo does the same.</p><p>Hint previews a fold. Press it again to apply. Where no fold can finish, it points at Undo.</p></div>
+<details class="help-more"><summary>More controls</summary><p>Tab to an edge handle. Enter folds the smaller side; Shift+Enter folds the other side if it fits. On an equal crease, Enter folds left or top.</p><p>Arrow keys move between cells. Enter or Space picks a cell. Z undoes a fold. Escape cancels a picked cell or closes a sheet.</p><p>Restart clears the sheet; Undo restores it. The fewest possible folds appear after a solve.</p></details></div><footer class="sheet-foot"><a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
+<script src="./engine.js?v=a3df7cfe"></script><script src="./levels.js?v=6fd987a1"></script><script src="./fold.js?v=7e153406"></script><script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script><script defer src="./controls.js?v=eb359d0f"></script>
+</body></html>

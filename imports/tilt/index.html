@@ -1,0 +1,80 @@
+<!doctype html>
+<!-- Tilt · Levels. Luke Steuber. -->
+<html lang="en" data-theme="dark" data-motion="system">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#000000">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tilt</title>
+<link rel="icon" href="./favicon.svg">
+<link rel="stylesheet" href="./tilt-levels.css?v=759550c0">
+
+<link rel="canonical" href="https://lukesteuber.com/games/tilt/">
+<meta name="description" content="Tip stacked trays so the marble drops through the right holes.">
+<meta property="og:title" content="Tilt">
+<meta property="og:description" content="Tip stacked trays so the marble drops through the right holes.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://lukesteuber.com/games/tilt/">
+<meta property="og:image" content="https://lukesteuber.com/games/social/tilt-levels3-6c7ffb5cf051.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="A marble on three stacked 5 by 5 trays, with blocks and holes leading to the exit.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Tilt">
+<meta name="twitter:description" content="Tip stacked trays so the marble drops through the right holes.">
+<meta name="twitter:image" content="https://lukesteuber.com/games/social/tilt-levels3-6c7ffb5cf051.png">
+<meta name="twitter:image:alt" content="A marble on three stacked 5 by 5 trays, with blocks and holes leading to the exit.">
+<link rel="stylesheet" href="./controls.css?v=2e033f1e">
+</head>
+<body>
+<header>
+<button id="restart-btn" class="ib" type="button" aria-label="Restart"></button>
+<h1 class="sr-only">Tilt</h1>
+<div id="readout" class="readout"></div>
+</header>
+<main id="board-shell">
+<div id="stack-fit">
+<div id="board" class="board" tabindex="0" role="group" aria-label="Stacked trays"></div>
+</div>
+<div id="next-slot"><button id="next-btn" class="ib" type="button" aria-label="Next board" hidden></button></div>
+</main>
+<p id="live" class="sr-only" role="status" aria-live="polite"></p>
+<nav class="toolbar" aria-label="Game controls">
+<div>
+<button id="undo-btn" class="ib" type="button" aria-label="Undo"></button>
+<button id="hint-btn" class="ib" type="button" aria-label="Hint"></button>
+</div>
+<div>
+<button id="settings-btn" class="ib" type="button" aria-label="Settings"></button>
+<button id="help-btn" class="ib" type="button" aria-label="Help"></button>
+</div>
+</nav>
+<dialog id="settings" class="sheet" aria-labelledby="settings-title">
+<div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" type="submit" aria-label="Close Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div>
+<div class="sheet-body">
+<label class="row">Theme <select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark" selected>Dark</option></select></label>
+<label class="row">Motion <select id="motion"><option value="system" selected>System</option><option value="reduce">Reduced</option></select></label>
+<div class="row"><button id="previous" type="button">Previous</button><button id="following" type="button">Next</button></div>
+<section aria-labelledby="catalog-title"><h3 id="catalog-title">Boards</h3><ol id="level-catalog" class="campaign-catalog"></ol></section>
+</div>
+<footer class="sheet-foot"><a href="https://lukesteuber.com">lukesteuber.com</a></footer>
+</dialog>
+<dialog id="help" class="sheet" aria-labelledby="help-title">
+<div class="sheet-head"><h2 id="help-title">Help</h2><form method="dialog"><button class="ib sheet-x" type="submit" aria-label="Close Help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div>
+<div class="sheet-body">
+<p>Tilt and the marble slides until a block or the edge stops it.</p>
+<p>A hole drops it to the same cell of the tray below, and another hole there drops it again.</p>
+<p>The one hole in the lowest tray finishes the board.</p>
+</div>
+<footer class="sheet-foot"><a href="https://lukesteuber.com">lukesteuber.com</a></footer>
+</dialog>
+<script src="./engine.js?v=734d969ebf9c"></script>
+<script src="./levels.js?v=e3d3850e2f1a"></script>
+<script src="./tilt-levels.js?v=4adcb5f3a10f"></script>
+<script src="./tilt-input.js?v=02a623466af0"></script>
+<script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
+<script defer src="./controls.js?v=15096395"></script>
+</body>
+</html>

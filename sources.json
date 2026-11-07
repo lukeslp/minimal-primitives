@@ -1,0 +1,2965 @@
+{
+  "schema": 1,
+  "games": [
+    {
+      "id": "hexsweeper",
+      "title": "Hexsweeper",
+      "repository": "lukeslp/hexsweeper-private-history",
+      "commit": "aa4a93d69ce5e8a82a594748a4616f2d3c91e935",
+      "entry": "hexsweeper/sphere/index.html",
+      "modes": [
+        {
+          "id": "sphere",
+          "title": "Sphere",
+          "entry": "hexsweeper/sphere/index.html"
+        },
+        {
+          "id": "classic",
+          "title": "Classic",
+          "entry": "hexsweeper/bounded.html"
+        },
+        {
+          "id": "infinite",
+          "title": "Infinite",
+          "entry": "hexsweeper/infinite.html"
+        }
+      ],
+      "files": [
+        {
+          "path": "hexsweeper/LICENSE",
+          "source": "LICENSE",
+          "sha256": "04965135e36d62a6361f4934f7b25b14644a3f9dc0702b19d4f21b942ee13760",
+          "bytes": 1069
+        },
+        {
+          "path": "hexsweeper/access.js",
+          "source": "access.js",
+          "sha256": "dbaa0dc4c9766f7b94dae13ebaab821a5f7606ec5851c56d65f3da5ef70e4215",
+          "bytes": 86374
+        },
+        {
+          "path": "hexsweeper/bounded.html",
+          "source": "bounded.html",
+          "sha256": "a53584846d25b349954cf60d5f1df847e3497c05a85a3dd38f6b4f9b9c56103a",
+          "bytes": 127288
+        },
+        {
+          "path": "hexsweeper/bridge-client.js",
+          "source": "bridge-client.js",
+          "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
+          "bytes": 5511
+        },
+        {
+          "path": "hexsweeper/fonts/IBMPlexMono-500.woff2",
+          "source": "fonts/IBMPlexMono-500.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "path": "hexsweeper/fonts/IBMPlexMono-600.woff2",
+          "source": "fonts/IBMPlexMono-600.woff2",
+          "sha256": "0d1f0b8d0722224e32e9f28261bdc86c79115be73444ae5eceb73976a1bcdf83",
+          "bytes": 15620
+        },
+        {
+          "path": "hexsweeper/fonts/IBMPlexSans-400.woff2",
+          "source": "fonts/IBMPlexSans-400.woff2",
+          "sha256": "db71f8a28ad8501544fb4e7668e3c6d0b731760b6f20de3525ebaeba597f1922",
+          "bytes": 19156
+        },
+        {
+          "path": "hexsweeper/fonts/IBMPlexSans-600.woff2",
+          "source": "fonts/IBMPlexSans-600.woff2",
+          "sha256": "31535a91ce3f6b8ed3ddedadab1e49957e2220263a640df1a3f14f6fdfe15eb6",
+          "bytes": 20356
+        },
+        {
+          "path": "hexsweeper/fonts/IBMPlexSans-700.woff2",
+          "source": "fonts/IBMPlexSans-700.woff2",
+          "sha256": "fff71a83690454ee6ea9014780a6797408918cb90cde1f0f3be65ea28a03c678",
+          "bytes": 19440
+        },
+        {
+          "path": "hexsweeper/fonts/OFL.txt",
+          "source": "fonts/OFL.txt",
+          "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+          "bytes": 4456
+        },
+        {
+          "path": "hexsweeper/fonts/fonts.css",
+          "source": "fonts/fonts.css",
+          "sha256": "0bcc3df381c2c3f4ffd8754920091ffb988e0aafee74f95f24e3537a7e6eb246",
+          "bytes": 1174
+        },
+        {
+          "path": "hexsweeper/infinite.html",
+          "source": "infinite.html",
+          "sha256": "91ec62a9f19c9e280ba858ed69884f930b73795a454bead8848ff3aeaf4c8700",
+          "bytes": 549997
+        },
+        {
+          "path": "hexsweeper/skin-chrome.css",
+          "source": "skin-chrome.css",
+          "sha256": "1ffde142ec678c1a3dabcb6b618e58bd9320ac4c09d3049aa750d9c8075f2afe",
+          "bytes": 9925
+        },
+        {
+          "path": "hexsweeper/sphere/assets/classic-minesweeper.png",
+          "source": "sphere/assets/classic-minesweeper.png",
+          "sha256": "b42114581fded77b4aa8e003634ee68682a7013f3ce7d43f2ac119b4fc0360fa",
+          "bytes": 414957
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/amber-cells-1024.webp",
+          "source": "sphere/assets/reflections/amber-cells-1024.webp",
+          "sha256": "a353102d6056edd3e71e8ac31f5a49372f39b57eafacefa443acc985b430fbd5",
+          "bytes": 140660
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/amber-cells-2048.webp",
+          "source": "sphere/assets/reflections/amber-cells-2048.webp",
+          "sha256": "3847439c42694a74b13288f822b13fabeafc15abf4ca0a0d23a0ca5e528dcaa4",
+          "bytes": 443256
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/amber-tempest-1280.webp",
+          "source": "sphere/assets/reflections/amber-tempest-1280.webp",
+          "sha256": "9ae3d5db5ee895e44024b8ec4dbc571768d6acb64583e7c9b84448cce91a41df",
+          "bytes": 43704
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/amber-tempest-768.webp",
+          "source": "sphere/assets/reflections/amber-tempest-768.webp",
+          "sha256": "cb0fb6b1901fd90c8c056e3c418d8ddf9efce2fd35086a1682d32cf00a5cd51b",
+          "bytes": 17746
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/canopy-1024.webp",
+          "source": "sphere/assets/reflections/canopy-1024.webp",
+          "sha256": "3253b9b33b432ae56e8e0c3ae9d9ea7fbcef5a7d71cd09d41393eedd9cc3b48d",
+          "bytes": 125976
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/canopy-2048.webp",
+          "source": "sphere/assets/reflections/canopy-2048.webp",
+          "sha256": "7d6899cd70ad5e80882da1248932441e79787f101b1d265bb517f217ec50d8eb",
+          "bytes": 375164
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/chromatic-ink-1280.webp",
+          "source": "sphere/assets/reflections/chromatic-ink-1280.webp",
+          "sha256": "439a6c9139813dc9f35610dbc82b88dced52f65d4db654b0495127e0e28b9997",
+          "bytes": 261390
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/chromatic-ink-768.webp",
+          "source": "sphere/assets/reflections/chromatic-ink-768.webp",
+          "sha256": "763ef9f2ac4ad2f8e2854ca49cf9009e6de5bf1c0a57612205c289b0b3d20379",
+          "bytes": 109466
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/deco-1024.webp",
+          "source": "sphere/assets/reflections/deco-1024.webp",
+          "sha256": "7d083c14ceebe4dde0e7ac04d47ad54fa05e9be6e57766ad40e5b41c437a3c35",
+          "bytes": 29528
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/deco-2048.webp",
+          "source": "sphere/assets/reflections/deco-2048.webp",
+          "sha256": "ebe1f83459155d4e3d79e8bd740b9b639e51e60be17b528e8ad23b44d1d156be",
+          "bytes": 82806
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/galaxy-1280.webp",
+          "source": "sphere/assets/reflections/galaxy-1280.webp",
+          "sha256": "e6c6078e786bb2a3b8d9e98787995999038c41e845070205577470ba33fb371f",
+          "bytes": 323666
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/galaxy-768.webp",
+          "source": "sphere/assets/reflections/galaxy-768.webp",
+          "sha256": "c70333fb4edddbbc04e74e17e5d6d0337e2db7027e4906736450087ccca2c1dc",
+          "bytes": 78684
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/gilded-ribbon-1280.webp",
+          "source": "sphere/assets/reflections/gilded-ribbon-1280.webp",
+          "sha256": "74a1a20c6b29e19e386c84567ea9ef01d7f37409b506ade8e535901aa72792fd",
+          "bytes": 86460
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/gilded-ribbon-768.webp",
+          "source": "sphere/assets/reflections/gilded-ribbon-768.webp",
+          "sha256": "004f192031b7eb3bf9da571a013a7ade4b5681db321f5ecd202eef32bbdc767c",
+          "bytes": 29666
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/heat-lightning-1280.webp",
+          "source": "sphere/assets/reflections/heat-lightning-1280.webp",
+          "sha256": "b5c33a450c2bccac6534385e5efe8dae3d51de5c8964a329967d8fd747827ad1",
+          "bytes": 60474
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/heat-lightning-768.webp",
+          "source": "sphere/assets/reflections/heat-lightning-768.webp",
+          "sha256": "720df22ca981db4b0423de86f49437cb5bedafaa15809706f0055168f89c17cf",
+          "bytes": 21616
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/ion-storm-1280.webp",
+          "source": "sphere/assets/reflections/ion-storm-1280.webp",
+          "sha256": "082d0536555719485230980784ed8e6cd7e649ec828064a71fc3281b29337e46",
+          "bytes": 44972
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/ion-storm-768.webp",
+          "source": "sphere/assets/reflections/ion-storm-768.webp",
+          "sha256": "c8c6d95be9efb04163c2affec5c107abc468ab9bdc8671dc32f0251fc414611e",
+          "bytes": 19100
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/oculus-1280.webp",
+          "source": "sphere/assets/reflections/oculus-1280.webp",
+          "sha256": "d77c23471c4500e410d71abf6b30b98cff9ad6ceb97b69d0db2c230f26d9289b",
+          "bytes": 177350
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/oculus-768.webp",
+          "source": "sphere/assets/reflections/oculus-768.webp",
+          "sha256": "e9b4959e409c54e04af0d5c1432702b8f5079f54021f6ca7a522e2f5d4f5221a",
+          "bytes": 64694
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/portoro-1024.webp",
+          "source": "sphere/assets/reflections/portoro-1024.webp",
+          "sha256": "12e37faf8665a47f512523ac26b39c7d69ef773f9bec2735ecc3a3af2d8eb49e",
+          "bytes": 70720
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/portoro-2048.webp",
+          "source": "sphere/assets/reflections/portoro-2048.webp",
+          "sha256": "0231751e5cebe5f99341d7298e2e8ca36475069927866ae261dec374d7dd6e98",
+          "bytes": 183626
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/stratosphere-1024.webp",
+          "source": "sphere/assets/reflections/stratosphere-1024.webp",
+          "sha256": "6a4464d76e50c17740ed17a3f10efa074657f664dd0a293020dae7bd4c159fa8",
+          "bytes": 80702
+        },
+        {
+          "path": "hexsweeper/sphere/assets/reflections/stratosphere-2048.webp",
+          "source": "sphere/assets/reflections/stratosphere-2048.webp",
+          "sha256": "9c0c54f493ab29c116c991275cf558d9d59e638b45e6300cb691d78bbf5f78c5",
+          "bytes": 250730
+        },
+        {
+          "path": "hexsweeper/sphere/assets/textures/README.md",
+          "source": "sphere/assets/textures/README.md",
+          "sha256": "bdb1af02d59588519321075e398e915f4a6f257e5e5b433447495ea6293ed5aa",
+          "bytes": 1694
+        },
+        {
+          "path": "hexsweeper/sphere/assets/textures/earth_daymap_2k.jpg",
+          "source": "sphere/assets/textures/earth_daymap_2k.jpg",
+          "sha256": "6b300dcad1d336e53f7a1ff3559236319399a379322c489cc29991f04cc648c4",
+          "bytes": 139537
+        },
+        {
+          "path": "hexsweeper/sphere/assets/textures/earth_gloss_2k.webp",
+          "source": "sphere/assets/textures/earth_gloss_2k.webp",
+          "sha256": "0c1421c80362c0bc56993a12d4c224c9119a4e233212248466b9e40c0ce9bf4f",
+          "bytes": 492762
+        },
+        {
+          "path": "hexsweeper/sphere/assets/textures/earth_gloss_4k.webp",
+          "source": "sphere/assets/textures/earth_gloss_4k.webp",
+          "sha256": "ebfd9b28ebd79f268ab6f78571f041f77de8aa0ce751839f0d2c69d8e168c1b2",
+          "bytes": 1155990
+        },
+        {
+          "path": "hexsweeper/sphere/assets/textures/moon_2k.jpg",
+          "source": "sphere/assets/textures/moon_2k.jpg",
+          "sha256": "626a5cfc610db1893e884fee0943f4b1e9be5c06b0108de6ce8c1a462d439866",
+          "bytes": 275385
+        },
+        {
+          "path": "hexsweeper/sphere/assets/textures/sources.json",
+          "source": "sphere/assets/textures/sources.json",
+          "sha256": "f796966e34f074cedfbcb12398e911d887721c6c89b760aecd9f4db63acf578c",
+          "bytes": 3634
+        },
+        {
+          "path": "hexsweeper/sphere/controls.css",
+          "source": "sphere/controls.css",
+          "sha256": "d98a856ee0ab8e1948d13a108da724d750e1507f9a33bef0a2be721453634a16",
+          "bytes": 4105
+        },
+        {
+          "path": "hexsweeper/sphere/controls.js",
+          "source": "sphere/controls.js",
+          "sha256": "2223dda80fb5e3934801ec573e68e7ddef9e6d465ede619ff79ff13fd4d355d2",
+          "bytes": 4864
+        },
+        {
+          "path": "hexsweeper/sphere/dev-chrome.css",
+          "source": "sphere/dev-chrome.css",
+          "sha256": "fea816ea4b808ef59d63670a347438c7c8d3f23e8eca7322630416689effd095",
+          "bytes": 6431
+        },
+        {
+          "path": "hexsweeper/sphere/dev-chrome.js",
+          "source": "sphere/dev-chrome.js",
+          "sha256": "ea83e39afa0a4615ab9a3dc1f013adeccd174df2b1b6175373cd20512023984a",
+          "bytes": 8828
+        },
+        {
+          "path": "hexsweeper/sphere/hex-bloom.css",
+          "source": "sphere/hex-bloom.css",
+          "sha256": "c78c4209e1f2d84514761a5e539654cc66b08b1e26c9ca76eff76b6ee2381116",
+          "bytes": 34909
+        },
+        {
+          "path": "hexsweeper/sphere/hex-bloom.js",
+          "source": "sphere/hex-bloom.js",
+          "sha256": "15022f19794080a59e36d6f4110535b9e98fc831f6141a6db3ebae046b7ce5fd",
+          "bytes": 119537
+        },
+        {
+          "path": "hexsweeper/sphere/hexasphere.js",
+          "source": "sphere/hexasphere.js",
+          "sha256": "bc2f0a104d495a060c68634579bab57b4ebcf2d4e3cdb8876ccc9a95f3a96787",
+          "bytes": 7534
+        },
+        {
+          "path": "hexsweeper/sphere/index.html",
+          "source": "sphere/index.html",
+          "sha256": "5b0d87c3c10b120c9ad35f255bedf94f5fcb3d14fe62998ad68aa57ecf0be7de",
+          "bytes": 43116
+        },
+        {
+          "path": "hexsweeper/sphere/mirror-material.js",
+          "source": "sphere/mirror-material.js",
+          "sha256": "9d01bd8ef8b55799242df764720c1279480a97421fe03a02117438b6037ad633",
+          "bytes": 74044
+        },
+        {
+          "path": "hexsweeper/sphere/quiet-chrome.css",
+          "source": "sphere/quiet-chrome.css",
+          "sha256": "5c4cc7a3810b0a2793d07ff605994ab942eddf32b32bb29676c4a4d68bb5ef19",
+          "bytes": 4519
+        },
+        {
+          "path": "hexsweeper/sphere/quiet-chrome.js",
+          "source": "sphere/quiet-chrome.js",
+          "sha256": "9ae3d65912d1cd3b0af288c11be0cf22e70497a35448faa4887a42f4f2ace902",
+          "bytes": 8205
+        },
+        {
+          "path": "hexsweeper/sphere/sphere.js",
+          "source": "sphere/sphere.js",
+          "sha256": "6792801b5a4430ef1f2d7b19f8fbd32f4705bf6d11e3121aa7bd5e3591c2016b",
+          "bytes": 234541
+        }
+      ],
+      "art": "sphere.png"
+    },
+    {
+      "id": "notan",
+      "title": "Notan",
+      "repository": "lukeslp/game-riffs",
+      "commit": "1e8d92ea1b43fbaad45e0517b91a395c77365d11",
+      "entry": "notan/index.html",
+      "runtime": {
+        "id": "notan",
+        "entry": "index.html",
+        "files": [
+          "apple-touch-icon.png",
+          "engine.js",
+          "favicon.svg",
+          "fonts/IBMPlexMono-500.woff2",
+          "fonts/IBMPlexSans-400.woff2",
+          "fonts/OFL.txt",
+          "index.html",
+          "levels.js",
+          "notan.css",
+          "notan.js",
+          "og.png",
+          "paint-input.js",
+          "plus-levels.js",
+          "practice.js",
+          "controls.css",
+          "controls.js",
+          "access.js",
+          "bridge-client.js"
+        ]
+      },
+      "variants": [],
+      "files": [
+        {
+          "path": "notan/access.js",
+          "source": "notan/access.js",
+          "sha256": "dbaa0dc4c9766f7b94dae13ebaab821a5f7606ec5851c56d65f3da5ef70e4215",
+          "bytes": 86374
+        },
+        {
+          "path": "notan/apple-touch-icon.png",
+          "source": "notan/apple-touch-icon.png",
+          "sha256": "4bd9ebdcfc5bc5c3107a43fbc0b8dc72bf38270d836064f48aade89bff556abf",
+          "bytes": 372
+        },
+        {
+          "path": "notan/bridge-client.js",
+          "source": "notan/bridge-client.js",
+          "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
+          "bytes": 5511
+        },
+        {
+          "path": "notan/controls.css",
+          "source": "notan/controls.css",
+          "sha256": "504988d0d545601468924ab0798a909b73958a8dd37a0aeda4719da619fbb0d1",
+          "bytes": 8274
+        },
+        {
+          "path": "notan/controls.js",
+          "source": "notan/controls.js",
+          "sha256": "ed5f8f2db17008e5fa3f1a088afbea15b3214010c5d1cfb31ee8e5e98836662d",
+          "bytes": 19205
+        },
+        {
+          "path": "notan/engine.js",
+          "source": "notan/engine.js",
+          "sha256": "ac4c1715c2ec4b3f76907842b1a006b800baa0d044c561e125ac963e9b82991c",
+          "bytes": 15180
+        },
+        {
+          "path": "notan/favicon.svg",
+          "source": "notan/favicon.svg",
+          "sha256": "146625776b28268e0d576f74e89000bd9b9ddf76677f9b6d4f8a81ec072872a5",
+          "bytes": 174
+        },
+        {
+          "path": "notan/fonts/IBMPlexMono-500.woff2",
+          "source": "notan/fonts/IBMPlexMono-500.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "path": "notan/fonts/IBMPlexSans-400.woff2",
+          "source": "notan/fonts/IBMPlexSans-400.woff2",
+          "sha256": "db71f8a28ad8501544fb4e7668e3c6d0b731760b6f20de3525ebaeba597f1922",
+          "bytes": 19156
+        },
+        {
+          "path": "notan/fonts/OFL.txt",
+          "source": "notan/fonts/OFL.txt",
+          "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+          "bytes": 4456
+        },
+        {
+          "path": "notan/index.html",
+          "source": "notan/index.html",
+          "sha256": "2e36ba9ea966c6f7538e074d1ecf5b4615212c4c2fae23bbc00cb112b7bdd3ed",
+          "bytes": 11535
+        },
+        {
+          "path": "notan/levels.js",
+          "source": "notan/levels.js",
+          "sha256": "9a645179538a883150b68f88da110c51441dbaef078de24db65406400a178adc",
+          "bytes": 10963
+        },
+        {
+          "path": "notan/notan.css",
+          "source": "notan/notan.css",
+          "sha256": "693874cad870b21de2518243d66f0648344d59059a6dacb883414be129e4e463",
+          "bytes": 17993
+        },
+        {
+          "path": "notan/notan.js",
+          "source": "notan/notan.js",
+          "sha256": "7a5545467ca284a52ffee3f7e745998736852a11a9e83e040ef60c120fe93290",
+          "bytes": 47146
+        },
+        {
+          "path": "notan/og.png",
+          "source": "notan/og.png",
+          "sha256": "ada7cb5c734859951df16f1b475513f3a77ed0293b12c522a96073970011eddf",
+          "bytes": 11874
+        },
+        {
+          "path": "notan/paint-input.js",
+          "source": "notan/paint-input.js",
+          "sha256": "94f8a0feee32c574bc54c272915702f5e5e0febdc3253d74d13c6b28521d054e",
+          "bytes": 4189
+        },
+        {
+          "path": "notan/plus-levels.js",
+          "source": "notan/plus-levels.js",
+          "sha256": "d62381d9918ab9db4b2a018dc885ff8d718844034b01332624e596d7adae436d",
+          "bytes": 7021
+        },
+        {
+          "path": "notan/practice.js",
+          "source": "notan/practice.js",
+          "sha256": "e46ea50bced8d20177e8019792d93440da89ffdad5c7dbf12a023bcbda72d90b",
+          "bytes": 5079
+        },
+        {
+          "path": "notan/runtime.json",
+          "source": "notan/runtime.json",
+          "sha256": "f729178046729732764f625adfd876a52227d7aa11e3bacb6f7fca26d9cf5a9c",
+          "bytes": 442
+        }
+      ],
+      "art": "notan.png"
+    },
+    {
+      "id": "akari",
+      "title": "Akari",
+      "repository": "lukeslp/game-riffs",
+      "commit": "1e8d92ea1b43fbaad45e0517b91a395c77365d11",
+      "entry": "akari/index.html",
+      "runtime": {
+        "id": "akari",
+        "entry": "index.html",
+        "files": [
+          "akari.css",
+          "akari.js",
+          "engine.js",
+          "favicon.svg",
+          "fonts/IBMPlexMono-500.woff2",
+          "fonts/IBMPlexSans-400.woff2",
+          "fonts/OFL.txt",
+          "index.html",
+          "levels.js",
+          "light-field.js",
+          "look.js",
+          "og.png",
+          "paint-input.js",
+          "controls.css",
+          "controls.js",
+          "access.js",
+          "bridge-client.js"
+        ]
+      },
+      "variants": [
+        {
+          "id": "light",
+          "entry": "akari-light/index.html",
+          "files": [
+            "access.js",
+            "akari.css",
+            "akari.js",
+            "bridge-client.js",
+            "controls.css",
+            "controls.js",
+            "engine.js",
+            "favicon.svg",
+            "fonts/IBMPlexMono-500.woff2",
+            "fonts/IBMPlexSans-400.woff2",
+            "fonts/OFL.txt",
+            "index.html",
+            "levels.js",
+            "look.js",
+            "og.png",
+            "paint-input.js"
+          ]
+        }
+      ],
+      "files": [
+        {
+          "path": "akari/access.js",
+          "source": "akari/access.js",
+          "sha256": "dbaa0dc4c9766f7b94dae13ebaab821a5f7606ec5851c56d65f3da5ef70e4215",
+          "bytes": 86374
+        },
+        {
+          "path": "akari/akari.css",
+          "source": "akari/akari.css",
+          "sha256": "6fd98523310844aafc333c59441f441765ac9ecfffc29a0a33cadf11f8426534",
+          "bytes": 12894
+        },
+        {
+          "path": "akari/akari.js",
+          "source": "akari/akari.js",
+          "sha256": "52bed743d0e7983233d3d1cafa895cd9d5150f7cb28da0457098f698c0bfd57b",
+          "bytes": 25608
+        },
+        {
+          "path": "akari/bridge-client.js",
+          "source": "akari/bridge-client.js",
+          "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
+          "bytes": 5511
+        },
+        {
+          "path": "akari/controls.css",
+          "source": "akari/controls.css",
+          "sha256": "504988d0d545601468924ab0798a909b73958a8dd37a0aeda4719da619fbb0d1",
+          "bytes": 8274
+        },
+        {
+          "path": "akari/controls.js",
+          "source": "akari/controls.js",
+          "sha256": "6fce3d30f50289eb2c14bd2ede0f3ac1dd528040796d924c02363c0ba0bf27a0",
+          "bytes": 19224
+        },
+        {
+          "path": "akari/engine.js",
+          "source": "akari/engine.js",
+          "sha256": "4059c65963faafc36657be10747503e0beca8162a484c12915d454749bb0b5cc",
+          "bytes": 9898
+        },
+        {
+          "path": "akari/favicon.svg",
+          "source": "akari/favicon.svg",
+          "sha256": "7de8e043d6ccf2407729e81e34d5da2d39cf62cca357f3a465a280296693c14d",
+          "bytes": 269
+        },
+        {
+          "path": "akari/fonts/IBMPlexMono-500.woff2",
+          "source": "akari/fonts/IBMPlexMono-500.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "path": "akari/fonts/IBMPlexSans-400.woff2",
+          "source": "akari/fonts/IBMPlexSans-400.woff2",
+          "sha256": "db71f8a28ad8501544fb4e7668e3c6d0b731760b6f20de3525ebaeba597f1922",
+          "bytes": 19156
+        },
+        {
+          "path": "akari/fonts/OFL.txt",
+          "source": "akari/fonts/OFL.txt",
+          "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+          "bytes": 4456
+        },
+        {
+          "path": "akari/index.html",
+          "source": "akari/index.html",
+          "sha256": "c8e0ebf73e1605dbf7d0a1c567e00b5315fea1f8ce649bf424e3eb798a68b4ff",
+          "bytes": 6590
+        },
+        {
+          "path": "akari/levels.js",
+          "source": "akari/levels.js",
+          "sha256": "13210e7d808b6bb86830bf73190a5665772d887035323b46e192301b58b51cf1",
+          "bytes": 10455
+        },
+        {
+          "path": "akari/light-field.js",
+          "source": "akari/light-field.js",
+          "sha256": "8a8981a00c387bb6d0cb460c9232d805d5ccc987d72f240233d418b64dd08761",
+          "bytes": 4088
+        },
+        {
+          "path": "akari/look.js",
+          "source": "akari/look.js",
+          "sha256": "d8a19f2be54bb970c4bc71a3483ac2cee01bb6cba8485dab852bea4822d47038",
+          "bytes": 4680
+        },
+        {
+          "path": "akari/og.png",
+          "source": "akari/og.png",
+          "sha256": "b85a70ea3a97780a71aeddd18ccbe9178f5d464978530e824257d4d04838bf50",
+          "bytes": 77955
+        },
+        {
+          "path": "akari/paint-input.js",
+          "source": "akari/paint-input.js",
+          "sha256": "ef44e02ace74ef2a98d06a8514fc86ae36d5aec32548b3fa7db8011aaf8c6234",
+          "bytes": 3374
+        },
+        {
+          "path": "akari/runtime.json",
+          "source": "akari/runtime.json",
+          "sha256": "1d5ac240087c23b54a4b39aeeefd51669ce9b7cb553a23ba1d6d6834b33c1dc3",
+          "bytes": 410
+        },
+        {
+          "path": "akari-light/access.js",
+          "source": "akari-classic/access.js",
+          "sha256": "dbaa0dc4c9766f7b94dae13ebaab821a5f7606ec5851c56d65f3da5ef70e4215",
+          "bytes": 86374
+        },
+        {
+          "path": "akari-light/akari.css",
+          "source": "akari-classic/akari.css",
+          "sha256": "6d492b7e4b0a4c25dde90d1581698ca9d2123d94f45840ddc10f221020909656",
+          "bytes": 7770
+        },
+        {
+          "path": "akari-light/akari.js",
+          "source": "akari-classic/akari.js",
+          "sha256": "bb3ae395d75b5b8c15aeee75ded9610b9d8c85832b85ab8655543440c22376e2",
+          "bytes": 21550
+        },
+        {
+          "path": "akari-light/bridge-client.js",
+          "source": "akari-classic/bridge-client.js",
+          "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
+          "bytes": 5511
+        },
+        {
+          "path": "akari-light/controls.css",
+          "source": "akari-classic/controls.css",
+          "sha256": "504988d0d545601468924ab0798a909b73958a8dd37a0aeda4719da619fbb0d1",
+          "bytes": 8274
+        },
+        {
+          "path": "akari-light/controls.js",
+          "source": "akari-classic/controls.js",
+          "sha256": "00e93cb602ae601b92c8b300cf3e44c9630fbb57a3e3fbe4a0bcaf3ad2030e99",
+          "bytes": 19222
+        },
+        {
+          "path": "akari-light/engine.js",
+          "source": "akari-classic/engine.js",
+          "sha256": "4059c65963faafc36657be10747503e0beca8162a484c12915d454749bb0b5cc",
+          "bytes": 9898
+        },
+        {
+          "path": "akari-light/favicon.svg",
+          "source": "akari-classic/favicon.svg",
+          "sha256": "7de8e043d6ccf2407729e81e34d5da2d39cf62cca357f3a465a280296693c14d",
+          "bytes": 269
+        },
+        {
+          "path": "akari-light/fonts/IBMPlexMono-500.woff2",
+          "source": "akari-classic/fonts/IBMPlexMono-500.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "path": "akari-light/fonts/IBMPlexSans-400.woff2",
+          "source": "akari-classic/fonts/IBMPlexSans-400.woff2",
+          "sha256": "db71f8a28ad8501544fb4e7668e3c6d0b731760b6f20de3525ebaeba597f1922",
+          "bytes": 19156
+        },
+        {
+          "path": "akari-light/fonts/OFL.txt",
+          "source": "akari-classic/fonts/OFL.txt",
+          "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+          "bytes": 4456
+        },
+        {
+          "path": "akari-light/index.html",
+          "source": "akari-classic/index.html",
+          "sha256": "5ceb3509dd0de99509d87a1d3dc7206a54f58f16771f938a51b888940344aff2",
+          "bytes": 6534
+        },
+        {
+          "path": "akari-light/levels.js",
+          "source": "akari-classic/levels.js",
+          "sha256": "13210e7d808b6bb86830bf73190a5665772d887035323b46e192301b58b51cf1",
+          "bytes": 10455
+        },
+        {
+          "path": "akari-light/look.js",
+          "source": "akari-classic/look.js",
+          "sha256": "d8a19f2be54bb970c4bc71a3483ac2cee01bb6cba8485dab852bea4822d47038",
+          "bytes": 4680
+        },
+        {
+          "path": "akari-light/og.png",
+          "source": "akari-classic/og.png",
+          "sha256": "77c8ae573bede40fb26176fb6d5770b592aeaaf5ea23ccb34f6665f08f4dcd42",
+          "bytes": 9786
+        },
+        {
+          "path": "akari-light/paint-input.js",
+          "source": "akari-classic/paint-input.js",
+          "sha256": "099636b4c258487eb534cb9c1164deb486bca1fbbeb3b31d3f290161d23ac503",
+          "bytes": 2775
+        }
+      ],
+      "art": "akari-8cfb609d45e3.png"
+    },
+    {
+      "id": "galaxies",
+      "title": "Spiral Galaxies",
+      "repository": "lukeslp/game-riffs",
+      "commit": "1e8d92ea1b43fbaad45e0517b91a395c77365d11",
+      "entry": "galaxies/index.html",
+      "runtime": {
+        "id": "galaxies",
+        "entry": "index.html",
+        "files": [
+          "boundaries/app.js",
+          "boundaries/engine.js",
+          "boundaries/index.html",
+          "boundaries/style.css",
+          "engine.js",
+          "favicon.svg",
+          "fonts/IBMPlexMono-500.woff2",
+          "fonts/IBMPlexSans-400.woff2",
+          "fonts/OFL.txt",
+          "galaxies.css",
+          "galaxies.js",
+          "index.html",
+          "levels.js",
+          "og.png",
+          "paint-input.js",
+          "sky.js",
+          "controls.css",
+          "controls.js",
+          "access.js",
+          "bridge-client.js"
+        ]
+      },
+      "variants": [],
+      "files": [
+        {
+          "path": "galaxies/access.js",
+          "source": "galaxies/access.js",
+          "sha256": "dbaa0dc4c9766f7b94dae13ebaab821a5f7606ec5851c56d65f3da5ef70e4215",
+          "bytes": 86374
+        },
+        {
+          "path": "galaxies/boundaries/app.js",
+          "source": "galaxies/boundaries/app.js",
+          "sha256": "5a0fa252574446961eb8b6d71c24c8c3e5815900f4f9d7012bbb3a07316d4af4",
+          "bytes": 11983
+        },
+        {
+          "path": "galaxies/boundaries/engine.js",
+          "source": "galaxies/boundaries/engine.js",
+          "sha256": "2be9798f97202a3f0ff037ca41d8c266ce90cbda54498c0dc3556b7abfa62123",
+          "bytes": 2165
+        },
+        {
+          "path": "galaxies/boundaries/index.html",
+          "source": "galaxies/boundaries/index.html",
+          "sha256": "e238bd535dfa3690e8f8ed5419af51df2ddf231fce807897104e70f53dce58c7",
+          "bytes": 2554
+        },
+        {
+          "path": "galaxies/boundaries/style.css",
+          "source": "galaxies/boundaries/style.css",
+          "sha256": "895d45d00e781732efb5e1eaabaec3c918d6671a324518982a12cb0f3bb0fd85",
+          "bytes": 6041
+        },
+        {
+          "path": "galaxies/bridge-client.js",
+          "source": "galaxies/bridge-client.js",
+          "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
+          "bytes": 5511
+        },
+        {
+          "path": "galaxies/controls.css",
+          "source": "galaxies/controls.css",
+          "sha256": "504988d0d545601468924ab0798a909b73958a8dd37a0aeda4719da619fbb0d1",
+          "bytes": 8274
+        },
+        {
+          "path": "galaxies/controls.js",
+          "source": "galaxies/controls.js",
+          "sha256": "278c0895185e2c23a9b13e45629031e4e6368dd540b76b6d2e29a906bcfc79cf",
+          "bytes": 19240
+        },
+        {
+          "path": "galaxies/engine.js",
+          "source": "galaxies/engine.js",
+          "sha256": "dd9f93c198f8e4160eeefb8463592a561bb5ce025f95be2518e9a4b25f5b7eb9",
+          "bytes": 15342
+        },
+        {
+          "path": "galaxies/favicon.svg",
+          "source": "galaxies/favicon.svg",
+          "sha256": "c0000b7c88dad8f804e73a0b803fc44fcd7bb4e7167d3258ccccdb96fd80ca28",
+          "bytes": 339
+        },
+        {
+          "path": "galaxies/fonts/IBMPlexMono-500.woff2",
+          "source": "galaxies/fonts/IBMPlexMono-500.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "path": "galaxies/fonts/IBMPlexSans-400.woff2",
+          "source": "galaxies/fonts/IBMPlexSans-400.woff2",
+          "sha256": "db71f8a28ad8501544fb4e7668e3c6d0b731760b6f20de3525ebaeba597f1922",
+          "bytes": 19156
+        },
+        {
+          "path": "galaxies/fonts/OFL.txt",
+          "source": "galaxies/fonts/OFL.txt",
+          "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+          "bytes": 4456
+        },
+        {
+          "path": "galaxies/galaxies.css",
+          "source": "galaxies/galaxies.css",
+          "sha256": "a164b78c957b5b7a0c7b5d50168e21e34e95e15dea7f31d889e76e653b8bf058",
+          "bytes": 19597
+        },
+        {
+          "path": "galaxies/galaxies.js",
+          "source": "galaxies/galaxies.js",
+          "sha256": "60e65a7e40e8428bf1cd800a2bf052c8a9daf092bcc2423a5555ea06de4c00fa",
+          "bytes": 38573
+        },
+        {
+          "path": "galaxies/index.html",
+          "source": "galaxies/index.html",
+          "sha256": "df56b5233c77d255fb201a3773943e3f0151b0181447d43bbc5f0e639be99592",
+          "bytes": 7583
+        },
+        {
+          "path": "galaxies/levels.js",
+          "source": "galaxies/levels.js",
+          "sha256": "025bfd3b1ef369835a190a2e5aeda6e28698979ac68b7d472e37f58f55c7b77a",
+          "bytes": 354702
+        },
+        {
+          "path": "galaxies/og.png",
+          "source": "galaxies/og.png",
+          "sha256": "02b27bcd0389b26495d27eb968d7259828e550313d6c1be2438a1d0f5f8c0a1a",
+          "bytes": 41051
+        },
+        {
+          "path": "galaxies/paint-input.js",
+          "source": "galaxies/paint-input.js",
+          "sha256": "f498eba690e7cccdd842a40823ec078b06b8b65f15170337c3fdc61484859735",
+          "bytes": 4924
+        },
+        {
+          "path": "galaxies/runtime.json",
+          "source": "galaxies/runtime.json",
+          "sha256": "1dd6a1d96fdd46c5a36494d47f6ef88cf7f32af4fd201d1c5e27841882adce9b",
+          "bytes": 506
+        },
+        {
+          "path": "galaxies/sky.js",
+          "source": "galaxies/sky.js",
+          "sha256": "5599c9e434fc740a246fcdf01442a33e53c7f139307a82fb9e8c2f8f26a7d77e",
+          "bytes": 19496
+        }
+      ],
+      "art": "galaxies.png"
+    },
+    {
+      "id": "bridges",
+      "title": "Bridges",
+      "repository": "lukeslp/game-riffs",
+      "commit": "1e8d92ea1b43fbaad45e0517b91a395c77365d11",
+      "entry": "bridges/index.html",
+      "runtime": {
+        "id": "bridges",
+        "entry": "index.html",
+        "files": [
+          "bridges.css",
+          "bridges.js",
+          "circuits.js",
+          "engine.js",
+          "favicon.svg",
+          "fonts/IBMPlexMono-500.woff2",
+          "fonts/IBMPlexSans-400.woff2",
+          "fonts/OFL.txt",
+          "index.html",
+          "levels.js",
+          "og.png",
+          "paint-input.js",
+          "score-clock.js",
+          "scores.js",
+          "controls.css",
+          "controls.js",
+          "access.js",
+          "bridge-client.js"
+        ]
+      },
+      "variants": [],
+      "files": [
+        {
+          "path": "bridges/access.js",
+          "source": "bridges/access.js",
+          "sha256": "dbaa0dc4c9766f7b94dae13ebaab821a5f7606ec5851c56d65f3da5ef70e4215",
+          "bytes": 86374
+        },
+        {
+          "path": "bridges/bridge-client.js",
+          "source": "bridges/bridge-client.js",
+          "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
+          "bytes": 5511
+        },
+        {
+          "path": "bridges/bridges.css",
+          "source": "bridges/bridges.css",
+          "sha256": "02a965b8baceb2d6c8f34c63670029f861bfa7701ffa491905b37f3b0ef58214",
+          "bytes": 15007
+        },
+        {
+          "path": "bridges/bridges.js",
+          "source": "bridges/bridges.js",
+          "sha256": "06f4dfe738fa344e9cf69f4d33c8cf80ec8af586de216bc706e82e2fd4dabbbd",
+          "bytes": 38801
+        },
+        {
+          "path": "bridges/circuits.js",
+          "source": "bridges/circuits.js",
+          "sha256": "d0686ce65d0873beff609574abc4f9972cad753bf3695c096a08552760ae5505",
+          "bytes": 6775
+        },
+        {
+          "path": "bridges/controls.css",
+          "source": "bridges/controls.css",
+          "sha256": "504988d0d545601468924ab0798a909b73958a8dd37a0aeda4719da619fbb0d1",
+          "bytes": 8274
+        },
+        {
+          "path": "bridges/controls.js",
+          "source": "bridges/controls.js",
+          "sha256": "ecb289111140841bb6d2672379b264b1760b39c51fa22018cf48f194814f8c21",
+          "bytes": 19174
+        },
+        {
+          "path": "bridges/engine.js",
+          "source": "bridges/engine.js",
+          "sha256": "2ea2bf751b91efc957e67454ab5074d69e73420546aeb3aeeca023ac0b504132",
+          "bytes": 12172
+        },
+        {
+          "path": "bridges/favicon.svg",
+          "source": "bridges/favicon.svg",
+          "sha256": "775f1cd68fc3517b593b952e0b01d87ac2391cc812d1f1ba837ba607db8cfad2",
+          "bytes": 300
+        },
+        {
+          "path": "bridges/fonts/IBMPlexMono-500.woff2",
+          "source": "bridges/fonts/IBMPlexMono-500.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "path": "bridges/fonts/IBMPlexSans-400.woff2",
+          "source": "bridges/fonts/IBMPlexSans-400.woff2",
+          "sha256": "db71f8a28ad8501544fb4e7668e3c6d0b731760b6f20de3525ebaeba597f1922",
+          "bytes": 19156
+        },
+        {
+          "path": "bridges/fonts/OFL.txt",
+          "source": "bridges/fonts/OFL.txt",
+          "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+          "bytes": 4456
+        },
+        {
+          "path": "bridges/index.html",
+          "source": "bridges/index.html",
+          "sha256": "99543255b3c72fccc614d01338f4f1fa66ae62b4c5c3a5fbe7037a724739e99b",
+          "bytes": 7523
+        },
+        {
+          "path": "bridges/levels.js",
+          "source": "bridges/levels.js",
+          "sha256": "2e3f6d3fbb8d948c8823d82e5b9ea93a0a05eeff7cde5ebd9f692a0c48810645",
+          "bytes": 205614
+        },
+        {
+          "path": "bridges/og.png",
+          "source": "bridges/og.png",
+          "sha256": "087294f789cc05bfd53d685ab281e95792929e612f7084931968cd33969d91df",
+          "bytes": 57863
+        },
+        {
+          "path": "bridges/paint-input.js",
+          "source": "bridges/paint-input.js",
+          "sha256": "20e64f32b77a5d4be620ed0070316728b35c22fae72e46cc40c3a40a140418c7",
+          "bytes": 6379
+        },
+        {
+          "path": "bridges/runtime.json",
+          "source": "bridges/runtime.json",
+          "sha256": "95a7238dbd58a436fdadb1ed00a597f205da5c8aa089aa3786a1c74116e60ac7",
+          "bytes": 437
+        },
+        {
+          "path": "bridges/score-clock.js",
+          "source": "bridges/score-clock.js",
+          "sha256": "00ea28741228b25a91f2b996bd84013a158abf0b78d7b744fb04bb83e69e5e83",
+          "bytes": 1120
+        },
+        {
+          "path": "bridges/scores.js",
+          "source": "bridges/scores.js",
+          "sha256": "0fe431cdbe95e17deff20a73a1c066929e454c0bed1622358bd7589a19e3a3ed",
+          "bytes": 9896
+        }
+      ],
+      "art": "bridges-b55b113f97e7.png"
+    },
+    {
+      "id": "slant",
+      "title": "Slant",
+      "repository": "lukeslp/game-riffs",
+      "commit": "1e8d92ea1b43fbaad45e0517b91a395c77365d11",
+      "entry": "slant/index.html",
+      "runtime": {
+        "id": "slant",
+        "entry": "index.html",
+        "files": [
+          "engine.js",
+          "favicon.svg",
+          "fonts/IBMPlexMono-500.woff2",
+          "fonts/IBMPlexSans-400.woff2",
+          "fonts/OFL.txt",
+          "index.html",
+          "levels.js",
+          "og.png",
+          "paint-input.js",
+          "regions.js",
+          "score-clock.js",
+          "scores.js",
+          "slant.css",
+          "slant.js",
+          "controls.css",
+          "controls.js",
+          "access.js",
+          "bridge-client.js"
+        ]
+      },
+      "variants": [],
+      "files": [
+        {
+          "path": "slant/access.js",
+          "source": "slant/access.js",
+          "sha256": "dbaa0dc4c9766f7b94dae13ebaab821a5f7606ec5851c56d65f3da5ef70e4215",
+          "bytes": 86374
+        },
+        {
+          "path": "slant/bridge-client.js",
+          "source": "slant/bridge-client.js",
+          "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
+          "bytes": 5511
+        },
+        {
+          "path": "slant/controls.css",
+          "source": "slant/controls.css",
+          "sha256": "504988d0d545601468924ab0798a909b73958a8dd37a0aeda4719da619fbb0d1",
+          "bytes": 8274
+        },
+        {
+          "path": "slant/controls.js",
+          "source": "slant/controls.js",
+          "sha256": "982adabcfef96122a047153b0af589f1729fc302be14558f9d733e5e56605b56",
+          "bytes": 19204
+        },
+        {
+          "path": "slant/engine.js",
+          "source": "slant/engine.js",
+          "sha256": "7a585973834b6de4ab81d02eacfc4cc094b62b5022afb096eabc7dafc25e1bf8",
+          "bytes": 9500
+        },
+        {
+          "path": "slant/favicon.svg",
+          "source": "slant/favicon.svg",
+          "sha256": "a5c5f57860ad12cc18f8af349df5e74398f7c95f610e4e2ed5c7cf83f314495d",
+          "bytes": 194
+        },
+        {
+          "path": "slant/fonts/IBMPlexMono-500.woff2",
+          "source": "slant/fonts/IBMPlexMono-500.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "path": "slant/fonts/IBMPlexSans-400.woff2",
+          "source": "slant/fonts/IBMPlexSans-400.woff2",
+          "sha256": "db71f8a28ad8501544fb4e7668e3c6d0b731760b6f20de3525ebaeba597f1922",
+          "bytes": 19156
+        },
+        {
+          "path": "slant/fonts/OFL.txt",
+          "source": "slant/fonts/OFL.txt",
+          "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+          "bytes": 4456
+        },
+        {
+          "path": "slant/index.html",
+          "source": "slant/index.html",
+          "sha256": "0945c12daa562abae965d9f8b9dd146e55015195db0638057d90ec9a3e5520bc",
+          "bytes": 8566
+        },
+        {
+          "path": "slant/levels.js",
+          "source": "slant/levels.js",
+          "sha256": "ed16190f1ee8181a5a1d2b199b2388b862314e3d33483835be6292c50944ffe0",
+          "bytes": 304000
+        },
+        {
+          "path": "slant/og.png",
+          "source": "slant/og.png",
+          "sha256": "1257ddce745a7d479fda044da36ce5f5fec7ca19c03b6bd6b1880ff018b35ab8",
+          "bytes": 43568
+        },
+        {
+          "path": "slant/paint-input.js",
+          "source": "slant/paint-input.js",
+          "sha256": "8962d1e56e3d1ba75fb4717e8f3513b2a6db0b4c0340ee939fdaa27009c51248",
+          "bytes": 3968
+        },
+        {
+          "path": "slant/regions.js",
+          "source": "slant/regions.js",
+          "sha256": "96feb60db1335129c0fa0f433346d0eee49eac133b988957e9efcfbf300cb23b",
+          "bytes": 5022
+        },
+        {
+          "path": "slant/runtime.json",
+          "source": "slant/runtime.json",
+          "sha256": "84eaf2ae40cc41df3e92cf2a5c63403c081d0216e9c6ae6cf5e6b143696fe73f",
+          "bytes": 430
+        },
+        {
+          "path": "slant/score-clock.js",
+          "source": "slant/score-clock.js",
+          "sha256": "00ea28741228b25a91f2b996bd84013a158abf0b78d7b744fb04bb83e69e5e83",
+          "bytes": 1120
+        },
+        {
+          "path": "slant/scores.js",
+          "source": "slant/scores.js",
+          "sha256": "0fe431cdbe95e17deff20a73a1c066929e454c0bed1622358bd7589a19e3a3ed",
+          "bytes": 9896
+        },
+        {
+          "path": "slant/slant.css",
+          "source": "slant/slant.css",
+          "sha256": "a531b0fabe87f8fdc6edd6adabb0ac78d757bb35e98993b267b089ae7a724cb6",
+          "bytes": 14956
+        },
+        {
+          "path": "slant/slant.js",
+          "source": "slant/slant.js",
+          "sha256": "f63c7efaf3330e45ace9d3d1094462c3ca40e2dd96be99f75a24ef21fa4f3be7",
+          "bytes": 40635
+        }
+      ],
+      "art": "slant.png"
+    },
+    {
+      "id": "fold",
+      "title": "Fold",
+      "repository": "lukeslp/game-riffs",
+      "commit": "1e8d92ea1b43fbaad45e0517b91a395c77365d11",
+      "entry": "fold/index.html",
+      "runtime": {
+        "id": "fold",
+        "entry": "index.html",
+        "stageCount": 50,
+        "files": [
+          "engine.js",
+          "favicon.svg",
+          "fold.css",
+          "fold.js",
+          "fonts/IBMPlexMono-500.woff2",
+          "fonts/IBMPlexSans-400.woff2",
+          "fonts/OFL.txt",
+          "index.html",
+          "levels.js",
+          "og.png",
+          "controls.css",
+          "controls.js",
+          "access.js",
+          "bridge-client.js"
+        ]
+      },
+      "variants": [],
+      "files": [
+        {
+          "path": "fold/access.js",
+          "source": "fold/access.js",
+          "sha256": "dbaa0dc4c9766f7b94dae13ebaab821a5f7606ec5851c56d65f3da5ef70e4215",
+          "bytes": 86374
+        },
+        {
+          "path": "fold/bridge-client.js",
+          "source": "fold/bridge-client.js",
+          "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
+          "bytes": 5511
+        },
+        {
+          "path": "fold/controls.css",
+          "source": "fold/controls.css",
+          "sha256": "504988d0d545601468924ab0798a909b73958a8dd37a0aeda4719da619fbb0d1",
+          "bytes": 8274
+        },
+        {
+          "path": "fold/controls.js",
+          "source": "fold/controls.js",
+          "sha256": "1e7470ac658da19baa295a4bc3db0278c55364a6d7d3ee5f20f2be411916a7a1",
+          "bytes": 19188
+        },
+        {
+          "path": "fold/engine.js",
+          "source": "fold/engine.js",
+          "sha256": "96bf65f81a2ef0fa283855eb37b7b217581f1b229b9022f1858b6d5e54c719e2",
+          "bytes": 8719
+        },
+        {
+          "path": "fold/favicon.svg",
+          "source": "fold/favicon.svg",
+          "sha256": "15edb03181ad154242aece26f43754d7fdef2d3facf841f4ea5f92170f6d1398",
+          "bytes": 346
+        },
+        {
+          "path": "fold/fold.css",
+          "source": "fold/fold.css",
+          "sha256": "e3aa49691c6d5f0d9d0f5ec8aad8b535d22108b97f59636b2f26893329d1393e",
+          "bytes": 17068
+        },
+        {
+          "path": "fold/fold.js",
+          "source": "fold/fold.js",
+          "sha256": "c63eb58f4b6ec39e863c5d1200f861d7cf664894922fe1fd7a245349810c476e",
+          "bytes": 49487
+        },
+        {
+          "path": "fold/fonts/IBMPlexMono-500.woff2",
+          "source": "fold/fonts/IBMPlexMono-500.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "path": "fold/fonts/IBMPlexSans-400.woff2",
+          "source": "fold/fonts/IBMPlexSans-400.woff2",
+          "sha256": "db71f8a28ad8501544fb4e7668e3c6d0b731760b6f20de3525ebaeba597f1922",
+          "bytes": 19156
+        },
+        {
+          "path": "fold/fonts/OFL.txt",
+          "source": "fold/fonts/OFL.txt",
+          "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+          "bytes": 4456
+        },
+        {
+          "path": "fold/index.html",
+          "source": "fold/index.html",
+          "sha256": "ededacb236f4aa068f3c605f4f5f2d3da1822d1fabdded9e2aa9652f68403ea3",
+          "bytes": 6495
+        },
+        {
+          "path": "fold/levels.js",
+          "source": "fold/levels.js",
+          "sha256": "6fd987a1daf90d5a9a9c6f12b5e8972bad85a21b8b71a3fb27fb2302919828a0",
+          "bytes": 4822
+        },
+        {
+          "path": "fold/og.png",
+          "source": "fold/og.png",
+          "sha256": "c4bc085a5f2a1f3050aecfbf4b9e8df01f2385c03f0fc7658c6333b5ee8e2d07",
+          "bytes": 254467
+        },
+        {
+          "path": "fold/runtime.json",
+          "source": "fold/runtime.json",
+          "sha256": "94286f0cedfa92cd355c1317e09a241338198a047302f092fe57c850f20f032d",
+          "bytes": 368
+        }
+      ],
+      "art": "fold.png"
+    },
+    {
+      "id": "bending",
+      "title": "Bending",
+      "repository": "lukeslp/game-riffs",
+      "commit": "1e8d92ea1b43fbaad45e0517b91a395c77365d11",
+      "entry": "bending/index.html",
+      "runtime": {
+        "id": "rimlight",
+        "version": 1,
+        "entry": "index.html",
+        "files": [
+          "index.html",
+          "classic.html",
+          "dark.mjs",
+          "campaign.mjs",
+          "dark-view.mjs",
+          "sky.mjs",
+          "dark.css",
+          "well.mjs",
+          "boards.mjs",
+          "main.mjs",
+          "shell.mjs",
+          "levels.mjs",
+          "engine.mjs",
+          "render.mjs",
+          "rimlight.css",
+          "fonts/IBMPlexMono-500.woff2",
+          "fonts/IBMPlexSans-400.woff2",
+          "fonts/OFL.txt",
+          "controls.css",
+          "controls.js",
+          "access.js",
+          "bridge-client.js"
+        ],
+        "stageCount": 50,
+        "classicStageCount": 12
+      },
+      "variants": [],
+      "files": [
+        {
+          "path": "bending/access.js",
+          "source": "rimlight/access.js",
+          "sha256": "dbaa0dc4c9766f7b94dae13ebaab821a5f7606ec5851c56d65f3da5ef70e4215",
+          "bytes": 86374
+        },
+        {
+          "path": "bending/boards.mjs",
+          "source": "rimlight/boards.mjs",
+          "sha256": "7924441f9af310640c5248466d14e6f8c094bf6501d205db58ebb63b60e4cc91",
+          "bytes": 9006
+        },
+        {
+          "path": "bending/bridge-client.js",
+          "source": "rimlight/bridge-client.js",
+          "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
+          "bytes": 5511
+        },
+        {
+          "path": "bending/campaign.mjs",
+          "source": "rimlight/campaign.mjs",
+          "sha256": "afbaeef6c53e5dca79cd428032d68388d184f3957a13d11bb685a67e79fb62d4",
+          "bytes": 2101
+        },
+        {
+          "path": "bending/classic.html",
+          "source": "rimlight/classic.html",
+          "sha256": "3e5576c9167fe8859bc798561ebacaac991f7491ae4b474e86913fa8b39f8ddf",
+          "bytes": 5667
+        },
+        {
+          "path": "bending/controls.css",
+          "source": "rimlight/controls.css",
+          "sha256": "504988d0d545601468924ab0798a909b73958a8dd37a0aeda4719da619fbb0d1",
+          "bytes": 8274
+        },
+        {
+          "path": "bending/controls.js",
+          "source": "rimlight/controls.js",
+          "sha256": "2cba067d9ad389f4043daea9ff605d8c809b9656458d8ff93bfd3ce35ca436f8",
+          "bytes": 19235
+        },
+        {
+          "path": "bending/dark-view.mjs",
+          "source": "rimlight/dark-view.mjs",
+          "sha256": "22e68cfdd76842837be729c604904a5152fac98af159671bf46602dc38b5cec6",
+          "bytes": 26344
+        },
+        {
+          "path": "bending/dark.css",
+          "source": "rimlight/dark.css",
+          "sha256": "c6dd413fffe3fa7bea24858baca50be7308889877aae9e267a8a6203fffa6b11",
+          "bytes": 2545
+        },
+        {
+          "path": "bending/dark.mjs",
+          "source": "rimlight/dark.mjs",
+          "sha256": "d143c10b8f953e7fb9bf41fe0e6d06dce0a03e96d75d1b5dd5060308b9af9b8b",
+          "bytes": 21754
+        },
+        {
+          "path": "bending/engine.mjs",
+          "source": "rimlight/engine.mjs",
+          "sha256": "9a6ec0cbe21de8a0f46eb2205c9774cb9f252bcafa8c27b2197eb60fb557c397",
+          "bytes": 19638
+        },
+        {
+          "path": "bending/fonts/IBMPlexMono-500.woff2",
+          "source": "rimlight/fonts/IBMPlexMono-500.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "path": "bending/fonts/IBMPlexSans-400.woff2",
+          "source": "rimlight/fonts/IBMPlexSans-400.woff2",
+          "sha256": "db71f8a28ad8501544fb4e7668e3c6d0b731760b6f20de3525ebaeba597f1922",
+          "bytes": 19156
+        },
+        {
+          "path": "bending/fonts/OFL.txt",
+          "source": "rimlight/fonts/OFL.txt",
+          "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+          "bytes": 4456
+        },
+        {
+          "path": "bending/index.html",
+          "source": "rimlight/index.html",
+          "sha256": "97ea86f4ab08585139ed85fb7d17805edcb0c45010d5378ffd78c73b73ee6b23",
+          "bytes": 7283
+        },
+        {
+          "path": "bending/levels.mjs",
+          "source": "rimlight/levels.mjs",
+          "sha256": "79a1396c03a220c27b368530fc6d0509f2d35e063c73c67aff2e618e2c7e7283",
+          "bytes": 5116
+        },
+        {
+          "path": "bending/main.mjs",
+          "source": "rimlight/main.mjs",
+          "sha256": "0aabb9a3d43f00846f9d32b97066d1408003d33a19cfb7d15e9f85e9826dbae5",
+          "bytes": 72
+        },
+        {
+          "path": "bending/render.mjs",
+          "source": "rimlight/render.mjs",
+          "sha256": "1b4286ab41f7ebd1dc463413c9bd94ffc25a0d2d85ec1093115869f6c4ab5b92",
+          "bytes": 16931
+        },
+        {
+          "path": "bending/rimlight.css",
+          "source": "rimlight/rimlight.css",
+          "sha256": "66d3f8aa7b231103ea77abc70986edc2e9f78e786aebdce1caaad9af5363e620",
+          "bytes": 10241
+        },
+        {
+          "path": "bending/runtime.json",
+          "source": "rimlight/runtime.json",
+          "sha256": "20245a506989a342bc1c4ba541fdaed8c0afb3ff8c6db3888eb6ec397af6e7fe",
+          "bytes": 566
+        },
+        {
+          "path": "bending/shell.mjs",
+          "source": "rimlight/shell.mjs",
+          "sha256": "04e88b1d44bfe1d5599028f8912c825c5add76774d44b948701215a00b844ad0",
+          "bytes": 26605
+        },
+        {
+          "path": "bending/sky.mjs",
+          "source": "rimlight/sky.mjs",
+          "sha256": "301f4ded75764ebebf4c15264afb54e15e10d455a9d89707a0fe41592c4c321d",
+          "bytes": 1332
+        },
+        {
+          "path": "bending/well.mjs",
+          "source": "rimlight/well.mjs",
+          "sha256": "772402c729f4832f555ab9fa1765aa44b143107e16b6f14fe06e27e7308fbc96",
+          "bytes": 7546
+        }
+      ],
+      "art": "light.png"
+    },
+    {
+      "id": "tilt",
+      "title": "Tilt",
+      "repository": "lukeslp/game-riffs",
+      "commit": "1e8d92ea1b43fbaad45e0517b91a395c77365d11",
+      "entry": "tilt/index.html",
+      "runtime": {
+        "id": "tilt-levels",
+        "entry": "index.html",
+        "files": [
+          "engine.js",
+          "favicon.svg",
+          "fonts/IBMPlexMono-500.woff2",
+          "fonts/IBMPlexSans-400.woff2",
+          "fonts/OFL.txt",
+          "index.html",
+          "levels.js",
+          "og.png",
+          "tilt-input.js",
+          "tilt-levels.css",
+          "tilt-levels.js",
+          "controls.css",
+          "controls.js",
+          "access.js",
+          "bridge-client.js"
+        ]
+      },
+      "variants": [],
+      "files": [
+        {
+          "path": "tilt/access.js",
+          "source": "tilt-levels/access.js",
+          "sha256": "dbaa0dc4c9766f7b94dae13ebaab821a5f7606ec5851c56d65f3da5ef70e4215",
+          "bytes": 86374
+        },
+        {
+          "path": "tilt/bridge-client.js",
+          "source": "tilt-levels/bridge-client.js",
+          "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
+          "bytes": 5511
+        },
+        {
+          "path": "tilt/controls.css",
+          "source": "tilt-levels/controls.css",
+          "sha256": "504988d0d545601468924ab0798a909b73958a8dd37a0aeda4719da619fbb0d1",
+          "bytes": 8274
+        },
+        {
+          "path": "tilt/controls.js",
+          "source": "tilt-levels/controls.js",
+          "sha256": "0c3a643ae466eb234e3323a2d051895c7aaf9c4cd24b2ec9e11dd880eae48704",
+          "bytes": 19183
+        },
+        {
+          "path": "tilt/engine.js",
+          "source": "tilt-levels/engine.js",
+          "sha256": "734d969ebf9c842387dcd0ec6d204d3c2534f69d7e93d51866ebed4887fa7bb6",
+          "bytes": 6899
+        },
+        {
+          "path": "tilt/favicon.svg",
+          "source": "tilt-levels/favicon.svg",
+          "sha256": "0bbe9f6554d3bb1e00a7a6d49251b0565c24f1257115cc5946ac2c9e2f07437a",
+          "bytes": 365
+        },
+        {
+          "path": "tilt/fonts/IBMPlexMono-500.woff2",
+          "source": "tilt-levels/fonts/IBMPlexMono-500.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "path": "tilt/fonts/IBMPlexSans-400.woff2",
+          "source": "tilt-levels/fonts/IBMPlexSans-400.woff2",
+          "sha256": "db71f8a28ad8501544fb4e7668e3c6d0b731760b6f20de3525ebaeba597f1922",
+          "bytes": 19156
+        },
+        {
+          "path": "tilt/fonts/OFL.txt",
+          "source": "tilt-levels/fonts/OFL.txt",
+          "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+          "bytes": 4456
+        },
+        {
+          "path": "tilt/index.html",
+          "source": "tilt-levels/index.html",
+          "sha256": "667de77c709a06120c895b22598bb6ada601b5e859412da1485e87143c390341",
+          "bytes": 4769
+        },
+        {
+          "path": "tilt/levels.js",
+          "source": "tilt-levels/levels.js",
+          "sha256": "e3d3850e2f1a7dbc6541d1430eeac7abc3a016dbf8a474715d01339d09d8a91d",
+          "bytes": 7842
+        },
+        {
+          "path": "tilt/og.png",
+          "source": "tilt-levels/og.png",
+          "sha256": "6c7ffb5cf0518334c7dcb33e493d7cabee175dceb82cdd632c53eb1fc560a318",
+          "bytes": 12698
+        },
+        {
+          "path": "tilt/runtime.json",
+          "source": "tilt-levels/runtime.json",
+          "sha256": "1fd4a322d7189985525affacd832016f4d3f29107e694e859e27e5c354e117b1",
+          "bytes": 390
+        },
+        {
+          "path": "tilt/tilt-input.js",
+          "source": "tilt-levels/tilt-input.js",
+          "sha256": "02a623466af03eb68740aa054b73fa7c3a76a19036c30698d5ca4bb2ff38766d",
+          "bytes": 4804
+        },
+        {
+          "path": "tilt/tilt-levels.css",
+          "source": "tilt-levels/tilt-levels.css",
+          "sha256": "c19b9bfa972a0cf3b734b96a47b2edd5d10af12b714bc7277351de554af80edb",
+          "bytes": 6025
+        },
+        {
+          "path": "tilt/tilt-levels.js",
+          "source": "tilt-levels/tilt-levels.js",
+          "sha256": "4adcb5f3a10f3a7f05b19af4bbf2839de1457c3a87ccb2f261e262e02bd63b4e",
+          "bytes": 20644
+        }
+      ],
+      "art": "tilt.png"
+    },
+    {
+      "id": "horologist",
+      "title": "Horologist",
+      "repository": "lukeslp/game-riffs",
+      "commit": "1e8d92ea1b43fbaad45e0517b91a395c77365d11",
+      "entry": "horologist/index.html",
+      "runtime": {
+        "id": "horologist",
+        "entry": "index.html",
+        "files": [
+          "boards.js",
+          "engine.js",
+          "favicon.svg",
+          "fonts/IBMPlexMono-500.woff2",
+          "fonts/IBMPlexSans-400.woff2",
+          "fonts/OFL.txt",
+          "index.html",
+          "plate.css",
+          "plate.js",
+          "controls.css",
+          "controls.js",
+          "access.js",
+          "bridge-client.js"
+        ]
+      },
+      "variants": [],
+      "files": [
+        {
+          "path": "horologist/access.js",
+          "source": "horologist/access.js",
+          "sha256": "dbaa0dc4c9766f7b94dae13ebaab821a5f7606ec5851c56d65f3da5ef70e4215",
+          "bytes": 86374
+        },
+        {
+          "path": "horologist/boards.js",
+          "source": "horologist/boards.js",
+          "sha256": "ed22056ff71114589351ed53132bbc7833c448e93e4ca131ed2be620b608c8e7",
+          "bytes": 9822
+        },
+        {
+          "path": "horologist/bridge-client.js",
+          "source": "horologist/bridge-client.js",
+          "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
+          "bytes": 5511
+        },
+        {
+          "path": "horologist/controls.css",
+          "source": "horologist/controls.css",
+          "sha256": "504988d0d545601468924ab0798a909b73958a8dd37a0aeda4719da619fbb0d1",
+          "bytes": 8274
+        },
+        {
+          "path": "horologist/controls.js",
+          "source": "horologist/controls.js",
+          "sha256": "892ad8035b8420b451af372db511bf09edfc056e3fcb7f3f0d9c6999f8945f62",
+          "bytes": 19282
+        },
+        {
+          "path": "horologist/engine.js",
+          "source": "horologist/engine.js",
+          "sha256": "f3976ce7203cfff9ae264f21b074ed394509a84f8554e82a6ed7b3c1844be492",
+          "bytes": 5417
+        },
+        {
+          "path": "horologist/favicon.svg",
+          "source": "horologist/favicon.svg",
+          "sha256": "66c26f6de1da2b0d0982407eee5feab043b4d70638afdad695c5d04cbd579934",
+          "bytes": 437
+        },
+        {
+          "path": "horologist/fonts/IBMPlexMono-500.woff2",
+          "source": "horologist/fonts/IBMPlexMono-500.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "path": "horologist/fonts/IBMPlexSans-400.woff2",
+          "source": "horologist/fonts/IBMPlexSans-400.woff2",
+          "sha256": "db71f8a28ad8501544fb4e7668e3c6d0b731760b6f20de3525ebaeba597f1922",
+          "bytes": 19156
+        },
+        {
+          "path": "horologist/fonts/OFL.txt",
+          "source": "horologist/fonts/OFL.txt",
+          "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+          "bytes": 4456
+        },
+        {
+          "path": "horologist/index.html",
+          "source": "horologist/index.html",
+          "sha256": "3d64a623017de6567a2a66a596791d04cdb465432c9c3620c24914c448e086bf",
+          "bytes": 3491
+        },
+        {
+          "path": "horologist/plate.css",
+          "source": "horologist/plate.css",
+          "sha256": "4a64c74fb5a3782b2c067643d8aea5b30b6f5572d25fb703f6f7c20ead474a53",
+          "bytes": 10505
+        },
+        {
+          "path": "horologist/plate.js",
+          "source": "horologist/plate.js",
+          "sha256": "d8302e20da6dcb07e0a8e7af8d17ce7d703c4937f55c7a5a94daf3adc82873a7",
+          "bytes": 35537
+        },
+        {
+          "path": "horologist/runtime.json",
+          "source": "horologist/runtime.json",
+          "sha256": "a52e131aeb3d84dcdc3816ddd52f501d320b6a5d552ca2ba179d9edc623d7809",
+          "bytes": 342
+        }
+      ],
+      "art": "horologist-fe2978354a7d.png"
+    },
+    {
+      "id": "glance",
+      "title": "Glance",
+      "repository": "lukeslp/game-riffs",
+      "commit": "1e8d92ea1b43fbaad45e0517b91a395c77365d11",
+      "entry": "glance/index.html",
+      "runtime": {
+        "id": "glance",
+        "entry": "index.html",
+        "files": [
+          "THIRD_PARTY.md",
+          "boards.js",
+          "engine.js",
+          "favicon.svg",
+          "fonts/IBMPlexMono-500.woff2",
+          "fonts/IBMPlexSans-400.woff2",
+          "fonts/OFL.txt",
+          "gaze.js",
+          "glance.css",
+          "glance.js",
+          "index.html",
+          "payoff.js",
+          "track.js",
+          "vendor/LICENSE-MEDIAPIPE.txt",
+          "vendor/face_landmarker.task",
+          "vendor/vision_bundle.mjs",
+          "vendor/vision_wasm_internal.js",
+          "vendor/vision_wasm_internal.wasm",
+          "controls.css",
+          "controls.js",
+          "access.js",
+          "bridge-client.js"
+        ]
+      },
+      "variants": [],
+      "files": [
+        {
+          "path": "glance/THIRD_PARTY.md",
+          "source": "glance/THIRD_PARTY.md",
+          "sha256": "042e28afc1a72a243d39573d514d51bc1f789eab8eb19883987c3e283a6024b1",
+          "bytes": 3517
+        },
+        {
+          "path": "glance/access.js",
+          "source": "glance/access.js",
+          "sha256": "dbaa0dc4c9766f7b94dae13ebaab821a5f7606ec5851c56d65f3da5ef70e4215",
+          "bytes": 86374
+        },
+        {
+          "path": "glance/boards.js",
+          "source": "glance/boards.js",
+          "sha256": "08b927614f5e8022b9018c94f9ea7eed43b74c46fa59009fd1c504f6722b14ff",
+          "bytes": 3197
+        },
+        {
+          "path": "glance/bridge-client.js",
+          "source": "glance/bridge-client.js",
+          "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
+          "bytes": 5511
+        },
+        {
+          "path": "glance/controls.css",
+          "source": "glance/controls.css",
+          "sha256": "504988d0d545601468924ab0798a909b73958a8dd37a0aeda4719da619fbb0d1",
+          "bytes": 8274
+        },
+        {
+          "path": "glance/controls.js",
+          "source": "glance/controls.js",
+          "sha256": "fce2f5560c62f15b44aeeed35ff83dfe244aab3909cf934ee3d5885ae480f446",
+          "bytes": 19272
+        },
+        {
+          "path": "glance/engine.js",
+          "source": "glance/engine.js",
+          "sha256": "eb372ebd17befd70589c3325509c11fac90f2a7580078e2bf7ec234c92755a34",
+          "bytes": 5141
+        },
+        {
+          "path": "glance/favicon.svg",
+          "source": "glance/favicon.svg",
+          "sha256": "99b479829b88fef08b1ffe224a816e076d518a80a73df41a283a9b6b509b9fd2",
+          "bytes": 445
+        },
+        {
+          "path": "glance/fonts/IBMPlexMono-500.woff2",
+          "source": "glance/fonts/IBMPlexMono-500.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "path": "glance/fonts/IBMPlexSans-400.woff2",
+          "source": "glance/fonts/IBMPlexSans-400.woff2",
+          "sha256": "db71f8a28ad8501544fb4e7668e3c6d0b731760b6f20de3525ebaeba597f1922",
+          "bytes": 19156
+        },
+        {
+          "path": "glance/fonts/OFL.txt",
+          "source": "glance/fonts/OFL.txt",
+          "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+          "bytes": 4456
+        },
+        {
+          "path": "glance/gaze.js",
+          "source": "glance/gaze.js",
+          "sha256": "4792a2ac6ab18e4f4725e4f990e17abe6140639f9b1621e590b2156798809997",
+          "bytes": 13115
+        },
+        {
+          "path": "glance/glance.css",
+          "source": "glance/glance.css",
+          "sha256": "8a6b9d7af350abcb63e9f529e3e847b330ad33eea447f7becb27c1cbe58fd8d6",
+          "bytes": 10265
+        },
+        {
+          "path": "glance/glance.js",
+          "source": "glance/glance.js",
+          "sha256": "b9a87623eba582f08268ed936fde509c99786c1b1af6a52ed66e9e45e4f3bf5e",
+          "bytes": 54090
+        },
+        {
+          "path": "glance/index.html",
+          "source": "glance/index.html",
+          "sha256": "3d6a7e97e7e73227a355f39a0e41e83b95d068c5d245bd6aad9a3a3b0264aed0",
+          "bytes": 4829
+        },
+        {
+          "path": "glance/payoff.js",
+          "source": "glance/payoff.js",
+          "sha256": "e7730942fbb886d450c04fd1713bbb9a58343d85e5f0147402830f5b35df768b",
+          "bytes": 3428
+        },
+        {
+          "path": "glance/runtime.json",
+          "source": "glance/runtime.json",
+          "sha256": "2567b7228f49648f1b24bf061a10f379d849cc89d31e613263172e269ef12d95",
+          "bytes": 591
+        },
+        {
+          "path": "glance/track.js",
+          "source": "glance/track.js",
+          "sha256": "23fce0946deb9e049f4666b94615dde8d86b8e4b9f20b3d5ce04737f1b60e3c5",
+          "bytes": 4751
+        },
+        {
+          "path": "glance/vendor/LICENSE-MEDIAPIPE.txt",
+          "source": "glance/vendor/LICENSE-MEDIAPIPE.txt",
+          "sha256": "8707eef0533987efc5b155d64761eeb6e20793f50b9bd1a68dad1cf4719d0ed8",
+          "bytes": 12331
+        },
+        {
+          "path": "glance/vendor/face_landmarker.task",
+          "source": "glance/vendor/face_landmarker.task",
+          "sha256": "64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff",
+          "bytes": 3758596
+        },
+        {
+          "path": "glance/vendor/vision_bundle.mjs",
+          "source": "glance/vendor/vision_bundle.mjs",
+          "sha256": "55d7ab624fbb70dcc5adc4ae6d7ea9cfcb569139d3dbfbf2b1deafcb966bc0fe",
+          "bytes": 136993
+        },
+        {
+          "path": "glance/vendor/vision_wasm_internal.js",
+          "source": "glance/vendor/vision_wasm_internal.js",
+          "sha256": "e7fd9858e8e8f221d9b96eddc11f8e077f263e0b7bbd79d3cbe882b134274f8c",
+          "bytes": 322044
+        },
+        {
+          "path": "glance/vendor/vision_wasm_internal.wasm",
+          "source": "glance/vendor/vision_wasm_internal.wasm",
+          "sha256": "6a5c64584c2ab61c763b6e204afbdbc7ce1caf7f5216187322bca8df94f646bc",
+          "bytes": 11153617
+        }
+      ],
+      "art": "glance-74c875a48ff7.png",
+      "group": "accessible"
+    },
+    {
+      "id": "glyph",
+      "title": "Glyph",
+      "repository": "lukeslp/game-riffs",
+      "commit": "1e8d92ea1b43fbaad45e0517b91a395c77365d11",
+      "entry": "glyph/index.html",
+      "runtime": {
+        "id": "glyph",
+        "entry": "index.html",
+        "files": [
+          "THIRD_PARTY.md",
+          "boards.js",
+          "engine.js",
+          "favicon.svg",
+          "fonts/IBMPlexMono-500.woff2",
+          "fonts/IBMPlexSans-400.woff2",
+          "fonts/OFL.txt",
+          "gaze.js",
+          "glyph.css",
+          "glyph.js",
+          "index.html",
+          "payoff.js",
+          "trace.js",
+          "track.js",
+          "controls.css",
+          "controls.js",
+          "access.js",
+          "bridge-client.js"
+        ],
+        "sharedAssets": {
+          "../glance/vendor/": "MediaPipe Tasks Vision and its face landmarker model are not shipped here: track.js loads them, same origin, from the published Glance folder (/games/glance/vendor/) once the player chooses the camera. See THIRD_PARTY.md."
+        }
+      },
+      "variants": [],
+      "files": [
+        {
+          "path": "glyph/THIRD_PARTY.md",
+          "source": "glyph/THIRD_PARTY.md",
+          "sha256": "be5d3e27c7d70bb1605a0b2844d04f2872d1c638fdea310e6047d236907882b7",
+          "bytes": 1289
+        },
+        {
+          "path": "glyph/access.js",
+          "source": "glyph/access.js",
+          "sha256": "dbaa0dc4c9766f7b94dae13ebaab821a5f7606ec5851c56d65f3da5ef70e4215",
+          "bytes": 86374
+        },
+        {
+          "path": "glyph/boards.js",
+          "source": "glyph/boards.js",
+          "sha256": "b084535f745b529a947e26be94857e8e556a718194ff7074fb74f2279890058b",
+          "bytes": 3278
+        },
+        {
+          "path": "glyph/bridge-client.js",
+          "source": "glyph/bridge-client.js",
+          "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
+          "bytes": 5511
+        },
+        {
+          "path": "glyph/controls.css",
+          "source": "glyph/controls.css",
+          "sha256": "504988d0d545601468924ab0798a909b73958a8dd37a0aeda4719da619fbb0d1",
+          "bytes": 8274
+        },
+        {
+          "path": "glyph/controls.js",
+          "source": "glyph/controls.js",
+          "sha256": "aab6b5ce1a731999574177320aa7d072aa027575fdf4aa12125d90f2659ea5ec",
+          "bytes": 19314
+        },
+        {
+          "path": "glyph/engine.js",
+          "source": "glyph/engine.js",
+          "sha256": "a20a4dcc3744b57238748d25b56079a309622d8bbc21846794128b26849ae826",
+          "bytes": 8744
+        },
+        {
+          "path": "glyph/favicon.svg",
+          "source": "glyph/favicon.svg",
+          "sha256": "5f153e59880fbaea3c341411df1bc521905defc14ffae3ae1dea6cd23671878f",
+          "bytes": 243
+        },
+        {
+          "path": "glyph/fonts/IBMPlexMono-500.woff2",
+          "source": "glyph/fonts/IBMPlexMono-500.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "path": "glyph/fonts/IBMPlexSans-400.woff2",
+          "source": "glyph/fonts/IBMPlexSans-400.woff2",
+          "sha256": "db71f8a28ad8501544fb4e7668e3c6d0b731760b6f20de3525ebaeba597f1922",
+          "bytes": 19156
+        },
+        {
+          "path": "glyph/fonts/OFL.txt",
+          "source": "glyph/fonts/OFL.txt",
+          "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+          "bytes": 4456
+        },
+        {
+          "path": "glyph/gaze.js",
+          "source": "glyph/gaze.js",
+          "sha256": "5a5834ba811c381b623b2286a7f3a7ef751c14a8cf00b1f8a3dba94ca47dbfcb",
+          "bytes": 13171
+        },
+        {
+          "path": "glyph/glyph.css",
+          "source": "glyph/glyph.css",
+          "sha256": "0a37eda26125301a69115aa13aeecc8618333313d7e5106b08351a0e910922a1",
+          "bytes": 10127
+        },
+        {
+          "path": "glyph/glyph.js",
+          "source": "glyph/glyph.js",
+          "sha256": "3cc002769f60e09da0cbff2b5051c19fdeae522cccbb5b1b691ea9d419abb30d",
+          "bytes": 61642
+        },
+        {
+          "path": "glyph/index.html",
+          "source": "glyph/index.html",
+          "sha256": "a4a66a22b95ac338d4934f127c94d2df736a4d0ae568c88aa762dd410d4b05bf",
+          "bytes": 4923
+        },
+        {
+          "path": "glyph/payoff.js",
+          "source": "glyph/payoff.js",
+          "sha256": "bfdafaf0ff36fa3b3ea0a8a563f89da98cd0edd8a7c33d9ef27a5c5b7505ca54",
+          "bytes": 4565
+        },
+        {
+          "path": "glyph/runtime.json",
+          "source": "glyph/runtime.json",
+          "sha256": "daa2cd7b67495e5649f058cb2c1b7ac34114cb292275b8437ecf5e33a62a3cc0",
+          "bytes": 697
+        },
+        {
+          "path": "glyph/trace.js",
+          "source": "glyph/trace.js",
+          "sha256": "2f5308c2a078c3ea2672ff6ecaac6a4400d5aca1ed45310e0f806b9e34be03ae",
+          "bytes": 5157
+        },
+        {
+          "path": "glyph/track.js",
+          "source": "glyph/track.js",
+          "sha256": "c153c6111d0552d23f656a0174b2230d47b4af338e5bbb21777f1627a4152496",
+          "bytes": 4902
+        }
+      ],
+      "art": "glyph-653c82391a0f.png",
+      "group": "accessible"
+    },
+    {
+      "id": "pursuit",
+      "title": "Pursuit",
+      "repository": "lukeslp/game-riffs",
+      "commit": "1e8d92ea1b43fbaad45e0517b91a395c77365d11",
+      "entry": "pursuit/index.html",
+      "runtime": {
+        "id": "pursuit",
+        "entry": "index.html",
+        "files": [
+          "THIRD_PARTY.md",
+          "boards.js",
+          "engine.js",
+          "favicon.svg",
+          "fonts/IBMPlexMono-500.woff2",
+          "fonts/IBMPlexSans-400.woff2",
+          "fonts/OFL.txt",
+          "gaze.js",
+          "index.html",
+          "payoff.js",
+          "pursuit.css",
+          "pursuit.js",
+          "track.js",
+          "controls.css",
+          "controls.js",
+          "access.js",
+          "bridge-client.js"
+        ],
+        "embeddedAssets": {
+          "track.js::../glance/vendor/vision_bundle.mjs": "MediaPipe Tasks Vision is not copied into Pursuit: track.js loads the module, WebAssembly and face model that Glance already publishes at ../glance/vendor/ on the same origin, and only once the camera is chosen."
+        }
+      },
+      "variants": [],
+      "files": [
+        {
+          "path": "pursuit/THIRD_PARTY.md",
+          "source": "pursuit/THIRD_PARTY.md",
+          "sha256": "1e7528e08baaccf1fbf416cf986add49318d9a9e3e5d5190ffcd362b20f11a0e",
+          "bytes": 1450
+        },
+        {
+          "path": "pursuit/access.js",
+          "source": "pursuit/access.js",
+          "sha256": "dbaa0dc4c9766f7b94dae13ebaab821a5f7606ec5851c56d65f3da5ef70e4215",
+          "bytes": 86374
+        },
+        {
+          "path": "pursuit/boards.js",
+          "source": "pursuit/boards.js",
+          "sha256": "4d22da6f90145af3bfc14ec97bcd76775b4be649b79f308e837e170719276d2f",
+          "bytes": 54299
+        },
+        {
+          "path": "pursuit/bridge-client.js",
+          "source": "pursuit/bridge-client.js",
+          "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
+          "bytes": 5511
+        },
+        {
+          "path": "pursuit/controls.css",
+          "source": "pursuit/controls.css",
+          "sha256": "504988d0d545601468924ab0798a909b73958a8dd37a0aeda4719da619fbb0d1",
+          "bytes": 8274
+        },
+        {
+          "path": "pursuit/controls.js",
+          "source": "pursuit/controls.js",
+          "sha256": "c7864b845aedcc6a4cbcc749ca55ddd4a73fc4b9f15507523cc4bc16536ca4be",
+          "bytes": 19273
+        },
+        {
+          "path": "pursuit/engine.js",
+          "source": "pursuit/engine.js",
+          "sha256": "33309c7ce1de22275b90318fdde4c53518ea76ce36a121fe8ec02d6bd834081f",
+          "bytes": 13804
+        },
+        {
+          "path": "pursuit/favicon.svg",
+          "source": "pursuit/favicon.svg",
+          "sha256": "3f2fe2ad2ed4bb50b424377e210aae305f7b2f0f9fb40415818cdd8a5e9fb789",
+          "bytes": 461
+        },
+        {
+          "path": "pursuit/fonts/IBMPlexMono-500.woff2",
+          "source": "pursuit/fonts/IBMPlexMono-500.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "path": "pursuit/fonts/IBMPlexSans-400.woff2",
+          "source": "pursuit/fonts/IBMPlexSans-400.woff2",
+          "sha256": "db71f8a28ad8501544fb4e7668e3c6d0b731760b6f20de3525ebaeba597f1922",
+          "bytes": 19156
+        },
+        {
+          "path": "pursuit/fonts/OFL.txt",
+          "source": "pursuit/fonts/OFL.txt",
+          "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+          "bytes": 4456
+        },
+        {
+          "path": "pursuit/gaze.js",
+          "source": "pursuit/gaze.js",
+          "sha256": "7394a3ed023b73cd26c3c881109d15fc7a0b8d20eaa80684d6955998cc291143",
+          "bytes": 13688
+        },
+        {
+          "path": "pursuit/index.html",
+          "source": "pursuit/index.html",
+          "sha256": "56e9abc6c582848abf976c197fd5bd1771e350fc6bf37964caac5f73bbff8ec1",
+          "bytes": 4677
+        },
+        {
+          "path": "pursuit/payoff.js",
+          "source": "pursuit/payoff.js",
+          "sha256": "5af0cb093c29477ab1588b596a8ef23d21f58fa230a7a8f70f5307deb1f473c6",
+          "bytes": 6635
+        },
+        {
+          "path": "pursuit/pursuit.css",
+          "source": "pursuit/pursuit.css",
+          "sha256": "611804197c62afea5ad9ef35b431308ccfb68ac351c6353ae6a63bfa1699d704",
+          "bytes": 8205
+        },
+        {
+          "path": "pursuit/pursuit.js",
+          "source": "pursuit/pursuit.js",
+          "sha256": "5f30e5ed299cf63259045aa423adff4b954b8e58e3c9d56ab0c5dda1059e0039",
+          "bytes": 54535
+        },
+        {
+          "path": "pursuit/runtime.json",
+          "source": "pursuit/runtime.json",
+          "sha256": "f0bc7b01fb1e4b5300af837a117b4f6ca1817cdf4bd700d7753cc5ca5338bb32",
+          "bytes": 706
+        },
+        {
+          "path": "pursuit/track.js",
+          "source": "pursuit/track.js",
+          "sha256": "3bb8cf4b839369b449d279bc8b274910d7c5a0839160401c4fb530694fa3792b",
+          "bytes": 4889
+        }
+      ],
+      "art": "pursuit-64f8824f599a.png",
+      "group": "accessible"
+    },
+    {
+      "id": "shoo",
+      "title": "Shoo",
+      "repository": "lukeslp/game-riffs",
+      "commit": "1e8d92ea1b43fbaad45e0517b91a395c77365d11",
+      "entry": "shoo/index.html",
+      "runtime": {
+        "id": "shoo",
+        "entry": "index.html",
+        "files": [
+          "THIRD_PARTY.md",
+          "boards.js",
+          "engine.js",
+          "favicon.svg",
+          "fonts/IBMPlexMono-500.woff2",
+          "fonts/IBMPlexSans-400.woff2",
+          "fonts/OFL.txt",
+          "gaze.js",
+          "index.html",
+          "payoff.js",
+          "shoo.css",
+          "shoo.js",
+          "track.js",
+          "controls.css",
+          "controls.js",
+          "access.js",
+          "bridge-client.js"
+        ],
+        "embeddedAssets": {
+          "track.js::../glance/vendor/vision_bundle.mjs": "MediaPipe loads from Glance's published folder beside this one (/games/glance/vendor/, the same origin) the first time the camera starts; Shoo ships no copy of it."
+        }
+      },
+      "variants": [],
+      "files": [
+        {
+          "path": "shoo/THIRD_PARTY.md",
+          "source": "shoo/THIRD_PARTY.md",
+          "sha256": "664ce06c604791e479a712a1100c347a173d18a0519e611d49ad217cd8818f40",
+          "bytes": 1914
+        },
+        {
+          "path": "shoo/access.js",
+          "source": "shoo/access.js",
+          "sha256": "dbaa0dc4c9766f7b94dae13ebaab821a5f7606ec5851c56d65f3da5ef70e4215",
+          "bytes": 86374
+        },
+        {
+          "path": "shoo/boards.js",
+          "source": "shoo/boards.js",
+          "sha256": "b59893c000574f131848bbc7dc959a2b806dd9d67d1d024d4e5097ffc1b1edd4",
+          "bytes": 4865
+        },
+        {
+          "path": "shoo/bridge-client.js",
+          "source": "shoo/bridge-client.js",
+          "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
+          "bytes": 5511
+        },
+        {
+          "path": "shoo/controls.css",
+          "source": "shoo/controls.css",
+          "sha256": "504988d0d545601468924ab0798a909b73958a8dd37a0aeda4719da619fbb0d1",
+          "bytes": 8274
+        },
+        {
+          "path": "shoo/controls.js",
+          "source": "shoo/controls.js",
+          "sha256": "05ab076a2c9f04ab0544dfab0805d8eff15c9478219c42859bbeefa202f91c88",
+          "bytes": 19270
+        },
+        {
+          "path": "shoo/engine.js",
+          "source": "shoo/engine.js",
+          "sha256": "7245d986e643f86a77909ec999cac226365e8c6a3848d994ee84d8f6f7f856d8",
+          "bytes": 12468
+        },
+        {
+          "path": "shoo/favicon.svg",
+          "source": "shoo/favicon.svg",
+          "sha256": "608722652564c9b5b9473fc3d241d9382250cf9306e30b0f715f1e5f3df914b8",
+          "bytes": 698
+        },
+        {
+          "path": "shoo/fonts/IBMPlexMono-500.woff2",
+          "source": "shoo/fonts/IBMPlexMono-500.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "path": "shoo/fonts/IBMPlexSans-400.woff2",
+          "source": "shoo/fonts/IBMPlexSans-400.woff2",
+          "sha256": "db71f8a28ad8501544fb4e7668e3c6d0b731760b6f20de3525ebaeba597f1922",
+          "bytes": 19156
+        },
+        {
+          "path": "shoo/fonts/OFL.txt",
+          "source": "shoo/fonts/OFL.txt",
+          "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+          "bytes": 4456
+        },
+        {
+          "path": "shoo/gaze.js",
+          "source": "shoo/gaze.js",
+          "sha256": "79047e693750a6b4c571de9f58f192616262ddfaccad1ac1dd6fbf1a8f9b7cf3",
+          "bytes": 13221
+        },
+        {
+          "path": "shoo/index.html",
+          "source": "shoo/index.html",
+          "sha256": "83f60ee196cae100fd81345e456e2be43980c9338ec140772f6b770d64a37f39",
+          "bytes": 4933
+        },
+        {
+          "path": "shoo/payoff.js",
+          "source": "shoo/payoff.js",
+          "sha256": "e8c60ed6c1b4c21c4adcdb22065163f295d6fc4f8f85d8ebf08fa8b7b4559524",
+          "bytes": 3654
+        },
+        {
+          "path": "shoo/runtime.json",
+          "source": "shoo/runtime.json",
+          "sha256": "83d285c59e67132c4bd12faa5e5c8212e1bdf218d0ba73b766ac1156370d7b22",
+          "bytes": 649
+        },
+        {
+          "path": "shoo/shoo.css",
+          "source": "shoo/shoo.css",
+          "sha256": "ada30cea88556ce88b5bed957691223904048519506df732608af73ab797f756",
+          "bytes": 10721
+        },
+        {
+          "path": "shoo/shoo.js",
+          "source": "shoo/shoo.js",
+          "sha256": "d3f41ae0326b692bf3b43e9a128194f5869a9a96fcff9717471fb1508e7be2b6",
+          "bytes": 66172
+        },
+        {
+          "path": "shoo/track.js",
+          "source": "shoo/track.js",
+          "sha256": "fd03c4dd0bd5a2e6a674a83030d2b8d86306edfbb42994e07cabbf162b277f96",
+          "bytes": 4911
+        }
+      ],
+      "art": "shoo-60b69f11f929.png",
+      "group": "accessible"
+    },
+    {
+      "id": "nod",
+      "title": "Nod",
+      "repository": "lukeslp/game-riffs",
+      "commit": "1e8d92ea1b43fbaad45e0517b91a395c77365d11",
+      "entry": "nod/index.html",
+      "runtime": {
+        "id": "nod",
+        "entry": "index.html",
+        "files": [
+          "THIRD_PARTY.md",
+          "engine.js",
+          "favicon.svg",
+          "fonts/IBMPlexMono-500.woff2",
+          "fonts/IBMPlexSans-400.woff2",
+          "fonts/OFL.txt",
+          "gaze.js",
+          "index.html",
+          "levels.js",
+          "nod.css",
+          "nod.js",
+          "payoff.js",
+          "track.js",
+          "controls.css",
+          "controls.js",
+          "access.js",
+          "bridge-client.js"
+        ],
+        "embeddedAssets": {
+          "track.js::../glance/vendor/vision_bundle.mjs": "MediaPipe loads from Glance's published folder beside this one, on the same origin, once the camera is chosen; it is not shipped with Nod."
+        }
+      },
+      "variants": [],
+      "files": [
+        {
+          "path": "nod/THIRD_PARTY.md",
+          "source": "nod/THIRD_PARTY.md",
+          "sha256": "6dba292805747fcd578e825438f319fa3a10409763a196eea161110f2fa45113",
+          "bytes": 1010
+        },
+        {
+          "path": "nod/access.js",
+          "source": "nod/access.js",
+          "sha256": "dbaa0dc4c9766f7b94dae13ebaab821a5f7606ec5851c56d65f3da5ef70e4215",
+          "bytes": 86374
+        },
+        {
+          "path": "nod/bridge-client.js",
+          "source": "nod/bridge-client.js",
+          "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
+          "bytes": 5511
+        },
+        {
+          "path": "nod/controls.css",
+          "source": "nod/controls.css",
+          "sha256": "504988d0d545601468924ab0798a909b73958a8dd37a0aeda4719da619fbb0d1",
+          "bytes": 8274
+        },
+        {
+          "path": "nod/controls.js",
+          "source": "nod/controls.js",
+          "sha256": "32cf4a4a45cce3c5e5c2ef97692d6654be8862ced5ea92e8328e70e09ffbb458",
+          "bytes": 19260
+        },
+        {
+          "path": "nod/engine.js",
+          "source": "nod/engine.js",
+          "sha256": "734d969ebf9c842387dcd0ec6d204d3c2534f69d7e93d51866ebed4887fa7bb6",
+          "bytes": 6899
+        },
+        {
+          "path": "nod/favicon.svg",
+          "source": "nod/favicon.svg",
+          "sha256": "7c7cfb06094eb9353a3ef9bf63a0ea9e009613f3b8be95aa2b907a4bc0b85c9e",
+          "bytes": 438
+        },
+        {
+          "path": "nod/fonts/IBMPlexMono-500.woff2",
+          "source": "nod/fonts/IBMPlexMono-500.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "path": "nod/fonts/IBMPlexSans-400.woff2",
+          "source": "nod/fonts/IBMPlexSans-400.woff2",
+          "sha256": "db71f8a28ad8501544fb4e7668e3c6d0b731760b6f20de3525ebaeba597f1922",
+          "bytes": 19156
+        },
+        {
+          "path": "nod/fonts/OFL.txt",
+          "source": "nod/fonts/OFL.txt",
+          "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+          "bytes": 4456
+        },
+        {
+          "path": "nod/gaze.js",
+          "source": "nod/gaze.js",
+          "sha256": "e2465eeb28d340c0fc851c142a9aa0e4bf953f125c445bc9a98aa24eb2d73032",
+          "bytes": 19414
+        },
+        {
+          "path": "nod/index.html",
+          "source": "nod/index.html",
+          "sha256": "66cc18997824f55e147e774ad2e66493cf0a37f51f2e75e517d17b1ab6a877d7",
+          "bytes": 5074
+        },
+        {
+          "path": "nod/levels.js",
+          "source": "nod/levels.js",
+          "sha256": "e3d3850e2f1a7dbc6541d1430eeac7abc3a016dbf8a474715d01339d09d8a91d",
+          "bytes": 7842
+        },
+        {
+          "path": "nod/nod.css",
+          "source": "nod/nod.css",
+          "sha256": "af1385066a0e0a521068782dc18d707df22e984521a6b5e5d4a9a9f2748eff55",
+          "bytes": 9226
+        },
+        {
+          "path": "nod/nod.js",
+          "source": "nod/nod.js",
+          "sha256": "6825542192d9a094160ab3df2da3b600b4258ad994b2d97da35242a97e7bd0ee",
+          "bytes": 59146
+        },
+        {
+          "path": "nod/payoff.js",
+          "source": "nod/payoff.js",
+          "sha256": "3b1eedd253d03139b14664d0a4b7774eda10459ad6b4dcf2fd37899eae862b37",
+          "bytes": 8725
+        },
+        {
+          "path": "nod/runtime.json",
+          "source": "nod/runtime.json",
+          "sha256": "ef6c85b5e6a82a3c0636d9fc566dff0e582234caf6a1b976e9aa0b23209dd715",
+          "bytes": 621
+        },
+        {
+          "path": "nod/track.js",
+          "source": "nod/track.js",
+          "sha256": "6abdabc9d1b0c76cde355eb4f0d59f8791aba031bf10b89b019da3ae644e9e4d",
+          "bytes": 4896
+        }
+      ],
+      "art": "nod-e00c0c2f8d92.png",
+      "group": "accessible"
+    },
+    {
+      "id": "noon",
+      "title": "Noon",
+      "repository": "lukeslp/game-riffs",
+      "commit": "1e8d92ea1b43fbaad45e0517b91a395c77365d11",
+      "entry": "noon/index.html",
+      "runtime": {
+        "id": "noon",
+        "entry": "index.html",
+        "files": [
+          "boards.js",
+          "engine.js",
+          "favicon.svg",
+          "fonts/IBMPlexMono-500.woff2",
+          "fonts/IBMPlexSans-400.woff2",
+          "fonts/OFL.txt",
+          "index.html",
+          "noon.css",
+          "noon.js",
+          "controls.css",
+          "controls.js",
+          "access.js",
+          "bridge-client.js"
+        ]
+      },
+      "variants": [],
+      "files": [
+        {
+          "path": "noon/access.js",
+          "source": "noon/access.js",
+          "sha256": "dbaa0dc4c9766f7b94dae13ebaab821a5f7606ec5851c56d65f3da5ef70e4215",
+          "bytes": 86374
+        },
+        {
+          "path": "noon/boards.js",
+          "source": "noon/boards.js",
+          "sha256": "ce0289ef4161a013faa7003aee1fb2dbc74e785e927b358f042cba1a6641dca0",
+          "bytes": 47991
+        },
+        {
+          "path": "noon/bridge-client.js",
+          "source": "noon/bridge-client.js",
+          "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
+          "bytes": 5511
+        },
+        {
+          "path": "noon/controls.css",
+          "source": "noon/controls.css",
+          "sha256": "504988d0d545601468924ab0798a909b73958a8dd37a0aeda4719da619fbb0d1",
+          "bytes": 8274
+        },
+        {
+          "path": "noon/controls.js",
+          "source": "noon/controls.js",
+          "sha256": "4a7dfdaa90dff54fbff3ba0558761235aacbe19acf145e0ddba71c52aa8e61af",
+          "bytes": 19182
+        },
+        {
+          "path": "noon/engine.js",
+          "source": "noon/engine.js",
+          "sha256": "e9c4d2e7cc45c14cf58ee0130bf483187e4d4da83def2a4d9f7dc19841d4960a",
+          "bytes": 18943
+        },
+        {
+          "path": "noon/favicon.svg",
+          "source": "noon/favicon.svg",
+          "sha256": "b43d06fdd72380d6383d5e6f759eef1c6bb2cbb7c3474448ea5c69bc77c3671f",
+          "bytes": 394
+        },
+        {
+          "path": "noon/fonts/IBMPlexMono-500.woff2",
+          "source": "noon/fonts/IBMPlexMono-500.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "path": "noon/fonts/IBMPlexSans-400.woff2",
+          "source": "noon/fonts/IBMPlexSans-400.woff2",
+          "sha256": "db71f8a28ad8501544fb4e7668e3c6d0b731760b6f20de3525ebaeba597f1922",
+          "bytes": 19156
+        },
+        {
+          "path": "noon/fonts/OFL.txt",
+          "source": "noon/fonts/OFL.txt",
+          "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+          "bytes": 4456
+        },
+        {
+          "path": "noon/index.html",
+          "source": "noon/index.html",
+          "sha256": "ceeb92bb55c2c454f8c1bde564058166f3aa7a714ecf1bd2edbaec6b6531cfab",
+          "bytes": 4792
+        },
+        {
+          "path": "noon/noon.css",
+          "source": "noon/noon.css",
+          "sha256": "48199526659c02550cf755a822f3089d470fca33b12e7cd34e01e04f6b2659dc",
+          "bytes": 5691
+        },
+        {
+          "path": "noon/noon.js",
+          "source": "noon/noon.js",
+          "sha256": "b49e377384738a4d2c96b94a1d38f1650fe0a9b9413ed2c4f226ef5c4e0fadf0",
+          "bytes": 49246
+        },
+        {
+          "path": "noon/runtime.json",
+          "source": "noon/runtime.json",
+          "sha256": "ddec8452b868f1fc41f4d5b139fa3f4f025c225c52f533420549ad57f105a9ea",
+          "bytes": 334
+        }
+      ],
+      "art": "noon-61f3ddeb115d.png",
+      "group": "accessible"
+    },
+    {
+      "id": "sweep",
+      "title": "Sweep",
+      "repository": "lukeslp/game-riffs",
+      "commit": "1e8d92ea1b43fbaad45e0517b91a395c77365d11",
+      "entry": "sweep/index.html",
+      "runtime": {
+        "id": "sweep",
+        "entry": "index.html",
+        "files": [
+          "THIRD_PARTY.md",
+          "boards.js",
+          "engine.js",
+          "favicon.svg",
+          "fonts/IBMPlexMono-500.woff2",
+          "fonts/IBMPlexSans-400.woff2",
+          "fonts/OFL.txt",
+          "index.html",
+          "payoff.js",
+          "scan.js",
+          "sweep.css",
+          "sweep.js",
+          "controls.css",
+          "controls.js",
+          "access.js",
+          "bridge-client.js"
+        ]
+      },
+      "variants": [],
+      "files": [
+        {
+          "path": "sweep/THIRD_PARTY.md",
+          "source": "sweep/THIRD_PARTY.md",
+          "sha256": "ce7e32a504b6e70dca3041f0e34cb129548cd6b2c5b1b200d3f61381c48e8cc0",
+          "bytes": 364
+        },
+        {
+          "path": "sweep/access.js",
+          "source": "sweep/access.js",
+          "sha256": "dbaa0dc4c9766f7b94dae13ebaab821a5f7606ec5851c56d65f3da5ef70e4215",
+          "bytes": 86374
+        },
+        {
+          "path": "sweep/boards.js",
+          "source": "sweep/boards.js",
+          "sha256": "08b927614f5e8022b9018c94f9ea7eed43b74c46fa59009fd1c504f6722b14ff",
+          "bytes": 3197
+        },
+        {
+          "path": "sweep/bridge-client.js",
+          "source": "sweep/bridge-client.js",
+          "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
+          "bytes": 5511
+        },
+        {
+          "path": "sweep/controls.css",
+          "source": "sweep/controls.css",
+          "sha256": "504988d0d545601468924ab0798a909b73958a8dd37a0aeda4719da619fbb0d1",
+          "bytes": 8274
+        },
+        {
+          "path": "sweep/controls.js",
+          "source": "sweep/controls.js",
+          "sha256": "2fb863bb1338b3ddaadf407df369cc3abb9cb68d913e63029b27360f5f4ed7d3",
+          "bytes": 19183
+        },
+        {
+          "path": "sweep/engine.js",
+          "source": "sweep/engine.js",
+          "sha256": "eb372ebd17befd70589c3325509c11fac90f2a7580078e2bf7ec234c92755a34",
+          "bytes": 5141
+        },
+        {
+          "path": "sweep/favicon.svg",
+          "source": "sweep/favicon.svg",
+          "sha256": "6d73d0e967ec31aa76eba332f619bb861ea9e06f82f31b8466108e61d9f6769c",
+          "bytes": 688
+        },
+        {
+          "path": "sweep/fonts/IBMPlexMono-500.woff2",
+          "source": "sweep/fonts/IBMPlexMono-500.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "path": "sweep/fonts/IBMPlexSans-400.woff2",
+          "source": "sweep/fonts/IBMPlexSans-400.woff2",
+          "sha256": "db71f8a28ad8501544fb4e7668e3c6d0b731760b6f20de3525ebaeba597f1922",
+          "bytes": 19156
+        },
+        {
+          "path": "sweep/fonts/OFL.txt",
+          "source": "sweep/fonts/OFL.txt",
+          "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+          "bytes": 4456
+        },
+        {
+          "path": "sweep/index.html",
+          "source": "sweep/index.html",
+          "sha256": "c11bee847684a5daee95870e10b3750316606fb50b63dcc19fc8f74bab38c24a",
+          "bytes": 5449
+        },
+        {
+          "path": "sweep/payoff.js",
+          "source": "sweep/payoff.js",
+          "sha256": "110b8d10522475d78a7cd9b901125dfd6456f036e24967aa984a35c1984a0c0f",
+          "bytes": 6022
+        },
+        {
+          "path": "sweep/runtime.json",
+          "source": "sweep/runtime.json",
+          "sha256": "c33cf1bf8b3047ec4162538f5d808d0cbb2cead61add4563e197c23c6d67ed98",
+          "bytes": 391
+        },
+        {
+          "path": "sweep/scan.js",
+          "source": "sweep/scan.js",
+          "sha256": "863e115154280eeac08bb59bd8809e16b49aa8c49b90872de378d454160df8bd",
+          "bytes": 12096
+        },
+        {
+          "path": "sweep/sweep.css",
+          "source": "sweep/sweep.css",
+          "sha256": "9df1b6670f8c6be8b1a214bd0a8ce507617ffba251e66227ab1e1eb810716fec",
+          "bytes": 7172
+        },
+        {
+          "path": "sweep/sweep.js",
+          "source": "sweep/sweep.js",
+          "sha256": "0ac1970cbfc452d5316227bb4b0231f7e68c6683c969d466339c59a02dbb2ab3",
+          "bytes": 47344
+        }
+      ],
+      "art": "sweep-b314e7a11342.png",
+      "group": "accessible"
+    },
+    {
+      "id": "ticker",
+      "title": "Ticker",
+      "repository": "lukeslp/game-riffs",
+      "commit": "1e8d92ea1b43fbaad45e0517b91a395c77365d11",
+      "entry": "ticker/index.html",
+      "runtime": {
+        "id": "ticker",
+        "entry": "index.html",
+        "files": [
+          "boards.js",
+          "engine.js",
+          "favicon.svg",
+          "fonts/IBMPlexMono-500.woff2",
+          "payoff.js",
+          "fonts/IBMPlexSans-400.woff2",
+          "fonts/OFL.txt",
+          "index.html",
+          "ticker.css",
+          "ticker.js",
+          "controls.css",
+          "controls.js",
+          "access.js",
+          "bridge-client.js"
+        ]
+      },
+      "variants": [],
+      "files": [
+        {
+          "path": "ticker/access.js",
+          "source": "ticker/access.js",
+          "sha256": "dbaa0dc4c9766f7b94dae13ebaab821a5f7606ec5851c56d65f3da5ef70e4215",
+          "bytes": 86374
+        },
+        {
+          "path": "ticker/boards.js",
+          "source": "ticker/boards.js",
+          "sha256": "572c7b23e428b710977a49a46feb9ed846c46d2597228855b471e20949f814dd",
+          "bytes": 8100
+        },
+        {
+          "path": "ticker/bridge-client.js",
+          "source": "ticker/bridge-client.js",
+          "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
+          "bytes": 5511
+        },
+        {
+          "path": "ticker/controls.css",
+          "source": "ticker/controls.css",
+          "sha256": "504988d0d545601468924ab0798a909b73958a8dd37a0aeda4719da619fbb0d1",
+          "bytes": 8274
+        },
+        {
+          "path": "ticker/controls.js",
+          "source": "ticker/controls.js",
+          "sha256": "b44c97220f24de07cacc63febdce7dae59cf45572c348c51173f347e1e2f166b",
+          "bytes": 19207
+        },
+        {
+          "path": "ticker/engine.js",
+          "source": "ticker/engine.js",
+          "sha256": "e3cdf154501494a222045d3ddc6002a48627ce6a04cc7cdbe406f33599ae9605",
+          "bytes": 10990
+        },
+        {
+          "path": "ticker/favicon.svg",
+          "source": "ticker/favicon.svg",
+          "sha256": "d69f772825d1ef12e17fe6897971fcce682b5fcc078724bb6638f2dd750ffe42",
+          "bytes": 361
+        },
+        {
+          "path": "ticker/fonts/IBMPlexMono-500.woff2",
+          "source": "ticker/fonts/IBMPlexMono-500.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "path": "ticker/fonts/IBMPlexSans-400.woff2",
+          "source": "ticker/fonts/IBMPlexSans-400.woff2",
+          "sha256": "db71f8a28ad8501544fb4e7668e3c6d0b731760b6f20de3525ebaeba597f1922",
+          "bytes": 19156
+        },
+        {
+          "path": "ticker/fonts/OFL.txt",
+          "source": "ticker/fonts/OFL.txt",
+          "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+          "bytes": 4456
+        },
+        {
+          "path": "ticker/index.html",
+          "source": "ticker/index.html",
+          "sha256": "03b13875eeb86e394dfacaa090cc2799e6ac42a997ccac5bc43db5799028f6bb",
+          "bytes": 5116
+        },
+        {
+          "path": "ticker/payoff.js",
+          "source": "ticker/payoff.js",
+          "sha256": "761a3bc3c81922234ad46a668378ec542b47ffd788b9c4300dca37f155af582f",
+          "bytes": 3636
+        },
+        {
+          "path": "ticker/runtime.json",
+          "source": "ticker/runtime.json",
+          "sha256": "1a6709dec19fa255bf6820397c5faa445fd7e602a3f84c0d7a17658d5c191205",
+          "bytes": 357
+        },
+        {
+          "path": "ticker/ticker.css",
+          "source": "ticker/ticker.css",
+          "sha256": "e4c7fa4e5c2c9e20b17f021e4f8e37fd41f6bd659a9929ccec51813336a39dbf",
+          "bytes": 5234
+        },
+        {
+          "path": "ticker/ticker.js",
+          "source": "ticker/ticker.js",
+          "sha256": "69615502e4901bbb96fb2c14eb9677b828902f77cc901a12dd0382334a217363",
+          "bytes": 45023
+        }
+      ],
+      "art": "ticker-7cf400ae1da4.png",
+      "group": "accessible"
+    }
+  ],
+  "shared": [
+    {
+      "id": "mediapipe",
+      "title": "MediaPipe Face Landmarker (Apache-2.0)",
+      "repository": "lukeslp/game-riffs",
+      "commit": "1e8d92ea1b43fbaad45e0517b91a395c77365d11",
+      "files": [
+        {
+          "path": "glance/vendor/LICENSE-MEDIAPIPE.txt",
+          "source": "glance/vendor/LICENSE-MEDIAPIPE.txt",
+          "sha256": "8707eef0533987efc5b155d64761eeb6e20793f50b9bd1a68dad1cf4719d0ed8",
+          "bytes": 12331
+        },
+        {
+          "path": "glance/vendor/face_landmarker.task",
+          "source": "glance/vendor/face_landmarker.task",
+          "sha256": "64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff",
+          "bytes": 3758596
+        },
+        {
+          "path": "glance/vendor/vision_bundle.mjs",
+          "source": "glance/vendor/vision_bundle.mjs",
+          "sha256": "55d7ab624fbb70dcc5adc4ae6d7ea9cfcb569139d3dbfbf2b1deafcb966bc0fe",
+          "bytes": 136993
+        },
+        {
+          "path": "glance/vendor/vision_wasm_internal.js",
+          "source": "glance/vendor/vision_wasm_internal.js",
+          "sha256": "e7fd9858e8e8f221d9b96eddc11f8e077f263e0b7bbd79d3cbe882b134274f8c",
+          "bytes": 322044
+        },
+        {
+          "path": "glance/vendor/vision_wasm_internal.wasm",
+          "source": "glance/vendor/vision_wasm_internal.wasm",
+          "sha256": "6a5c64584c2ab61c763b6e204afbdbc7ce1caf7f5216187322bca8df94f646bc",
+          "bytes": 11153617
+        }
+      ]
+    }
+  ]
+}

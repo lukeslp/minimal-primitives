@@ -1,0 +1,5 @@
+<resources>
+    <!-- The library's own background and tile paper. -->
+    <color name="shell_background">#111111</color>
+    <color name="icon_paper">#FFFFFF</color>
+</resources>

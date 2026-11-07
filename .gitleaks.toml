@@ -1,0 +1,9 @@
+title = "Minimal"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Imported Hexsweeper browser preference keys and the public APK signer digest, not credentials"
+regexes = ['''hexsweeper-reflection-material-v1''', '''hexsweeper-endless-plate-v1''',
+           '''^e240104547e5c771f6b1c80ebc63cc1e472da24093407a1d449b4074d4d3e5f3$''']

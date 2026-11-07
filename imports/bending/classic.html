@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <title>Rimlight</title>
+  <meta name="description" content="Send a probe through a circular well. Clear every ringed planet before the probes run out.">
+  <link rel="preload" href="./fonts/IBMPlexMono-500.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="./rimlight.css?v=66d3f8aa">
+</head>
+<body>
+  <main id="app">
+    <h1 class="sr-only">Rimlight</h1>
+    <header class="readout"><span id="readout">Stage 1/12 · 3 probes · 0</span><span id="score-feedback" aria-live="polite" hidden></span></header>
+    <canvas id="well" tabindex="0" aria-label="Rimlight well. Slide along the rim to move the launcher, drag anywhere to swing the aim, then tap the probe or Fire to launch." aria-describedby="well-keys status"></canvas>
+    <p id="well-keys" class="sr-only">Left and right arrows move around the rim; up and down arrows turn the aim; hold Shift for a fine step. Space or Enter fires. U undoes. Escape drops a held aim.</p>
+    <div class="bar">
+      <div class="group" role="group" aria-label="Shot">
+        <button class="ib" id="undo" type="button" aria-label="Undo last shot">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h9.5a6.5 6.5 0 1 1 0 13H11"/></svg>
+        </button>
+      </div>
+      <button class="fire-button" id="fire" type="button" aria-label="Fire probe">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5.5v13L18 12Z"/></svg><span>Fire</span>
+      </button>
+      <div class="group" role="group" aria-label="Settings and help">
+        <button class="ib" id="settings-button" type="button" aria-label="Settings" aria-haspopup="dialog">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h4m4 0h8M4 17h8m4 0h4"/><circle cx="10" cy="7" r="2"/><circle cx="14" cy="17" r="2"/></svg>
+        </button>
+        <button class="ib" id="help-button" type="button" aria-label="Help" aria-haspopup="dialog">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M9.3 9.4a2.8 2.8 0 0 1 5.4.9c0 1.9-2.7 2.6-2.7 4.1"/><path d="M12 17.6h.01"/></svg>
+        </button>
+      </div>
+    </div>
+    <p class="sr-only" id="status" role="status" aria-live="polite"></p>
+  </main>
+
+  <dialog class="sheet" id="help" aria-labelledby="help-title"><div class="sheet-in">
+    <header class="sheet-head"><h2 id="help-title">Help</h2><form method="dialog"><button class="sheet-x" aria-label="Close" autofocus><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></header>
+    <div class="sheet-body">
+      <p>Clear every ringed planet before your probes run out. Planets pull. Bend around them for assists.</p>
+      <p>Curve around the star; the direct line falls in.</p>
+      <p>Beads on the guide are tenths of a second: they spread where a well speeds the probe up. The dashed line is the same aim with no pull at all.</p>
+      <dl class="keys">
+        <div><dt>Slide along the rim or <kbd>←</kbd> <kbd>→</kbd></dt><dd>moves the launcher</dd></div>
+        <div><dt>Drag anywhere or <kbd>↑</kbd> <kbd>↓</kbd></dt><dd>swings the aim</dd></div>
+        <div><dt>Tap inside the well</dt><dd>points the aim there</dd></div>
+        <div><dt>Tap the probe, Fire or <kbd>Space</kbd></dt><dd>launches</dd></div>
+      </dl>
+      <p>Left and right arrows move around the rim; up and down arrows turn the aim; hold Shift for a fine step. Space or Enter fires. U undoes. Escape drops a held aim.</p>
+      <div class="sheet-foot"><a class="foot-link" href="https://lukesteuber.com/">lukesteuber.com</a></div>
+    </div>
+  </div></dialog>
+
+  <dialog class="sheet" id="settings" aria-labelledby="settings-title"><div class="sheet-in">
+    <header class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="sheet-x" aria-label="Close" autofocus><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></header>
+    <div class="sheet-body">
+      <section aria-label="Play">
+        <div class="setting-row"><span id="sound-label">Sound</span><button type="button" class="text-action" id="sound" aria-labelledby="sound-label sound-state" aria-pressed="false"><span id="sound-state">Off</span></button></div>
+        <div class="setting-row"><span id="motion-label">Motion</span><button type="button" class="text-action" id="pause-toggle" aria-labelledby="motion-label motion-state" aria-pressed="true"><span id="motion-state">On</span></button></div>
+      </section>
+      <section aria-labelledby="stages-title">
+        <h3 id="stages-title">Stages</h3>
+        <ol id="stage-list" class="stage-list" aria-labelledby="stages-title"></ol>
+      </section>
+      <section aria-label="Reset">
+        <div class="actions">
+          <button type="button" class="text-action" id="reset-stage">Reset stage</button>
+          <button type="button" class="text-action" id="reset-game">Reset game</button>
+        </div>
+        <p class="save-note" id="save-note" hidden></p>
+      </section>
+    </div>
+  </div></dialog>
+
+  <script type="module" src="./main.mjs?v=31b88eb6"></script>
+  <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
+</body>
+</html>

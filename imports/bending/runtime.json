@@ -1,0 +1,31 @@
+{
+  "id": "rimlight",
+  "version": 1,
+  "entry": "index.html",
+  "files": [
+    "index.html",
+    "classic.html",
+    "dark.mjs",
+    "campaign.mjs",
+    "dark-view.mjs",
+    "sky.mjs",
+    "dark.css",
+    "well.mjs",
+    "boards.mjs",
+    "main.mjs",
+    "shell.mjs",
+    "levels.mjs",
+    "engine.mjs",
+    "render.mjs",
+    "rimlight.css",
+    "fonts/IBMPlexMono-500.woff2",
+    "fonts/IBMPlexSans-400.woff2",
+    "fonts/OFL.txt",
+    "controls.css",
+    "controls.js",
+    "access.js",
+    "bridge-client.js"
+  ],
+  "stageCount": 50,
+  "classicStageCount": 12
+}

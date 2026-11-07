@@ -1,0 +1,27 @@
+<!doctype html>
+<!-- Pursuit. By Luke Steuber. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="description" content="Choose by following: the ring your eyes, head or pointer follows comes to rest in the picture.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' ws://127.0.0.1:47913; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; font-src 'self'; object-src 'none'; base-uri 'none'">
+<title>Pursuit</title>
+<link rel="icon" href="./favicon.svg">
+<link rel="stylesheet" href="./pursuit.css?v=8109f646">
+<link rel="stylesheet" href="./controls.css?v=2e033f1e">
+</head>
+<body>
+<header><h1 class="sr-only">Pursuit</h1><button id="restart-btn" class="ib" type="button" aria-label="Restart board"></button><div id="readout" class="readout"></div><span id="live" class="live" role="img" aria-label="Camera on" hidden></span></header>
+<main id="board-shell"><div id="stage"><div id="board" role="application" tabindex="0" aria-roledescription="moving targets" aria-label="Board"></div><div id="completion"><button id="next-btn" class="ib" type="button" aria-label="Next board" hidden></button></div></div><button id="camera-start" class="camera-start" type="button" aria-label="Start the camera" hidden></button></main>
+<canvas id="scene" aria-hidden="true"></canvas>
+<video id="camera" playsinline muted aria-hidden="true"></video>
+<p id="announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+<nav class="toolbar" aria-label="Game controls"><div><button id="undo-btn" class="ib" type="button" aria-label="Undo"></button><button id="hint-btn" class="ib" type="button" aria-label="Hint"></button><button id="camera-btn" class="ib" type="button" aria-label="Camera" aria-pressed="false"></button></div><div><button id="settings-btn" class="ib" type="button" aria-label="Settings"></button><button id="help-btn" class="ib" type="button" aria-label="Help"></button></div></nav>
+<dialog id="settings" class="sheet" aria-labelledby="settings-title"><div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body"><label class="row">Input <select id="input"><option value="head">Head</option><option value="eyes">Eyes</option><option value="pointer">Pointer</option></select></label><div class="row">Gaze dot <button id="calibrate" class="text-btn" type="button">Calibrate</button></div><label class="row">Theme <select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label class="row">Motion <select id="motion"><option value="system">System</option><option value="reduce">Reduced</option></select></label><label class="row">Rewards <select id="rewards"><option value="colour">Colour</option><option value="calm">Calm</option></select></label><label class="row">Sound <select id="sound"><option value="off">Off</option><option value="on">On</option></select></label><section aria-labelledby="catalog-title"><h3 id="catalog-title">Boards</h3><ol id="board-catalog" class="campaign-catalog"></ol></section></div><footer class="sheet-foot"><a href="https://lukesteuber.com">Luke Steuber</a></footer></dialog>
+<dialog id="help" class="sheet" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">How to play</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body"><p>Follow a ring with your eyes, your head or a pointer until its trail fills, and it comes to rest in the picture.</p><p>Fill every ring in as few choices as you can; a wrong one is crossed out, and the drifting undo takes it back.</p><p>Camera frames never leave this device and nothing is stored; the camera stops when you leave or choose Pointer.</p></div><footer class="sheet-foot"><a href="https://lukesteuber.com">Luke Steuber</a></footer></dialog>
+<script src="./engine.js?v=b04883e5"></script><script src="./boards.js?v=576cd0c1"></script><script src="./gaze.js?v=24a44f8b"></script><script src="./track.js?v=6e82cb03"></script><script src="./payoff.js?v=2bcb8a14"></script><script src="./pursuit.js?v=c359a16f"></script>
+<script defer src="./controls.js?v=0d552692"></script>
+</body>
+</html>

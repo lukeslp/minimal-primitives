@@ -1,0 +1,102 @@
+@font-face{font-family:"Plex Mono";src:url("./fonts/IBMPlexMono-500.woff2") format("woff2");font-weight:500;font-display:swap}@font-face{font-family:"Plex Sans";src:url("./fonts/IBMPlexSans-400.woff2") format("woff2");font-weight:400;font-display:swap}
+:root{color-scheme:light;--bg:#fff;--correct:#0966ae;--incorrect:#bd2938;--ink:#000;--text:#111;--sub:#5e5e5e;--line:#d4d4d4;--guide:#8f8f8f;--frame:#1c1c1c;--band:rgba(0,0,0,.05);--scrim:rgba(255,255,255,.84);--mono:"Plex Mono",monospace;--sans:"Plex Sans",sans-serif}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--bg:#000;--correct:#82caff;--incorrect:#ff8791;--ink:#fff;--text:#ededed;--sub:#a6a6a6;--line:#2f2f2f;--frame:#ededed;--band:rgba(255,255,255,.06);--scrim:rgba(0,0,0,.8);}}
+:root[data-theme=dark]{color-scheme:dark;--bg:#000;--correct:#82caff;--incorrect:#ff8791;--ink:#fff;--text:#ededed;--sub:#a6a6a6;--line:#2f2f2f;--frame:#ededed;--band:rgba(255,255,255,.06);--scrim:rgba(0,0,0,.8);}
+*{box-sizing:border-box;border-radius:0}body{margin:0;height:100dvh;overflow:hidden;background:var(--bg);color:var(--text);font:16px/1.45 var(--sans);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}button,select,input{font:inherit;color:inherit}button{cursor:pointer}button:disabled{opacity:.35;cursor:default}button:focus-visible,select:focus-visible{outline:2px solid var(--ink);outline-offset:2px}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.readout{position:fixed;top:max(12px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);font:500 13px/1 var(--mono);letter-spacing:.02em;color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap}
+/* In free draw the readout's place is taken by the mode's name and its one choice, the size of the board. */
+.free-bar{top:max(0px,env(safe-area-inset-top));height:48px;display:flex;align-items:center;gap:8px}.free-bar[hidden],.readout[hidden]{display:none}.free-bar select{min-height:44px;padding:0 6px;border:0;border-bottom:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;letter-spacing:inherit}.free-bar select:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+#board-shell{position:absolute;inset:28px 12px 56px;display:flex;overflow:auto;overscroll-behavior:contain;touch-action:none;padding:14px;scrollbar-width:thin}.board{position:relative;display:flex;flex-direction:column;flex:none;user-select:none;touch-action:none;border:1px solid var(--guide)}.grid-row{display:flex;flex:none}.cell{width:var(--cell);height:var(--cell);flex:none;position:relative;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--bg);color:var(--ink);touch-action:none}.grid-row:last-of-type .cell{border-bottom:0}.cell:last-child{border-right:0}.cell svg{display:block;width:100%;height:100%;overflow:visible;stroke:currentColor;stroke-width:2;fill:none}.cell svg path{vector-effect:non-scaling-stroke}
+/* The drawn line turns inside its own square (clipped 2px out so its corner ends stay whole); the hint ghost stays in flow. */
+.cell>svg.line{position:absolute;inset:0;clip-path:inset(-2px)}
+.cell>svg.line path{transform-origin:50px 50px;transition:transform .12s cubic-bezier(0,0,.58,1)}.cell .ghost{stroke-dasharray:4 4;stroke-width:2}.cell.evidence svg path{stroke-dasharray:5 3;stroke-width:3}.cell.path-evidence svg path{stroke-width:3;stroke-dasharray:6 2}.cell.cycle svg{stroke-width:5;stroke-dasharray:5 2}.cell.hint-target svg{animation:pulse 650ms 2}.cell:focus-visible{z-index:2;outline:none}.cell:focus-visible::after{content:"";position:absolute;left:50%;top:50%;width:10px;height:10px;transform:translate(-50%,-50%);border:2px solid var(--ink);border-radius:50%;background:var(--bg);pointer-events:none}.vertices{position:absolute;inset:0;pointer-events:none}.clue{position:absolute;transform:translate(-50%,-50%);display:grid;place-items:center;width:24px;height:24px;background:var(--bg);border-radius:50%;font:500 clamp(13px,calc(var(--cell)*.24),21px)/1 var(--mono);color:var(--incorrect)}.clue.satisfied{color:var(--correct)}.clue.evidence{text-decoration:underline dotted;text-underline-offset:4px}.clue.error{font-weight:500}.board.solved .cell{border-color:transparent}.clue{transition:none}.cell{transition:border-color .6s}.board-stage{flex:none;margin:auto;display:flex;flex-direction:column;align-items:center;gap:8px;padding-bottom:56px;position:relative}.completion{position:absolute;top:calc(100% - 48px);height:48px;display:flex;justify-content:center;animation:next-reveal .45s .15s both}.completion[hidden]{display:none}.board.solved{animation:solved-settle .65s cubic-bezier(.3,.7,.2,1)}
+#feedback{position:fixed;bottom:56px;left:16px;right:16px;margin:0;text-align:center;color:var(--sub);font:13px/1.3 var(--sans);pointer-events:none}.toolbar{position:fixed;bottom:max(6px,env(safe-area-inset-bottom));left:8px;right:8px;display:flex;justify-content:space-between}.toolbar>div{display:flex}.ib{display:inline-grid;place-items:center;width:48px;height:48px;min-width:48px;min-height:48px;border:0;background:none;padding:12px;color:var(--ink);transition:opacity .15s,transform .1s}.ib svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.ib:active{transform:scale(.94)}.ib[aria-pressed=true]{outline:1px solid var(--ink);outline-offset:-7px}
+.sheet{width:min(32rem,calc(100vw - 16px));max-height:calc(100dvh - 16px);border:1px solid var(--frame);padding:0;background:var(--bg);color:var(--text)}.sheet[open]{display:flex;flex-direction:column}.sheet::backdrop{background:var(--scrim)}.sheet-head{display:flex;justify-content:space-between;align-items:center;padding:0 10px 0 24px;flex:none;border-bottom:1px solid var(--line)}h2{font:500 16px/1 var(--mono)}.sheet-head form{margin:0}.sheet-x{font:28px/1 var(--sans)}.sheet-body{padding:20px 24px;overflow:auto;min-height:0}.sheet-body p:first-child{margin-top:0}.sheet-body p{max-width:60ch}.row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;border-bottom:1px solid var(--line)}.row select{max-width:65%;min-height:44px;background:var(--bg);border:0;padding:4px 8px}.row button{min-height:44px;background:none;border:0;padding:8px}.row button:not(:disabled){text-decoration:underline;text-underline-offset:4px}.quiet{color:var(--sub);font:13px/1.4 var(--mono);overflow-wrap:anywhere;margin-top:8px}.sheet-foot{padding:12px 24px;border-top:1px solid var(--line);flex:none;color:var(--sub);font-size:14px}.sheet-foot a{color:inherit}.practice{--cell:64px;width:max-content;margin:20px auto}.practice-controls{display:flex;justify-content:center}.practice-controls .ib{padding:12px}#practice-feedback{min-height:1.45em}section{border-block:1px solid var(--line);padding-block:16px}
+@keyframes pulse{50%{opacity:.3}}
+@media(orientation:landscape) and (max-height:500px){.free-bar{height:32px}.free-bar select{min-height:32px}#board-shell{inset:32px 72px 12px 12px}.toolbar{left:auto;right:8px;top:12px;bottom:12px;flex-direction:column;width:48px}.toolbar>div{flex-direction:column}#feedback{left:12px;right:72px;bottom:4px;background:var(--bg);font-size:12px}.readout{left:calc(50% - 32px)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}:root[data-motion=reduce] *,:root[data-motion=reduce] *::before,:root[data-motion=reduce] *::after{animation:none!important;transition:none!important}
+@media(forced-colors:active){.clue{background:Canvas;color:CanvasText}.cell{background:Canvas;color:CanvasText;border-color:GrayText}.clue.satisfied{color:Highlight}.clue.mismatch{color:CanvasText;text-decoration:underline}.cell:focus-visible::after{border-color:CanvasText;background:Canvas}.sheet{border-color:CanvasText}}
+.row input{max-width:65%;width:180px;min-height:44px;background:var(--bg);border:1px solid var(--line);padding:4px 8px;font:13px var(--mono)}
+/* Corner clues stay above the opaque focused cell and its small cursor. */
+.vertices{z-index:3}
+
+
+@keyframes solved-settle{0%{transform:scale(1)}45%{transform:scale(.985)}100%{transform:scale(1)}}@keyframes next-reveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* Compact lessons follow the same sheet hierarchy as Notan. */
+.sheet-head{padding:8px 16px;gap:12px}.sheet-head h2{margin:0;line-height:1.3}.sheet-x{width:44px;height:44px;min-width:44px;min-height:44px;padding:10px}.sheet-x svg{width:24px;height:24px}
+.sheet-body{overscroll-behavior:contain;scroll-padding:12px}.sheet-body p{margin:0 0 16px}.sheet-foot{font-size:14px}
+.lesson{border:0;padding:0;margin:20px 0}.lesson-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:8px}.lesson-heading h3{margin:0;font:500 16px/1.4 var(--mono)}#lesson-count{color:var(--sub);font-variant-numeric:tabular-nums}
+.practice-stage{display:flex;align-items:center;justify-content:center;min-height:168px;padding:12px 0}.practice-stage .practice{margin:0;filter:none}.practice-controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.text-action{min-height:44px;padding:8px 12px;border:1px solid var(--line);background:none;font:500 14px/1.3 var(--mono);color:var(--text)}.text-action[aria-pressed=true]{background:var(--ink);color:var(--bg)}.text-action:focus-visible,.sheet summary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.sheet-body #practice-feedback{min-height:24px;margin:8px 0;color:var(--sub);font-size:14px}.lesson-nav{display:flex;justify-content:space-between;gap:12px}.controls{border-top:1px solid var(--line);padding-top:16px}.controls p{margin:0 0 6px}.help-more{border-top:1px solid var(--line);margin-top:16px;padding-top:4px}.help-more summary{cursor:pointer;min-height:44px;padding:12px 0;color:var(--sub)}.help-more p{font-size:14px}.sheet-body .help-more p:last-child{margin-bottom:0}
+@media(max-width:480px){.sheet-head{padding:8px 12px}.sheet-body{padding:16px}}
+
+/* Restart occupies the same upper-left position across the puzzle family. */
+#restart-btn{position:fixed;top:max(0px,env(safe-area-inset-top));left:8px;color:var(--sub);z-index:2}#restart-btn:focus-visible{color:var(--ink)}@media (hover:hover) and (pointer:fine){#restart-btn:hover{color:var(--ink)}}
+
+/* An inset frame marks a locked square without covering its diagonal. */
+.board,.board .cell{-webkit-user-select:none;-webkit-touch-callout:none}
+.cell .lock-frame{position:absolute;inset:5px;border:1px solid var(--guide);pointer-events:none;z-index:1}
+@media(forced-colors:active){.cell .lock-frame{border-color:CanvasText}}
+
+.completion{gap:12px}#settings-feedback a{overflow-wrap:anywhere}
+
+.completion .ib[hidden],.toolbar .ib[hidden],.row[hidden]{display:none}
+.milestone{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin:0;white-space:nowrap;text-align:center;color:var(--sub);font:14px/1.3 var(--sans);pointer-events:none}.milestone:empty{display:none}
+
+/* Color is a geometric reward; clues keep their independent monochrome backing. */
+.region-mode .cell>svg{filter:drop-shadow(0 0 1px #000)}
+.region-mode .board{border-color:var(--ink);transition:border-color .85s ease}
+@media(forced-colors:active){.region-mode .cell{background:Canvas!important}.region-mode .cell>svg{filter:none}}
+
+/* Quiet color while thinking; full pigment arrives only after a valid solve. */
+@property --section-a{syntax:"<color>";inherits:false;initial-value:transparent}
+@property --section-b{syntax:"<color>";inherits:false;initial-value:transparent}
+.region-mode .board{--section-strength:16%}
+.region-mode .board.solved{--section-strength:100%;border-color:transparent}
+.region-mode .cell{transition:--section-a .6s ease,--section-b .6s ease,color .85s ease,border-color .6s}
+@media(prefers-reduced-motion:reduce){.region-mode .cell{transition:none}}
+:root[data-motion=reduce] .cell{transition:none}
+
+.region-mode .vertices,.region-mode .lock-frame{transition:opacity .85s ease}
+.region-mode .board.solved .vertices,.region-mode .board.solved .lock-frame{opacity:0}
+.region-mode .board.solved .cell{color:#000;border-width:0;transition-duration:.85s,.85s,.85s,.6s}
+.region-mode .board.solved .cell>svg{filter:none}
+@media(forced-colors:active){.region-mode .board.solved .cell{color:CanvasText}}
+
+/* A hint has its own color so it cannot be mistaken for play: the square to fill is tinted and ringed, its suggested diagonal is drawn in that color, and the clues and diagonals that justify it are marked the same way. */
+:root{--hint:#a86400;--hint-fill:rgba(214,138,0,.2)}
+:root:not([data-theme=light]){--hint:#ffc94d;--hint-fill:rgba(255,201,77,.24)}
+:root[data-theme=light]{--hint:#a86400;--hint-fill:rgba(214,138,0,.2)}
+@media(prefers-color-scheme:light){:root:not([data-theme=dark]){--hint:#a86400;--hint-fill:rgba(214,138,0,.2)}}
+.cell.hint-target{box-shadow:inset 0 0 0 2px var(--hint),inset 0 0 0 999px var(--hint-fill);z-index:1}
+.cell.hint-target .ghost{stroke:var(--hint);stroke-width:5;stroke-dasharray:7 5}
+.cell.hint-target svg{animation:pulse 900ms 3}
+.cell.evidence svg path:not(.ghost){stroke:var(--hint)}
+.clue.evidence{text-decoration:none;box-shadow:0 0 0 2px var(--hint)}
+@media(forced-colors:active){.cell.hint-target{box-shadow:none;outline:3px solid Highlight;outline-offset:-3px}.clue.evidence{box-shadow:none;text-decoration:underline dotted}}
+
+/* Scores sheet, shared with Bridges. */
+#scores-list{list-style:none;padding:0;margin:20px 0;font-variant-numeric:tabular-nums}#scores-list li{display:grid;grid-template-columns:32px 1fr auto;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}#scores-list li span:first-child{color:var(--sub)}#scores-list li span:nth-child(2){overflow-wrap:anywhere}#score-submit{margin-bottom:16px}#score-alias{border:1px solid var(--line);width:60%}#scores-status{color:var(--sub);font-size:14px}
+
+/* The alternate-tool button inverts when it is on, as in Akari and Notan. */
+.toolbar #mark-btn[aria-pressed=true]{background:var(--ink);color:var(--bg);outline:none}
+@media(forced-colors:active){.toolbar #mark-btn[aria-pressed=true]{background:Highlight;color:HighlightText}}
+
+/* Confirmed sections shed their clues and cursors; shared unfinished clues stay. */
+.clue{transition:opacity .85s ease}
+.clue.settled{opacity:0;pointer-events:none}
+.cell.settled{cursor:default}
+.cell.settled:focus-visible::after{display:none}
+
+/* Double-tap zoom: touch-action is intersected across every ancestor, so
+   manipulation on the root stops double-tap zoom page-wide (readouts, gaps
+   between controls, sheet backdrops) while pinch zoom still works. */
+html, body { touch-action: manipulation; }
+
+/* iOS zooms the page when a form control under 16px takes focus. Touch
+   devices get at least 16px; desktop keeps its sizes. */
+@media (pointer: coarse) {
+  input, select, textarea { font-size: max(16px, 1em) !important; }
+}

@@ -1,0 +1,3167 @@
+<!DOCTYPE html>
+<!--
+  Quick Take: Hexsweeper lab — Classic Neumorph (baseline). Original soft raised honeycomb — the control sample.
+  Techniques: neumorphism, hover scale, reveal press.
+  Stack: Vanilla HTML, CSS, and JavaScript; Canvas 2D; no external libraries.
+  Source: https://dr.eamer.dev/games/hexsweeper/collection/skin-classic.html
+  License: MIT · Author: Luke Steuber
+  Note: Self-contained collection export. Regenerate: python3 tools/export-collection.py
+-->
+<html lang="en" class="collection-export">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="A minimalist take on old school Minesweeper, with raised neumorphic cells and hex geometry that keeps surprising you.">
+<link rel="canonical" href="https://dr.eamer.dev/games/hexsweeper/bounded.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Soft Honeycomb Hexagonal Minesweeper">
+<meta property="og:description" content="A minimalist take on old school Minesweeper, with raised neumorphic cells and hex geometry that keeps surprising you.">
+<meta property="og:url" content="https://dr.eamer.dev/games/hexsweeper/bounded.html">
+<meta property="og:image" content="https://dr.eamer.dev/games/hexsweeper/assets/social/skin-classic-og.png?v=board-20261010">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Soft Honeycomb Hexagonal Minesweeper">
+<meta name="twitter:description" content="A minimalist take on old school Minesweeper, with raised neumorphic cells and hex geometry that keeps surprising you.">
+<meta name="twitter:image" content="https://dr.eamer.dev/games/hexsweeper/assets/social/skin-classic-og.png?v=board-20261010">
+<title>Hexsweeper · Classic</title>
+<style>
+/* skin-chrome.css */
+/*
+ * File Purpose: Shared HUD chrome for Hexsweeper lab skins (+ helpers for production).
+ * Primary Classes: .skin-nav, .hud-actions, .hud-btn, .menu-stats, .menu-links, .fx-layer, overlays.
+ * Inputs: CSS variables --nav-bg, --nav-ink, --bg-color, --text-main, --text-sub.
+ * Outputs: Visual chrome only; no game logic.
+ * Chrome: BR Reset · hex Menu; scores + outbound links live in Menu (no BL score rail).
+ */
+*, *::before, *::after { box-sizing: border-box; }
+
+.skin-nav {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top, 0px));
+  left: max(12px, env(safe-area-inset-left, 0px));
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+  pointer-events: none;
+}
+.skin-nav a, .skin-nav button {
+  pointer-events: auto;
+  appearance: none;
+  border: 0;
+  background: color-mix(in srgb, var(--nav-bg, #e0e5ec) 50%, transparent);
+  color: var(--nav-ink, #4a5568);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 999px;
+  padding: 8px 12px;
+  text-decoration: none;
+  cursor: pointer;
+  line-height: 1;
+  transition: opacity 0.15s ease, background 0.15s ease;
+  box-shadow: none;
+}
+.skin-nav a:hover, .skin-nav button:hover { opacity: 0.92; }
+.skin-nav a:active, .skin-nav button:active { transform: scale(0.96); }
+.skin-nav .meta {
+  pointer-events: none;
+  opacity: 0.7;
+  padding: 0 4px;
+  max-width: min(42vw, 220px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.skin-nav .tag {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+/* Lab + production BR cluster: Reset · Menu */
+.hud-actions {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: max(14px, env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  align-items: center;
+  pointer-events: none;
+  padding: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--nav-bg, #e0e5ec) 52%, transparent);
+  backdrop-filter: blur(16px) saturate(1.1);
+  -webkit-backdrop-filter: blur(16px) saturate(1.1);
+  border: 1px solid color-mix(in srgb, var(--text-main, #4a5568) 12%, transparent);
+}
+.hud-actions > * { pointer-events: auto; }
+.hud-btn {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--text-main, #4a5568);
+  border-radius: 999px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  opacity: 0.88;
+}
+.hud-btn svg { width: 20px; height: 20px; stroke-width: 2; }
+.hud-btn:hover { opacity: 1; background: color-mix(in srgb, var(--nav-bg, #e0e5ec) 72%, transparent); }
+.hud-btn:active { transform: scale(0.94); }
+.hud-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--text-main, #4a5568) 55%, transparent);
+  outline-offset: 2px;
+}
+.menu-title {
+  margin: 0 0 12px;
+  font: 700 1.05rem/1.2 "IBM Plex Sans", system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  color: var(--text-main, #4a5568);
+  text-align: left;
+}
+.menu-stats {
+  display: flex;
+  gap: 18px;
+  width: 100%;
+  padding: 2px 0;
+}
+.menu-stats .stat-item {
+  opacity: 0.95;
+  min-width: 0;
+  align-items: flex-start;
+  text-align: left;
+  font-size: 1.1rem;
+}
+.modal-section-label {
+  width: 100%;
+  margin: 0 0 6px;
+  font: 700 0.68rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-sub, #a0aec0);
+  text-align: left;
+}
+#run-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+.canvas-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+canvas { display: block; cursor: crosshair; max-width: 100%; }
+
+/* Legacy lab score rail — unused after Menu chrome; kept inert if referenced. */
+.bottom-bar,
+.score-rail { display: none !important; }
+.stat-item {
+  font-family: "IBM Plex Mono", "Segoe UI Mono", "Roboto Mono", monospace;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-main, #2f3a4a);
+  min-width: 52px;
+  width: auto;
+  padding: 0 6px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: auto;
+  /* Endless scores can climb past 999 */
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.1;
+}
+.stat-item::after {
+  content: attr(data-label);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-sub, #5c6b7e);
+  margin-top: 2px;
+}
+.stat-item.visible { opacity: 1; }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--bg-color, #e0e5ec) 90%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+.modal-overlay.open { opacity: 1; pointer-events: auto; }
+.modal-content {
+  background: color-mix(in srgb, var(--bg-color, #e0e5ec) 92%, transparent);
+  color: var(--text-main, #4a5568);
+  padding: 30px;
+  border-radius: 28px;
+  width: 280px;
+  text-align: center;
+  border: 0;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  transform: scale(0.95);
+  transition: transform 0.2s ease;
+  position: relative;
+}
+.modal-overlay.open .modal-content { transform: scale(1); }
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--text-sub, #a0aec0);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+}
+.close-btn:hover { color: var(--text-main, #4a5568); }
+.close-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--text-main, #4a5568) 55%, transparent);
+  outline-offset: 2px;
+}
+.modal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 25px;
+  padding: 0 10px;
+}
+.icon-label {
+  color: var(--text-main, #4a5568);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.diff-selector { display: flex; gap: 5px; }
+.diff-option {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 1px solid var(--text-sub, #a0aec0);
+  border-radius: 8px;
+  color: var(--text-sub, #a0aec0);
+  background: transparent;
+  transition: all 0.2s;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  padding: 0;
+  line-height: 1;
+}
+.diff-option:hover {
+  border-color: var(--text-main, #4a5568);
+  color: var(--text-main, #4a5568);
+}
+.diff-option.active,
+.diff-option[aria-pressed="true"] {
+  background: var(--text-main, #4a5568);
+  border-color: var(--text-main, #4a5568);
+  color: var(--bg-color, #e0e5ec);
+}
+.diff-option:focus-visible {
+  outline: 2px solid var(--text-main, #4a5568);
+  outline-offset: 2px;
+}
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: transparent;
+  border: 2px solid var(--text-sub, #a0aec0);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.toggle-switch.active {
+  background: var(--text-main, #4a5568);
+  border-color: var(--text-main, #4a5568);
+}
+.toggle-knob {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 14px; height: 14px;
+  background: var(--text-sub, #a0aec0);
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+.toggle-switch.active .toggle-knob {
+  background: var(--bg-color, #e0e5ec);
+  transform: translateX(20px);
+}
+.refresh-btn {
+  width: 60px;
+  height: 60px;
+  margin: 10px auto 0 auto;
+  border: none;
+  border-radius: 50%;
+  background: var(--text-main, #4a5568);
+  color: var(--bg-color, #e0e5ec);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, opacity 0.2s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.refresh-btn:active { transform: scale(0.9); opacity: 0.9; }
+.instructions-text {
+  margin-top: 25px;
+  font-size: 11px;
+  color: var(--text-sub, #a0aec0);
+  line-height: 1.5;
+  text-align: center;
+}
+.menu-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--text-main, #4a5568) 12%, transparent);
+  font: 600 0.78rem/1.3 "IBM Plex Sans", system-ui, sans-serif;
+}
+.menu-links a {
+  color: var(--text-sub, #a0aec0);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+  border-radius: 4px;
+}
+.menu-links a:hover { color: var(--text-main, #4a5568); }
+.menu-links a:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--text-main, #4a5568) 55%, transparent);
+  outline-offset: 3px;
+}
+.menu-links-sep {
+  color: color-mix(in srgb, var(--text-sub, #a0aec0) 70%, transparent);
+  user-select: none;
+}
+/* Media query = OS Reduce Motion; attribute = the in-app Effects setting
+   (see Hexsweeper.applyEffectsAttribute). Kept separate so the setting can
+   reduce with the OS switch off, and keep effects with it on. */
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay,
+  .modal-content,
+  .hud-btn { transition: none; }
+  .modal-overlay.open .modal-content { transform: none; }
+}
+:root[data-effects="reduced"] .modal-overlay,
+:root[data-effects="reduced"] .modal-content,
+:root[data-effects="reduced"] .hud-btn { transition: none; }
+:root[data-effects="reduced"] .modal-overlay.open .modal-content { transform: none; }
+:root[data-effects="full"] .modal-overlay,
+:root[data-effects="full"] .modal-content,
+:root[data-effects="full"] .hud-btn { transition: revert; }
+
+.fx-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+</style>
+<style>
+
+:root {
+  --bg-color: #e0e5ec;
+  --text-main: #4a5568;
+  --text-sub: #a0aec0;
+  --nav-bg: #e0e5ec;
+  --nav-ink: #4a5568;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg-color);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100vh; margin: 0; overflow: hidden; user-select: none; touch-action: none;
+  color: var(--text-main);
+}
+
+</style>
+  <link rel="icon" href="/games/hexsweeper/favicon/favicon.ico?v=2" sizes="16x16 32x32 48x48">
+  <link rel="icon" type="image/png" sizes="32x32" href="/games/hexsweeper/favicon/favicon-32.png?v=2">
+  <link rel="apple-touch-icon" href="/games/hexsweeper/favicon/apple-touch-icon.png?v=2">
+<style>
+/* Minimal control frame */
+/* Minimal control frame. Local to each standalone game. Luke Steuber. */
+body[data-control-frame] .control-toolbar {
+  position:fixed!important;left:max(8px,env(safe-area-inset-left))!important;right:max(8px,env(safe-area-inset-right))!important;
+  top:auto!important;bottom:max(6px,env(safe-area-inset-bottom))!important;width:auto!important;height:auto!important;
+  display:flex!important;flex-direction:row!important;justify-content:space-between!important;align-items:center!important;
+  grid-template-columns:none!important;grid-template-rows:none!important;padding:0!important;gap:0!important;
+  margin:0!important;border:0!important;border-radius:0!important;background:none!important;box-shadow:none!important;
+  z-index:60;pointer-events:none;
+}
+body[data-control-frame] .control-actions,body[data-control-frame] .control-meta {
+  display:flex!important;flex-direction:row!important;gap:0!important;align-items:center!important;pointer-events:auto;
+}
+body[data-control-frame] .control-icon,body[data-control-frame] .control-close {
+  appearance:none;display:inline-grid;place-items:center;width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;
+  padding:12px!important;border:0!important;border-radius:0!important;box-shadow:none!important;cursor:pointer;pointer-events:auto;touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent; /* the press band below replaces the browser's tinted flash */
+}
+body[data-control-frame] .control-icon:not([aria-pressed="true"]):not(.is-armed),body[data-control-frame] .control-close {background:transparent!important;}
+body[data-control-frame] .control-icon svg,body[data-control-frame] .control-close svg {width:24px!important;height:24px!important;}
+body[data-control-frame] .control-icon svg [stroke],body[data-control-frame] .control-icon svg [stroke-width],body[data-control-frame] .control-icon svg,body[data-control-frame] .control-close svg {stroke-width:1.6px!important;}
+body[data-control-frame] .control-icon:focus-visible,body[data-control-frame] .control-close:focus-visible {outline:2px solid currentColor!important;outline-offset:2px!important;box-shadow:none!important;}
+/* Hover only where a pointer really hovers: a touch screen keeps :hover on the last button tapped. */
+@media(hover:hover) and (pointer:fine) {
+  body[data-control-frame] .control-icon:hover:not(:disabled) {opacity:1;}
+  body[data-control-frame] .control-icon:hover:not(:disabled):not([aria-pressed="true"]):not(.is-armed),body[data-control-frame] .control-close:hover {background:var(--band,var(--wash,rgba(127,127,127,.1)))!important;}
+}
+/* The same band while a finger or button is down, so a tap still answers. */
+body[data-control-frame] .control-icon:active:not(:disabled):not([aria-pressed="true"]):not(.is-armed),body[data-control-frame] .control-close:active {background:var(--band,var(--wash,rgba(127,127,127,.1)))!important;}
+body[data-control-frame] .control-restart {
+  position:fixed!important;left:max(8px,env(safe-area-inset-left))!important;top:max(0px,env(safe-area-inset-top))!important;
+  right:auto!important;bottom:auto!important;transform:none!important;z-index:60;
+}
+body[data-control-frame] .control-completion {
+  position:fixed!important;left:var(--control-next-left,50%)!important;right:auto!important;top:auto!important;bottom:var(--control-next-bottom,max(64px,calc(env(safe-area-inset-bottom) + 64px)))!important;
+  transform:translateX(-50%)!important;z-index:50;
+}
+body[data-control-frame] .control-completion:not(button) {width:max-content!important;max-width:calc(100vw - 32px);}
+/* A standalone Next is one unmistakable shape: a solid disc in the ink colour
+   with its arrow in the page colour, so it inverts with the theme. The frame
+   centres it in the gap between the board and the toolbar. It fades and grows
+   in, and one soft ring spreads from it if it waits unpressed. The ID-level
+   :not() keeps it above every class rule for control icons. */
+body[data-control-frame] button.control-completion:not(#control-frame-none) {
+  width:64px!important;height:64px!important;min-width:64px!important;min-height:64px!important;padding:0!important;
+  display:grid!important;place-items:center!important;border:0!important;border-radius:50%!important;box-shadow:none!important;
+  background:var(--ink,CanvasText)!important;color:var(--bg,Canvas)!important;opacity:1;
+  /* Centred by its own half width, not a transform, so it grows in about its centre. */
+  left:calc(var(--control-next-left,50%) - 32px)!important;transform:none!important;
+  animation:control-next-in .2s ease-out both;
+}
+body[data-control-frame] button.control-completion:not(#control-frame-none) svg {width:30px!important;height:30px!important;stroke:currentColor!important;}
+body[data-control-frame] button.control-completion:not(#control-frame-none) svg,body[data-control-frame] button.control-completion:not(#control-frame-none) svg [stroke],body[data-control-frame] button.control-completion:not(#control-frame-none) svg [stroke-width] {stroke-width:2.2px!important;}
+body[data-control-frame] button.control-completion:not(#control-frame-none)[hidden] {display:none!important;}
+/* A game's clearing behind its controls would cover the disc; the solid disc needs none. */
+body[data-control-frame] button.control-completion:not(#control-frame-none)::before {content:none!important;}
+body[data-control-frame] button.control-completion:not(#control-frame-none):focus-visible {outline:2px solid var(--ink,CanvasText)!important;outline-offset:3px!important;}
+body[data-control-frame] button.control-completion:not(#control-frame-none)::after {
+  content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--ink,CanvasText);opacity:0;pointer-events:none;
+  animation:control-next-ring .9s ease-out 1.5s 1 both;
+}
+@keyframes control-next-in {from {opacity:0;scale:.8} to {opacity:1;scale:1}}
+@keyframes control-next-ring {from {opacity:.45;scale:1} to {opacity:0;scale:1.6}}
+html[data-motion="reduce"] body[data-control-frame] button.control-completion:not(#control-frame-none),html[data-motion="reduce"] body[data-control-frame] button.control-completion:not(#control-frame-none)::after {animation:none!important;}
+@media(prefers-reduced-motion:reduce) {
+  body[data-control-frame] button.control-completion:not(#control-frame-none),body[data-control-frame] button.control-completion:not(#control-frame-none)::after {animation:none!important;}
+}
+body[data-control-frame] .control-sheet button {min-width:44px;min-height:44px;}
+body[data-control-frame] .control-sheet .modal-content {box-sizing:border-box;max-height:calc(100dvh - 16px);overflow:auto;}
+body[data-control-frame] .control-toolbar [hidden],body[data-control-frame] .control-completion[hidden] {display:none!important;}
+@media(max-height:520px) and (min-width:560px) {
+  body[data-control-frame] .control-toolbar {
+    left:auto!important;right:max(8px,env(safe-area-inset-right))!important;top:12px!important;bottom:max(12px,env(safe-area-inset-bottom))!important;
+    width:48px!important;flex-direction:column!important;
+  }
+  body[data-control-frame] .control-actions,body[data-control-frame] .control-meta {flex-direction:column!important;}
+  body[data-control-frame] .control-completion {bottom:var(--control-next-bottom,max(12px,env(safe-area-inset-bottom)))!important;}
+  body[data-control-frame="notan"] #app {padding-right:64px;}
+}
+@media(forced-colors:active) {
+  body[data-control-frame] .control-icon:focus-visible,body[data-control-frame] .control-close:focus-visible {outline-color:Highlight!important;}
+}
+
+/* Akari keeps completion within reach beside its finished board. */
+body[data-control-frame][data-completion-root="board-stage"] .control-completion {
+  position:static!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;transform:none!important;
+}
+
+/* Access: its rows in Settings. The rest of Access, and its styles, load with
+   access.js the first time a player turns it on. */
+body[data-control-frame] .access-row[hidden] {display:none!important;}
+body[data-control-frame] .access-action {min-height:44px;padding:8px;border:0;background:none;color:inherit;font:inherit;text-decoration:underline;text-underline-offset:4px;cursor:pointer;}
+
+#modal-overlay .access-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+#modal-overlay .access-row button{display:inline-flex;align-items:center;min-height:44px;width:auto;padding:0 12px;border:1px solid currentColor;border-radius:999px;background:none;color:inherit;font:inherit;cursor:pointer}
+#help-panel-settings .access-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:nowrap}
+#help-panel-settings .access-row .help-pack::before{content:none}
+#help-panel-settings .access-row .help-pack{border:1px solid color-mix(in srgb,currentColor 30%,transparent);border-radius:999px;min-height:44px;padding:0 14px}
+#help-panel-settings .access-row[hidden],#modal-overlay .access-row[hidden]{display:none}
+</style>
+</head>
+<body>
+<div class="fx-layer" id="fx" aria-hidden="true"></div>
+<div class="canvas-container">
+  <canvas id="gameCanvas"></canvas>
+</div>
+
+<div class="hud-actions" role="toolbar" aria-label="Game controls">
+  <button type="button" id="reset-btn" class="hud-btn" aria-label="Reset" title="Reset">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="23 4 23 10 17 10"></polyline>
+      <polyline points="1 20 1 14 7 14"></polyline>
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+    </svg>
+  </button>
+  <button type="button" id="menu-btn" class="hud-btn" aria-label="Menu" title="Menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="5" y1="7" x2="19" y2="7"></line>
+      <line x1="5" y1="12" x2="15" y2="12"></line>
+      <line x1="5" y1="17" x2="19" y2="17"></line>
+    </svg>
+  </button>
+</div>
+
+<div id="modal-overlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="menu-title">
+  <div class="modal-content">
+    <button id="close-modal-btn" class="close-btn" type="button" aria-label="Close">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+    <h2 id="menu-title" class="menu-title">Menu</h2>
+    <div class="modal-row" id="run-row">
+      <div class="modal-section-label">Run</div>
+      <div class="menu-stats" aria-label="Score">
+        <div id="stats-mines" class="stat-item visible" data-label="mines" title="Mines remaining">00</div>
+        <div id="stats-time" class="stat-item visible" data-label="cleared" title="Safe cells cleared">000</div>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="icon-label" title="Board size">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="9" height="9"></rect><rect x="13" y="2" width="9" height="9"></rect><rect x="2" y="13" width="9" height="9"></rect></svg>
+      </div>
+      <div class="diff-selector" id="diff-selector" role="group" aria-label="Board size">
+        <button type="button" class="diff-option" data-val="easy" aria-pressed="false" title="Small · 10 mines">S</button>
+        <button type="button" class="diff-option active" data-val="medium" aria-pressed="true" title="Medium · 35 mines">M</button>
+        <button type="button" class="diff-option" data-val="hard" aria-pressed="false" title="Large · 80 mines">L</button>
+      </div>
+    </div>
+    <div class="instructions-text">Tap to reveal · flag: right-click, Ctrl-click, or long-hold<br>Menu holds scores · Reset on the board</div>
+    <nav class="menu-links" aria-label="Elsewhere">
+      <a href="https://lukesteuber.com" target="_blank" rel="noopener noreferrer">Luke Steuber</a>
+      <span class="menu-links-sep" aria-hidden="true">·</span>
+      <a href="https://datapoems.io" target="_blank" rel="noopener noreferrer">Data Poems</a>
+    </nav>
+  </div>
+</div>
+
+<script>
+/* core.js */
+/**
+ * File Purpose: Shared Hexsweeper game engine (hex grid, endless/finite boards,
+ *   dig/flag/chord, drag-pan, wheel/pinch zoom, RAF loop) with skin hooks.
+ * Primary Functions/Classes: Cell; boot(); applyViewZoom; exportEndlessState;
+ *   applyEndlessState; setFinish; Hexsweeper.DEFAULT_*.
+ * Inputs: Hexsweeper.boot({ canvasId, theme, hooks, difficulty, showStats, endless,
+ *   tooltips }). tooltips: false keeps title= off the stats (infinite.html).
+ * Outputs: API (setZoom, adjustZoom, setFlagMode, setCamera, restart, setFinish,
+ *   exportEndlessState, applyEndlessState, …) on window.Hexsweeper.
+ * Notes: Endless Escape may set finishKey — reveal that safe hex to win.
+ *   hooks.onReset / skin startFreshRun: chrome must be live before framing zoom.
+ *   Boot skips onReset once; index.html restores autosave or calls startFreshRun.
+ *   hooks.cameraLock (bool|fn): Fire-style tilt while the board fits the
+ *   viewport. Once zoom pushes the board past the frame, drag pans (clamped
+ *   to the board) so edge tiles stay reachable — especially on mobile.
+ *   Long-press still flags; pinch zooms; Space/middle-drag always pans.
+ */
+(function (global) {
+  "use strict";
+
+  const SQRT3 = Math.sqrt(3);
+
+  /**
+   * Global effects preference, shared by every Hexsweeper page on the origin.
+   *
+   *   "auto"    follow the OS Reduce Motion setting (default)
+   *   "full"    force effects on, even if the OS asks to reduce
+   *   "reduced" force effects off
+   *
+   * "auto" is the default so the accessibility behaviour still works untouched;
+   * "full" exists because a player who turned Reduce Motion on system-wide may
+   * still want the particles here, and that is their call to make.
+   *
+   * MIRROR: sphere/sphere.js and tools/app-launcher.html carry the same seven
+   * lines — they do not load core.js. Change all three together.
+   */
+  const EFFECTS_KEY = "hexsweeper-effects-v1";
+
+  function effectsReduced() {
+    let pref = null;
+    try {
+      pref = localStorage.getItem(EFFECTS_KEY);
+    } catch (_) {}
+    if (pref === "reduced") return true;
+    if (pref === "full") return false;
+    return (
+      typeof matchMedia === "function" &&
+      matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  }
+
+  /** Mirror the resolved preference onto <html> so CSS can gate too. */
+  function applyEffectsAttribute() {
+    if (typeof document === "undefined") return;
+    document.documentElement.setAttribute(
+      "data-effects",
+      effectsReduced() ? "reduced" : "full"
+    );
+  }
+
+  const DEFAULT_CONFIG = {
+    easy: { radius: 4, mines: 10, cellSize: 35 },
+    medium: { radius: 7, mines: 35, cellSize: 28 },
+    hard: { radius: 10, mines: 80, cellSize: 22 },
+  };
+
+  /** Endless Soft White defaults — density by starting difficulty. */
+  const ENDLESS_DENSITY = { easy: 0.13, medium: 0.155, hard: 0.18 };
+  /** Soft cap only — viewport-driven growth; not a fixed board size. */
+  const ENDLESS_MAX_RADIUS = 160;
+  /** Extra rings beyond the camera frustum so edges never show void. */
+  const ENDLESS_VIEW_BUFFER = 4;
+
+  const DEFAULT_THEME = {
+    bg: "#e0e5ec",
+    shadowLight: "#ffffff",
+    shadowDark: "#a3b1c6",
+    covered: "#e0e5ec",
+    revealed: "#e0e5ec",
+    flag: "#ef4444",
+    text: {
+      1: "#3b82f6",
+      2: "#10b981",
+      3: "#ef4444",
+      4: "#8b5cf6",
+      5: "#f59e0b",
+      6: "#ec4899",
+      mine: "#333",
+    },
+  };
+
+  class Cell {
+    constructor(q, r) {
+      this.q = q;
+      this.r = r;
+      this.isMine = false;
+      this.isFinish = false;
+      this.revealed = false;
+      this.flagged = false;
+      this.neighborMines = 0;
+      this.x = 0;
+      this.y = 0;
+      this.path = null;
+      this.animHover = 0;
+      this.animReveal = 0;
+      this.ring = 0;
+      this._pendingReveal = false;
+      this.revealDue = 0;
+    }
+
+    calcGeometry(centerX, centerY, size) {
+      this.x = centerX + size * SQRT3 * (this.q + this.r / 2);
+      this.y = centerY + size * 1.5 * this.r;
+      this.ring = (Math.abs(this.q) + Math.abs(this.q + this.r) + Math.abs(this.r)) / 2;
+      this.path = new Path2D();
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 180) * (30 + 60 * i);
+        const vx = this.x + size * Math.cos(angle);
+        const vy = this.y + size * Math.sin(angle);
+        if (i === 0) this.path.moveTo(vx, vy);
+        else this.path.lineTo(vx, vy);
+      }
+      this.path.closePath();
+    }
+
+    hexPath(size, scale = 1) {
+      const drawSize = size * scale;
+      const p = new Path2D();
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 180) * (30 + 60 * i);
+        const vx = this.x + drawSize * Math.cos(angle);
+        const vy = this.y + drawSize * Math.sin(angle);
+        if (i === 0) p.moveTo(vx, vy);
+        else p.lineTo(vx, vy);
+      }
+      p.closePath();
+      return p;
+    }
+  }
+
+  function boot(userOpts = {}) {
+    // Publish the resolved effects preference before first paint so CSS gates
+    // apply to the opening frame rather than snapping in after it.
+    applyEffectsAttribute();
+    const opts = {
+      canvasId: "gameCanvas",
+      difficulty: "medium",
+      showStats: false,
+      config: DEFAULT_CONFIG,
+      theme: { ...DEFAULT_THEME, ...(userOpts.theme || {}) },
+      hooks: userOpts.hooks || {},
+      ...userOpts,
+    };
+    if (userOpts.theme && userOpts.theme.text) {
+      opts.theme.text = { ...DEFAULT_THEME.text, ...userOpts.theme.text };
+    }
+
+    const requestedMinZoom = Number.isFinite(opts.minZoom) ? opts.minZoom : 0.55;
+    const requestedMaxZoom = Number.isFinite(opts.maxZoom) ? opts.maxZoom : 1.9;
+    const minViewZoom = Math.max(0.1, Math.min(requestedMinZoom, requestedMaxZoom));
+    const maxViewZoom = Math.max(minViewZoom, Math.max(requestedMinZoom, requestedMaxZoom));
+    const clampViewZoom = (value) => Math.max(minViewZoom, Math.min(maxViewZoom, value));
+
+    const canvas = document.getElementById(opts.canvasId);
+    if (!canvas) throw new Error("Hexsweeper: canvas not found");
+    const ctx = canvas.getContext("2d");
+
+    const state = {
+      canvas,
+      ctx,
+      map: new Map(),
+      mapRadius: 0,
+      mineCount: 0,
+      cellSize: 0,
+      isGameOver: false,
+      isFirstClick: true,
+      flagsPlaced: 0,
+      timeElapsed: 0,
+      timerInterval: null,
+      hoveredKey: null,
+      currentDifficulty: opts.difficulty,
+      showStats: opts.showStats,
+      theme: opts.theme,
+      config: opts.config,
+      hooks: opts.hooks,
+      pointer: { x: 0, y: 0, nx: 0, ny: 0, active: false },
+      t0: performance.now(),
+      now: 0,
+      win: null,
+      detonator: null, // cell that triggered a loss (for blast FX)
+      centerX: 0,
+      centerY: 0,
+      boardOffset: { x: 0, y: 0 },
+      // Endless / infinite field (Soft White): expand at the frontier, no win
+      // Escape may set finishKey — revealing that hex is a positive exit.
+      endless: !!opts.endless,
+      mineDensity:
+        opts.mineDensity != null && Number.isFinite(opts.mineDensity)
+          ? opts.mineDensity
+          : ENDLESS_DENSITY.medium,
+      maxRadius: opts.maxRadius != null ? opts.maxRadius : ENDLESS_MAX_RADIUS,
+      finishKey: null,
+      clearedSafe: 0,
+      bestCleared: 0,
+      hitMaxRadius: false,
+      // Camera (world → screen). Skins read these when positioning cells.
+      camX: 0,
+      camY: 0,
+      camTX: 0,
+      camTY: 0,
+      focusCell: null,
+      // Interaction: zoom (multiplies base cell size), dig vs flag, pan locks.
+      viewZoom: Number.isFinite(opts.initialZoom) ? clampViewZoom(opts.initialZoom) : clampViewZoom(1),
+      flagMode: false,
+      panning: false,
+      spaceDown: false,
+      floodPending: 0,
+      _growAfterFlood: false,
+    };
+
+    if (!Number.isFinite(opts.initialZoom) && opts.zoomStorageKey !== false) {
+      try {
+        const zoomKey = opts.zoomStorageKey || "hexsweeper-zoom-v1";
+        const z = parseFloat(localStorage.getItem(zoomKey) || "1");
+        if (Number.isFinite(z)) state.viewZoom = clampViewZoom(z);
+      } catch (_) {}
+    }
+
+    try {
+      const storedBest = parseInt(localStorage.getItem("hexsweeper-endless-best") || "0", 10);
+      if (Number.isFinite(storedBest) && storedBest > 0) state.bestCleared = storedBest;
+    } catch (_) {}
+
+    const modal = document.getElementById("modal-overlay");
+    const diffOptions = document.querySelectorAll(".diff-option");
+    const statsToggle = document.getElementById("stats-toggle");
+    const statsMines = document.getElementById("stats-mines");
+    const statsTime = document.getElementById("stats-time");
+    const menuBtn = document.getElementById("menu-btn");
+    const closeBtn = document.getElementById("close-modal-btn");
+    // Production uses #reset-btn on the HUD; lab skins still use #restart-btn in the modal.
+    const restartBtn =
+      document.getElementById("restart-btn") || document.getElementById("reset-btn");
+
+    function openModal() {
+      if (modal) modal.classList.add("open");
+    }
+    function closeModal() {
+      if (modal) modal.classList.remove("open");
+    }
+
+    if (menuBtn) menuBtn.addEventListener("click", openModal);
+    if (closeBtn) closeBtn.addEventListener("click", closeModal);
+    if (modal) {
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeModal();
+      });
+    }
+
+    function syncDiffButtons() {
+      if (!diffOptions.length) return;
+      diffOptions.forEach((opt) => {
+        const on = opt.dataset.val === state.currentDifficulty;
+        opt.classList.toggle("active", on);
+        opt.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+    }
+
+    /**
+     * Start a clean board. Any persistence-owning surface must drop autosave
+     * here — otherwise S/M/L or Restart would paint a fresh field while the
+     * old run still resurrected on the next load.
+     */
+    function beginFreshRun(level, { clearPersist = true } = {}) {
+      if (
+        clearPersist &&
+        typeof state.hooks.onClearPersist === "function"
+      ) {
+        state.hooks.onClearPersist(api);
+      }
+      setDifficulty(level || state.currentDifficulty);
+    }
+
+    if (diffOptions.length) {
+      syncDiffButtons();
+      diffOptions.forEach((opt) => {
+        opt.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const level = opt.dataset.val;
+          if (!level || !state.config[level]) return;
+          // Always rebuild so S/M/L is never a no-op highlight-only change.
+          beginFreshRun(level);
+          closeModal();
+        });
+      });
+    }
+
+    if (statsToggle) {
+      statsToggle.classList.toggle("active", state.showStats);
+      statsToggle.addEventListener("click", () => {
+        state.showStats = !state.showStats;
+        statsToggle.classList.toggle("active", state.showStats);
+        updateStatsVisibility();
+      });
+    }
+
+    function updateStatsVisibility() {
+      if (!statsMines || !statsTime) return;
+      // Menu-embedded stats (no .score-rail) stay visible; lab score rails still honor the toggle.
+      const inRail = !!(statsMines.closest(".score-rail") || statsTime.closest(".score-rail"));
+      const show = !inRail || state.showStats || state.endless;
+      statsMines.classList.toggle("visible", show);
+      statsTime.classList.toggle("visible", show);
+      if (statsToggle) {
+        statsToggle.classList.toggle("active", state.showStats);
+        statsToggle.setAttribute("aria-checked", state.showStats ? "true" : "false");
+      }
+    }
+
+    if (restartBtn) {
+      restartBtn.addEventListener("click", () => {
+        closeModal();
+        beginFreshRun(state.currentDifficulty);
+      });
+    }
+
+    function getNeighbors(q, r) {
+      const directions = [
+        { dq: 1, dr: 0 },
+        { dq: 1, dr: -1 },
+        { dq: 0, dr: -1 },
+        { dq: -1, dr: 0 },
+        { dq: -1, dr: 1 },
+        { dq: 0, dr: 1 },
+      ];
+      const neighbors = [];
+      for (const d of directions) {
+        const nKey = `${q + d.dq},${r + d.dr}`;
+        if (state.map.has(nKey)) neighbors.push(state.map.get(nKey));
+      }
+      return neighbors;
+    }
+
+    const api = {
+      get state() {
+        return state;
+      },
+      getNeighbors,
+      hexPath(cell, size, scale) {
+        return cell.hexPath(size, scale);
+      },
+      drawDefaultCell(cell, size) {
+        drawDefaultCell(cell, size);
+      },
+      setBoardOffset(x, y) {
+        state.boardOffset.x = x;
+        state.boardOffset.y = y;
+      },
+      setEndless(on, density) {
+        state.endless = !!on;
+        // Preserve an explicit density (including 0) across setDifficulty.
+        if (density != null && Number.isFinite(density)) {
+          state.mineDensity = density;
+          state._densityLocked = true;
+        } else if (state.endless) {
+          state._densityLocked = false;
+          state.mineDensity =
+            ENDLESS_DENSITY[state.currentDifficulty] != null
+              ? ENDLESS_DENSITY[state.currentDifficulty]
+              : ENDLESS_DENSITY.medium;
+        } else {
+          state._densityLocked = false;
+        }
+        setDifficulty(state.currentDifficulty);
+      },
+      setCamera(x, y) {
+        state.camX = x;
+        state.camY = y;
+        state.camTX = x;
+        state.camTY = y;
+      },
+      /** Explicit framing only (themes / tools). Never called from dig/chord/flood. */
+      focusOnCell(cell, snap) {
+        if (!cell) return;
+        if (isCameraLocked()) return;
+        state.focusCell = cell;
+        const wx = state.cellSize * SQRT3 * (cell.q + cell.r / 2);
+        const wy = state.cellSize * 1.5 * cell.r;
+        state.camTX = wx;
+        state.camTY = wy;
+        if (snap) {
+          state.camX = wx;
+          state.camY = wy;
+        }
+      },
+      /**
+       * @param {{ clearPersist?: boolean }} [opts]
+       * clearPersist defaults true (R / Restart). Theme swaps pass false so
+       * the destination lane's autosave can be restored.
+       */
+      restart(opts = {}) {
+        beginFreshRun(state.currentDifficulty, {
+          clearPersist: opts.clearPersist !== false,
+        });
+      },
+      /** Snapshot any run (mines / revealed / flags / camera). */
+      exportRunState() {
+        return exportRunState();
+      },
+      /** Restore a matching finite or endless snapshot. */
+      applyRunState(data) {
+        return applyRunState(data);
+      },
+      /** Backward-compatible endless-only snapshot adapter. */
+      exportEndlessState() {
+        return exportEndlessState();
+      },
+      /** Backward-compatible endless-only restore adapter. */
+      applyEndlessState(data) {
+        return applyEndlessState(data);
+      },
+      toggleFlag(cell) {
+        if (cell) toggleFlag(cell);
+      },
+      setZoom(z, anchor, opts) {
+        return applyViewZoom(z, anchor, opts);
+      },
+      adjustZoom(factor, anchor) {
+        return applyViewZoom(state.viewZoom * factor, anchor);
+      },
+      setFlagMode(on) {
+        state.flagMode = !!on;
+        document.body.classList.toggle("flag-mode", state.flagMode);
+        syncCursor();
+        if (typeof state.hooks.onFlagMode === "function") state.hooks.onFlagMode(state.flagMode, api);
+        return state.flagMode;
+      },
+      toggleFlagMode() {
+        return api.setFlagMode(!state.flagMode);
+      },
+      /** Skin-driven loss/win (e.g. Escape rift catch). */
+      endGame(win, meta) {
+        if (state.isGameOver) return false;
+        if (meta && meta.detonator) state.detonator = meta.detonator;
+        if (meta && meta.reason) state.endReason = meta.reason;
+        else state.endReason = win ? "win" : "mine";
+        gameOver(!!win);
+        return true;
+      },
+      /**
+       * Escape exit hex (axial). Null clears. Never mined; created on expand if needed.
+       * @returns {string|null} finish key
+       */
+      setFinish(q, r) {
+        return setFinishCell(q, r);
+      },
+      /** Debug / skin helper: dig a cell by axial key or Cell. */
+      dig(target) {
+        if (state.isGameOver) return false;
+        let cell = target;
+        if (typeof target === "string") cell = state.map.get(target);
+        else if (target && typeof target.q === "number") {
+          cell = state.map.get(`${target.q},${target.r}`) || target;
+        }
+        if (!cell || cell.revealed || cell.flagged || cell._riftTorn) return false;
+        reveal(cell);
+        return true;
+      },
+    };
+
+    function hexRing(q, r) {
+      return (Math.abs(q) + Math.abs(q + r) + Math.abs(r)) / 2;
+    }
+
+    function shuffleInPlace(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function isSafeZone(cell, safeQ, safeR) {
+      if (cell.q === safeQ && cell.r === safeR) return true;
+      const dq = cell.q - safeQ;
+      const dr = cell.r - safeR;
+      return hexRing(dq, dr) <= 1;
+    }
+
+    function finishKeyOf(q, r) {
+      return `${q | 0},${r | 0}`;
+    }
+
+    function isFinishCell(cell) {
+      if (!cell) return false;
+      if (cell.isFinish) return true;
+      return !!(state.finishKey && state.finishKey === `${cell.q},${cell.r}`);
+    }
+
+    /**
+     * Product surfaces can reserve playable-looking cells for embedded controls
+     * (for example the shared launcher). Protected cells remain part of the
+     * board and can reveal normally, but never receive a mine or a flag.
+     */
+    function isProtectedCell(cell) {
+      if (!cell) return false;
+      if (isFinishCell(cell)) return true;
+      const guard = state.hooks && state.hooks.isProtectedCell;
+      return typeof guard === "function" && !!guard(cell, api);
+    }
+
+    /** Mark / clear the Escape finish hex; demines if already present. */
+    function setFinishCell(q, r) {
+      if (state.finishKey) {
+        const prev = state.map.get(state.finishKey);
+        if (prev) prev.isFinish = false;
+      }
+      if (q == null || r == null || !Number.isFinite(q) || !Number.isFinite(r)) {
+        state.finishKey = null;
+        return null;
+      }
+      const key = finishKeyOf(q, r);
+      state.finishKey = key;
+      const cell = state.map.get(key);
+      if (cell) stampFinishCell(cell);
+      return key;
+    }
+
+    function stampFinishCell(cell) {
+      if (!cell) return;
+      cell.isFinish = true;
+      if (cell.isMine) {
+        cell.isMine = false;
+        state.mineCount = Math.max(0, (state.mineCount | 0) - 1);
+        recountNeighbors();
+      }
+    }
+
+    function ensureFinishStamp() {
+      if (!state.finishKey) return;
+      const cell = state.map.get(state.finishKey);
+      if (cell) stampFinishCell(cell);
+    }
+
+    function recountNeighbors() {
+      state.map.forEach((cell) => {
+        if (!cell.isMine) {
+          cell.neighborMines = getNeighbors(cell.q, cell.r).filter((n) => n.isMine).length;
+        } else {
+          cell.neighborMines = 0;
+        }
+      });
+    }
+
+    function applyLayout() {
+      if (typeof state.hooks.layout === "function") {
+        state.hooks.layout(api);
+      } else if (state.endless) {
+        // Full-window viewport; camera pans the field
+        canvas.width = Math.max(320, window.innerWidth);
+        canvas.height = Math.max(320, window.innerHeight);
+      } else {
+        const boardWidth = (state.mapRadius * 2 + 1) * SQRT3 * state.cellSize;
+        const boardHeight =
+          (state.mapRadius * 2 + 1) * 1.5 * state.cellSize + 0.5 * state.cellSize;
+        canvas.width = Math.ceil(boardWidth + 40);
+        canvas.height = Math.ceil(boardHeight + 40);
+      }
+      state.centerX = canvas.width / 2 + state.boardOffset.x;
+      state.centerY = canvas.height / 2 + state.boardOffset.y;
+    }
+
+    /** Cell size for current difficulty / mode (does not mutate radius). */
+    function computeCellSize(level, mapRadius) {
+      const conf = state.config[level];
+      if (!conf) return state.cellSize || 28;
+      let cellSize = conf.cellSize;
+      if (state.endless) {
+        // Readable base size; user zoom multiplies. Pan instead of shrinking the world.
+        const phone = window.innerWidth < 500;
+        cellSize = phone ? 26 : Math.max(26, conf.cellSize + 4);
+      } else {
+        // Scale finite boards so the outer hex fills most of the viewport.
+        // viewportFill is a fraction of the live window (no stolen chrome padding —
+        // that made Fire's 0.98 read as ~90% with large letterbox margins).
+        // Optional viewportPadCells grows the height budget for innie shaft sink.
+        const maxW = Math.max(280, window.innerWidth);
+        const maxH = Math.max(280, window.innerHeight);
+        const padCells = Number.isFinite(state.config.viewportPadCells)
+          ? state.config.viewportPadCells
+          : 0;
+        const naturalW = (mapRadius * 2 + 1) * SQRT3 * cellSize;
+        const naturalH =
+          (mapRadius * 2 + 1) * 1.5 * cellSize + 0.5 * cellSize + padCells * cellSize;
+        // Fire ~0.98 fills the short axis; Plague keeps a thin specimen margin.
+        const fillDefault = window.innerWidth < 500 ? 0.96 : 0.94;
+        const fill = Number.isFinite(state.config.viewportFill)
+          ? state.config.viewportFill
+          : fillDefault;
+        if (naturalW > 0 && naturalH > 0) {
+          const scale = Math.min((maxW * fill) / naturalW, (maxH * fill) / naturalH);
+          // Cap high enough for easy Fire on large monitors (old 62 capped ~70% fill).
+          cellSize = Math.max(14, Math.min(96, cellSize * scale));
+        }
+      }
+      const zoom = Number.isFinite(state.viewZoom) ? state.viewZoom : 1;
+      return Math.max(12, Math.min(110, cellSize * zoom));
+    }
+
+    /**
+     * Zoom the board. When `anchor` is a canvas pixel, keep that world point under the cursor.
+     * `persist: false` frames the view without touching the stored preference — the zoom key
+     * is shared across themes, so an opening zoom must not overwrite what the player chose.
+     */
+    /** Finite board size in pixels at the current cellSize (includes zoom). */
+    function boardPixelExtents() {
+      const r = state.mapRadius || 0;
+      const s = state.cellSize || 28;
+      const pad = Number.isFinite(state.config && state.config.viewportPadCells)
+        ? state.config.viewportPadCells
+        : 0;
+      return {
+        w: (r * 2 + 1) * SQRT3 * s,
+        h: (r * 2 + 1) * 1.5 * s + 0.5 * s + pad * s,
+      };
+    }
+
+    /**
+     * True when edge tiles need pan: zoomed past default, or the finite board
+     * no longer fits the canvas. Zoom-1 Fire (~0.98 fill) stays tilt-only.
+     */
+    function boardOverflowsViewport() {
+      if (state.endless) return false;
+      const zoom = Number.isFinite(state.viewZoom) ? state.viewZoom : 1;
+      // Any deliberate zoom-in unlocks pan — bounding-box alone often leaves
+      // maxX=0 on wide desks (height overflows first) so rim tiles stayed stuck.
+      if (zoom > 1.04) return true;
+      const { w, h } = boardPixelExtents();
+      const slack = 12;
+      return w > canvas.width + slack || h > canvas.height + slack;
+    }
+
+    /** Keep a finite board's camera inside a usable overflow range. */
+    function clampCameraToBoard() {
+      if (state.endless) return;
+      const { w, h } = boardPixelExtents();
+      const zoom = Number.isFinite(state.viewZoom) ? state.viewZoom : 1;
+      const byBoxX = Math.max(0, (w - canvas.width) / 2);
+      const byBoxY = Math.max(0, (h - canvas.height) / 2);
+      // Zoom slack: even when one axis still "fits", let the player reach the rim.
+      const byZoomX = zoom > 1 ? (canvas.width * (zoom - 1)) / 2 : 0;
+      const byZoomY = zoom > 1 ? (canvas.height * (zoom - 1)) / 2 : 0;
+      const maxX = Math.max(byBoxX, byZoomX);
+      const maxY = Math.max(byBoxY, byZoomY);
+      if (maxX < 0.5 && maxY < 0.5) {
+        state.camX = 0;
+        state.camY = 0;
+      } else {
+        state.camX = Math.max(-maxX, Math.min(maxX, state.camX || 0));
+        state.camY = Math.max(-maxY, Math.min(maxY, state.camY || 0));
+      }
+      state.camTX = state.camX;
+      state.camTY = state.camY;
+    }
+
+    function applyViewZoom(nextZoom, anchor, { persist = true } = {}) {
+      const z = clampViewZoom(nextZoom);
+      if (Math.abs(z - state.viewZoom) < 0.001) return state.viewZoom;
+      const oldSize = state.cellSize || 28;
+      let worldUnder = null;
+      // Endless always; Fire (cameraLock) also — pinch/wheel should keep the dig under the finger.
+      const anchorZoom = state.endless || isCameraLocked();
+      if (anchor && Number.isFinite(anchor.x) && Number.isFinite(anchor.y) && anchorZoom) {
+        const wx = anchor.x - canvas.width / 2 + state.camX;
+        const wy = anchor.y - canvas.height / 2 + state.camY;
+        worldUnder = { wx, wy };
+      }
+      state.viewZoom = z;
+      if (persist && opts.zoomStorageKey !== false) {
+        try {
+          const zoomKey = opts.zoomStorageKey || "hexsweeper-zoom-v1";
+          localStorage.setItem(zoomKey, String(Math.round(z * 100) / 100));
+        } catch (_) {}
+      }
+      const level = state.currentDifficulty;
+      state.cellSize = computeCellSize(level, state.mapRadius);
+      // Keep camera focus coherent when cell size changes
+      if (worldUnder && oldSize > 0) {
+        const ratio = state.cellSize / oldSize;
+        const wx = worldUnder.wx * ratio;
+        const wy = worldUnder.wy * ratio;
+        state.camX = wx - (anchor.x - canvas.width / 2);
+        state.camY = wy - (anchor.y - canvas.height / 2);
+        state.camTX = state.camX;
+        state.camTY = state.camY;
+      } else if (state.focusCell && oldSize > 0) {
+        const ratio = state.cellSize / oldSize;
+        state.camX *= ratio;
+        state.camY *= ratio;
+        state.camTX = state.camX;
+        state.camTY = state.camY;
+      }
+      state.map.forEach((cell) => {
+        cell.calcGeometry(state.centerX, state.centerY, state.cellSize);
+      });
+      if (state.endless) ensureWorldCoverage(true);
+      // Fire: snap home when the pit fits again; clamp when zoomed past the frame.
+      if (isCameraLocked() && !state.endless) clampCameraToBoard();
+      if (typeof state.hooks.onZoom === "function") state.hooks.onZoom(api, { zoom: state.viewZoom });
+      syncCursor();
+      return state.viewZoom;
+    }
+
+    function syncCursor() {
+      if (!canvas) return;
+      if (state.panning) canvas.style.cursor = "grabbing";
+      else if (state.flagMode) canvas.style.cursor = "cell";
+      else if (state.hoveredKey) canvas.style.cursor = "pointer";
+      else canvas.style.cursor = state.endless ? "grab" : "crosshair";
+    }
+
+    /**
+     * Resize / reflow without wiping the run.
+     * Window resize used to call setDifficulty → full reset (fatal for endless).
+     */
+    function relayout() {
+      const level = state.currentDifficulty;
+      const conf = state.config[level];
+      if (!conf) return;
+      // Endless: keep world scale stable mid-run (only canvas / camera frame changes).
+      // Finite: may shrink slightly if the viewport got smaller.
+      if (!state.endless || state.isFirstClick) {
+        state.cellSize = computeCellSize(level, state.mapRadius || conf.radius);
+      }
+      applyLayout();
+      // Geometry is recomputed every frame by skins (beforeFrame); keep base paths
+      // coherent for any default draw / debug paths.
+      state.map.forEach((cell) => {
+        cell.calcGeometry(state.centerX, state.centerY, state.cellSize);
+      });
+      if (state.endless) ensureWorldCoverage(true);
+      if (isCameraLocked() && !state.endless) clampCameraToBoard();
+      if (typeof state.hooks.onRelayout === "function") state.hooks.onRelayout(api);
+    }
+
+    function setDifficulty(level, options = {}) {
+      const conf = state.config[level];
+      if (!conf) {
+        console.warn("Hexsweeper: unknown difficulty", level);
+        return;
+      }
+      state.currentDifficulty = level;
+      // Finite modes use configured radius; endless starts small then fills the viewport.
+      state.mapRadius = state.endless ? Math.max(6, conf.radius) : conf.radius;
+      state.mineCount = conf.mines;
+      if (state.endless) {
+        if (!state._densityLocked) {
+          state.mineDensity =
+            ENDLESS_DENSITY[level] != null ? ENDLESS_DENSITY[level] : ENDLESS_DENSITY.medium;
+        }
+        // Score / mines matter in endless — surface the stats strip
+        if (!state.showStats) {
+          state.showStats = true;
+          if (statsToggle) {
+            statsToggle.classList.add("active");
+            statsToggle.setAttribute("aria-checked", "true");
+          }
+          updateStatsVisibility();
+        }
+      }
+      state.cellSize = computeCellSize(level, state.mapRadius);
+
+      applyLayout();
+      syncDiffButtons();
+      resetGame(options);
+      // Endless: grow the honeycomb until it fills the canvas (+ buffer)
+      if (state.endless) ensureWorldCoverage(true);
+    }
+
+    function resetGame(options = {}) {
+      state.map.clear();
+      state.camX = 0;
+      state.camY = 0;
+      state.camTX = 0;
+      state.camTY = 0;
+      state.focusCell = null;
+      state.clearedSafe = 0;
+      state.hitMaxRadius = false;
+      state.centerX = canvas.width / 2 + state.boardOffset.x;
+      state.centerY = canvas.height / 2 + state.boardOffset.y;
+
+      for (let q = -state.mapRadius; q <= state.mapRadius; q++) {
+        const r1 = Math.max(-state.mapRadius, -q - state.mapRadius);
+        const r2 = Math.min(state.mapRadius, -q + state.mapRadius);
+        for (let r = r1; r <= r2; r++) {
+          const cell = new Cell(q, r);
+          cell.calcGeometry(state.centerX, state.centerY, state.cellSize);
+          state.map.set(`${q},${r}`, cell);
+        }
+      }
+
+      state.isGameOver = false;
+      state.isFirstClick = true;
+      state.flagsPlaced = 0;
+      state.timeElapsed = 0;
+      state.hoveredKey = null;
+      state.win = null;
+      state.detonator = null;
+      state.endReason = null;
+      state.finishKey = null;
+      state.floodPending = 0;
+      state._growAfterFlood = false;
+      // Endless: mineCount filled after first click by density
+      if (state.endless) state.mineCount = 0;
+      else {
+        const conf = state.config[state.currentDifficulty];
+        if (conf) state.mineCount = conf.mines;
+      }
+      stopTimer();
+      updateUI();
+      if (
+        options.skipHooks !== true &&
+        typeof state.hooks.onReset === "function"
+      ) {
+        state.hooks.onReset(api);
+      }
+    }
+
+    function noteCleared(n) {
+      if (n <= 0) return;
+      state.clearedSafe += n;
+      if (state.endless && state.clearedSafe > state.bestCleared) {
+        state.bestCleared = state.clearedSafe;
+        try {
+          localStorage.setItem("hexsweeper-endless-best", String(state.bestCleared));
+        } catch (_) {}
+      }
+    }
+
+    function placeMines(safeQ, safeR) {
+      const keys = Array.from(state.map.keys());
+      shuffleInPlace(keys);
+      let placed = 0;
+
+      if (state.endless) {
+        const density =
+          state.mineDensity != null && Number.isFinite(state.mineDensity)
+            ? state.mineDensity
+            : ENDLESS_DENSITY.medium;
+        for (const key of keys) {
+          const cell = state.map.get(key);
+          if (isSafeZone(cell, safeQ, safeR) || isProtectedCell(cell)) continue;
+          if (Math.random() < density) {
+            cell.isMine = true;
+            placed++;
+          }
+        }
+        // Guarantee at least a few mines on tiny boards
+        if (placed < 3 && keys.length > 12) {
+          for (const key of keys) {
+            const cell = state.map.get(key);
+            if (cell.isMine || isSafeZone(cell, safeQ, safeR) || isProtectedCell(cell)) {
+              continue;
+            }
+            cell.isMine = true;
+            placed++;
+            if (placed >= 3) break;
+          }
+        }
+      } else {
+        const target = state.mineCount;
+        for (const key of keys) {
+          if (placed >= target) break;
+          const cell = state.map.get(key);
+          if (isSafeZone(cell, safeQ, safeR) || isProtectedCell(cell)) continue;
+          cell.isMine = true;
+          placed++;
+        }
+      }
+      state.mineCount = placed;
+      ensureFinishStamp();
+      recountNeighbors();
+    }
+
+    /**
+     * Grow the hex field by one or more rings (endless mode).
+     * New cells get mines at mineDensity; neighbor counts refresh.
+     */
+    function expandMap(newRadius) {
+      const cap = state.maxRadius || ENDLESS_MAX_RADIUS;
+      const wanted = newRadius;
+      newRadius = Math.min(newRadius, cap);
+      if (newRadius <= state.mapRadius) {
+        if (wanted > cap && !state.hitMaxRadius) {
+          state.hitMaxRadius = true;
+          if (typeof state.hooks.onMaxRadius === "function") {
+            state.hooks.onMaxRadius(api, { radius: state.mapRadius, cap });
+          }
+        }
+        return 0;
+      }
+      const oldR = state.mapRadius;
+      const fresh = [];
+      for (let R = oldR + 1; R <= newRadius; R++) {
+        for (let q = -R; q <= R; q++) {
+          const r1 = Math.max(-R, -q - R);
+          const r2 = Math.min(R, -q + R);
+          for (let r = r1; r <= r2; r++) {
+            if (hexRing(q, r) !== R) continue;
+            const key = `${q},${r}`;
+            if (state.map.has(key)) continue;
+            const cell = new Cell(q, r);
+            cell.calcGeometry(state.centerX, state.centerY, state.cellSize);
+            if (state.finishKey === key) cell.isFinish = true;
+            state.map.set(key, cell);
+            fresh.push(cell);
+          }
+        }
+      }
+      state.mapRadius = newRadius;
+      ensureFinishStamp();
+
+      if (!state.isFirstClick && fresh.length) {
+        const density =
+          state.mineDensity != null && Number.isFinite(state.mineDensity)
+            ? state.mineDensity
+            : ENDLESS_DENSITY.medium;
+        let added = 0;
+        // Freeze numbers on already-revealed cells: never place a mine adjacent
+        // to a revealed cell, and only recount unrevealed cells afterward.
+        const revealedKeys = new Set();
+        state.map.forEach((c, k) => {
+          if (c.revealed) revealedKeys.add(k);
+        });
+        // Eligible = not touching open (safe-band cells are forced clean).
+        // Boost density on the rest so overall field density does not drift down
+        // as the frontier expands (safe band would otherwise dilute mines).
+        const eligible = [];
+        for (const cell of fresh) {
+          if (isProtectedCell(cell)) continue;
+          const touchesOpen = getNeighbors(cell.q, cell.r).some((n) => n.revealed);
+          if (!touchesOpen) eligible.push(cell);
+        }
+        const safeBand = fresh.length - eligible.length;
+        const boost =
+          eligible.length > 0 && safeBand > 0
+            ? Math.min(0.42, density * (1 + (safeBand / fresh.length) * 1.35))
+            : density;
+        shuffleInPlace(eligible);
+        for (const cell of eligible) {
+          if (Math.random() < boost) {
+            cell.isMine = true;
+            added++;
+          }
+        }
+        state.mineCount += added;
+        // Recount only cells that were not revealed before this expand
+        state.map.forEach((cell, key) => {
+          if (revealedKeys.has(key)) return;
+          if (!cell.isMine) {
+            cell.neighborMines = getNeighbors(cell.q, cell.r).filter((n) => n.isMine).length;
+          } else {
+            cell.neighborMines = 0;
+          }
+        });
+      }
+
+      if (newRadius >= cap && !state.hitMaxRadius) {
+        state.hitMaxRadius = true;
+        if (typeof state.hooks.onMaxRadius === "function") {
+          state.hooks.onMaxRadius(api, { radius: state.mapRadius, cap });
+        }
+      }
+
+      if (typeof state.hooks.onExpand === "function") {
+        state.hooks.onExpand(api, { oldRadius: oldR, newRadius, added: fresh.length });
+      }
+      updateUI();
+      return fresh.length;
+    }
+
+    /**
+     * Minimum map radius so every screen corner (plus buffer) has hex cells.
+     * This is what makes the field feel infinite on the canvas — not a floating disc.
+     */
+    function radiusNeededForViewport() {
+      const size = state.cellSize || 28;
+      if (size <= 0) return state.mapRadius || 8;
+      const w = Math.max(320, canvas.width || window.innerWidth || 800);
+      const h = Math.max(320, canvas.height || window.innerHeight || 600);
+      const camX = state.camX || 0;
+      const camY = state.camY || 0;
+      const pad = size * (ENDLESS_VIEW_BUFFER + 1);
+      const samples = [
+        [pad, pad],
+        [w * 0.5, pad],
+        [w - pad, pad],
+        [pad, h * 0.5],
+        [w - pad, h * 0.5],
+        [pad, h - pad],
+        [w * 0.5, h - pad],
+        [w - pad, h - pad],
+      ];
+      let need = 0;
+      for (const [sx, sy] of samples) {
+        // Inverse of beforeFrame endless layout (no parallax): world = screen - center + cam
+        const wx = sx - w / 2 + camX;
+        const wy = sy - h / 2 + camY;
+        const rFloat = wy / (size * 1.5);
+        const qFloat = wx / (size * SQRT3) - rFloat / 2;
+        const hr = hexRound(qFloat, rFloat);
+        need = Math.max(need, hexRing(hr.q, hr.r));
+      }
+      return need + ENDLESS_VIEW_BUFFER;
+    }
+
+    /**
+     * Grow the world until the viewport (and optionally the dig frontier) is covered.
+     * @param {boolean} fillHard — allow larger jumps (boot / resize)
+     */
+    function ensureWorldCoverage(fillHard) {
+      if (!state.endless || state.isGameOver) return 0;
+      let want = radiusNeededForViewport();
+      // Also keep headroom past any revealed cell so dig never hits a hard rim
+      if (!state.isFirstClick) {
+        state.map.forEach((c) => {
+          if (c.revealed) want = Math.max(want, c.ring + ENDLESS_VIEW_BUFFER);
+        });
+      }
+      if (want <= state.mapRadius) return 0;
+      const cap = state.maxRadius || ENDLESS_MAX_RADIUS;
+      const step = fillHard ? 8 : 4;
+      let added = 0;
+      let guard = 0;
+      while (state.mapRadius < want && state.mapRadius < cap && guard < 24) {
+        const next = Math.min(want, state.mapRadius + step, cap);
+        added += expandMap(next);
+        guard++;
+        if (state.mapRadius < next) break; // hit expand no-op
+      }
+      return added;
+    }
+
+    /** @deprecated path — use ensureWorldCoverage; kept as alias for clarity */
+    function maybeExpandFrontier() {
+      ensureWorldCoverage(false);
+    }
+
+    function stepCamera() {
+      if (!state.endless) return;
+      // Smooth pan toward camTX (user drag / explicit setCamera only)
+      state.camX += (state.camTX - state.camX) * 0.08;
+      state.camY += (state.camTY - state.camY) * 0.08;
+      // As the camera moves, grow the honeycomb so the canvas never shows empty space
+      if (Math.abs(state.camTX - state.camX) > 0.5 || Math.abs(state.camTY - state.camY) > 0.5) {
+        ensureWorldCoverage(false);
+      }
+    }
+
+    function pixelToHex(x, y) {
+      const px = x - state.centerX;
+      const py = y - state.centerY;
+      const q_float = ((SQRT3 / 3) * px - (1 / 3) * py) / state.cellSize;
+      const r_float = ((2 / 3) * py) / state.cellSize;
+      return hexRound(q_float, r_float);
+    }
+
+    function hexRound(q, r) {
+      let s = -q - r;
+      let rq = Math.round(q);
+      let rr = Math.round(r);
+      let rs = Math.round(s);
+      const q_diff = Math.abs(rq - q);
+      const r_diff = Math.abs(rr - r);
+      const s_diff = Math.abs(rs - s);
+      if (q_diff > r_diff && q_diff > s_diff) rq = -rr - rs;
+      else if (r_diff > s_diff) rr = -rq - rs;
+      return { q: rq, r: rr };
+    }
+
+    function canvasPointFromEvent(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      let clientX = e.clientX;
+      let clientY = e.clientY;
+      if (clientX == null && e.touches && e.touches[0]) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      }
+      let x = (clientX - rect.left) * scaleX;
+      let y = (clientY - rect.top) * scaleY;
+      if (typeof state.hooks.transformPoint === "function") {
+        const t = state.hooks.transformPoint({ x, y }, api);
+        if (t) {
+          x = t.x;
+          y = t.y;
+        }
+      }
+      return { x, y };
+    }
+
+    function cellAtPixel(x, y) {
+      if (typeof state.hooks.hitTest === "function") {
+        return state.hooks.hitTest(x, y, api);
+      }
+      // Path hit-test when skins move cells (parallax / warp)
+      if (state.hooks.usePathHitTest) {
+        let cells = Array.from(state.map.values());
+        if (state.endless && cells.length > 200) {
+          const pad = state.cellSize * 3;
+          cells = cells.filter(
+            (c) =>
+              !c._offscreen &&
+              c.x > x - pad &&
+              c.x < x + pad &&
+              c.y > y - pad &&
+              c.y < y + pad
+          );
+        }
+        // front-to-back: higher ring first
+        cells.sort((a, b) => b.ring - a.ring || b.y - a.y);
+        for (const cell of cells) {
+          if (cell._riftTorn) continue;
+          const scale = cell._depthScale || 1;
+          const path = cell.hexPath(state.cellSize, scale);
+          if (ctx.isPointInPath(path, x, y)) return cell;
+        }
+        return null;
+      }
+      const coords = pixelToHex(x, y);
+      return state.map.get(`${coords.q},${coords.r}`) || null;
+    }
+
+    function getCellAtInput(e) {
+      const p = canvasPointFromEvent(e);
+      state.pointer.x = p.x;
+      state.pointer.y = p.y;
+      state.pointer.nx = (p.x / canvas.width) * 2 - 1;
+      state.pointer.ny = (p.y / canvas.height) * 2 - 1;
+      state.pointer.active = true;
+      return cellAtPixel(p.x, p.y);
+    }
+
+    function cellActionHandled(cell, source, event) {
+      const handler = state.hooks && state.hooks.onCellAction;
+      return typeof handler === "function" && handler(cell, api, { source, event }) === true;
+    }
+
+    let lastClickTime = 0;
+    let lastClickKey = null;
+    let suppressTapReveal = false;
+    let digSession = null; // { x, y, camX, camY, button, panned }
+    let pinchStartDist = 0;
+    let pinchStartZoom = 1;
+
+    function handleMouseDown(e) {
+      if (state.isGameOver && e.button === 0 && !state.spaceDown) return;
+      const p = canvasPointFromEvent(e);
+      state.pointer.x = p.x;
+      state.pointer.y = p.y;
+      state.pointer.nx = (p.x / canvas.width) * 2 - 1;
+      state.pointer.ny = (p.y / canvas.height) * 2 - 1;
+      state.pointer.active = true;
+
+      // Middle-click or Space+drag → pan. Right / Ctrl / Cmd → flag.
+      if (e.button === 1 || (e.button === 0 && state.spaceDown)) {
+        e.preventDefault();
+        digSession = {
+          x: e.clientX,
+          y: e.clientY,
+          camX: state.camX,
+          camY: state.camY,
+          button: e.button,
+          panned: true,
+          forcePan: true,
+        };
+        state.panning = true;
+        syncCursor();
+        return;
+      }
+      if (e.button === 2 || (e.button === 0 && (e.ctrlKey || e.metaKey))) {
+        e.preventDefault();
+        const cell = cellAtPixel(p.x, p.y);
+        if (cell) toggleFlag(cell);
+        return;
+      }
+      if (e.button !== 0) return;
+      digSession = {
+        x: e.clientX,
+        y: e.clientY,
+        camX: state.camX,
+        camY: state.camY,
+        button: 0,
+        panned: false,
+        forcePan: false,
+      };
+    }
+
+    function handleMouseMove(e) {
+      const p = canvasPointFromEvent(e);
+      state.pointer.x = p.x;
+      state.pointer.y = p.y;
+      state.pointer.nx = (p.x / canvas.width) * 2 - 1;
+      state.pointer.ny = (p.y / canvas.height) * 2 - 1;
+      state.pointer.active = true;
+
+      if (digSession && (e.buttons & 1 || digSession.forcePan || digSession.button === 1)) {
+        const dx = e.clientX - digSession.x;
+        const dy = e.clientY - digSession.y;
+        const dist = Math.hypot(dx, dy);
+        const panThreshold = digSession.forcePan || state.endless ? 8 : 18;
+        if (digSession.panned || dist > panThreshold) {
+          // Fire fits → tilt; Fire zoomed past frame (or Space/middle) → pan.
+          const lockTilt = isTiltDragOnly() && !digSession.forcePan;
+          if (!digSession.panned) {
+            digSession.panned = true;
+            // Tilt-only: suppress dig-on-release, but keep hover for heat/tilt
+            if (!lockTilt) {
+              state.panning = true;
+              state.hoveredKey = null;
+            }
+            syncCursor();
+          }
+          if (!lockTilt) {
+            // Absolute pan from drag origin (stable, no acceleration drift)
+            state.camX = digSession.camX - dx;
+            state.camY = digSession.camY - dy;
+            state.camTX = state.camX;
+            state.camTY = state.camY;
+            state.focusCell = null;
+            if (isCameraLocked() && !state.endless) clampCameraToBoard();
+            if (state.endless) ensureWorldCoverage(false);
+            return;
+          }
+          // Fall through: pointer already updated → pit tilt + cell hover
+        }
+      }
+
+      if (state.isGameOver) {
+        syncCursor();
+        return;
+      }
+      const cell = cellAtPixel(p.x, p.y);
+      state.hoveredKey = cell ? `${cell.q},${cell.r}` : null;
+      syncCursor();
+    }
+
+    function handleMouseUp(e) {
+      const wasPan = digSession && digSession.panned;
+      const wasForcePan = digSession && digSession.forcePan;
+      digSession = null;
+      state.panning = false;
+      syncCursor();
+      if (wasPan) {
+        // Camera moved — let endless autosave capture the new viewport
+        if (!isTiltDragOnly() || wasForcePan) {
+          if (typeof state.hooks.onPersistTick === "function") state.hooks.onPersistTick(api);
+        }
+        return;
+      }
+      if (state.isGameOver) return;
+      if (e.button !== 0 || e.ctrlKey || e.metaKey || state.spaceDown) return;
+      const cell = getCellAtInput(e);
+      if (!cell) return;
+      if (cellActionHandled(cell, "pointer", e)) return;
+      const now = Date.now();
+      const key = `${cell.q},${cell.r}`;
+      if (state.flagMode) {
+        if (!cell.revealed) toggleFlag(cell);
+        return;
+      }
+      // Chord only when double-clicking the *same* revealed cell
+      if (now - lastClickTime < 300 && cell.revealed && key === lastClickKey) chord(cell);
+      else if (!cell.revealed && !cell.flagged) reveal(cell);
+      else if (cell.revealed) {
+        // Single click on a satisfied number also chords (faster than double-click)
+        const flags = getNeighbors(cell.q, cell.r).filter((n) => n.flagged).length;
+        if (flags === cell.neighborMines && cell.neighborMines > 0) chord(cell);
+      }
+      lastClickTime = now;
+      lastClickKey = key;
+    }
+
+    let longPressTimer;
+    let touchStartPos;
+    let touchStartKey = null;
+    let touchMoved = false;
+    let touchFlagged = false;
+    let touchPanOrigin = null;
+
+    /** Fire (and similar): theme wants pit-tilt chrome rather than free pan. */
+    function isCameraLocked() {
+      const lock = state.hooks && state.hooks.cameraLock;
+      if (typeof lock === "function") return !!lock(api);
+      return !!lock;
+    }
+
+    /**
+     * Tilt-only drag while the locked board still fits the viewport.
+     * Once zoom overflows the frame, drag pans (clamped) so rim tiles stay reachable.
+     */
+    function isTiltDragOnly() {
+      return isCameraLocked() && !boardOverflowsViewport();
+    }
+
+    function handleTouchStart(e) {
+      e.preventDefault();
+      if (e.touches.length === 2) {
+        clearTimeout(longPressTimer);
+        const a = e.touches[0];
+        const b = e.touches[1];
+        pinchStartDist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1;
+        pinchStartZoom = state.viewZoom;
+        touchMoved = true;
+        suppressTapReveal = true;
+        touchStartPos = null;
+        return;
+      }
+      if (state.isGameOver) return;
+      touchFlagged = false;
+      touchMoved = false;
+      suppressTapReveal = false;
+      const cell = getCellAtInput(e);
+      touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      touchPanOrigin = { camX: state.camX, camY: state.camY };
+      if (cell) {
+        touchStartKey = `${cell.q},${cell.r}`;
+        state.hoveredKey = touchStartKey;
+        // Long-press flags on touch (no separate mode required)
+        longPressTimer = setTimeout(() => {
+          if (navigator.vibrate) navigator.vibrate(50);
+          toggleFlag(cell);
+          touchFlagged = true;
+          suppressTapReveal = true;
+          state.hoveredKey = null;
+        }, 420);
+      } else {
+        touchStartKey = null;
+      }
+    }
+    function handleTouchMove(e) {
+      e.preventDefault();
+      if (e.touches.length === 2) {
+        clearTimeout(longPressTimer);
+        const a = e.touches[0];
+        const b = e.touches[1];
+        const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1;
+        const mid = canvasPointFromEvent({
+          clientX: (a.clientX + b.clientX) / 2,
+          clientY: (a.clientY + b.clientY) / 2,
+        });
+        applyViewZoom(pinchStartZoom * (dist / pinchStartDist), mid);
+        touchMoved = true;
+        suppressTapReveal = true;
+        state.panning = false;
+        return;
+      }
+      if (!touchStartPos) return;
+      const dx = e.touches[0].clientX - touchStartPos.x;
+      const dy = e.touches[0].clientY - touchStartPos.y;
+      if (Math.hypot(dx, dy) > 10) {
+        touchMoved = true;
+        clearTimeout(longPressTimer);
+        // Fire fits the frame → tilt; zoomed past the frame → clamped pan to the rim.
+        if (isTiltDragOnly()) {
+          handleMouseMove(e);
+          return;
+        }
+        state.hoveredKey = null;
+        state.panning = true;
+        // Pan the camera (endless plates + zoomed Fire / finite boards)
+        if (touchPanOrigin) {
+          state.camX = touchPanOrigin.camX - dx;
+          state.camY = touchPanOrigin.camY - dy;
+          state.camTX = state.camX;
+          state.camTY = state.camY;
+          state.focusCell = null;
+          if (isCameraLocked() && !state.endless) clampCameraToBoard();
+          if (state.endless) ensureWorldCoverage(false);
+        }
+        const p = canvasPointFromEvent(e);
+        state.pointer.x = p.x;
+        state.pointer.y = p.y;
+        state.pointer.nx = (p.x / canvas.width) * 2 - 1;
+        state.pointer.ny = (p.y / canvas.height) * 2 - 1;
+        state.pointer.active = true;
+        syncCursor();
+        return;
+      }
+      handleMouseMove(e);
+    }
+    function handleTouchEnd(e) {
+      e.preventDefault();
+      clearTimeout(longPressTimer);
+      state.panning = false;
+      syncCursor();
+      if (e.touches && e.touches.length > 0) {
+        // Still one finger down after pinch — ignore residual tap
+        suppressTapReveal = true;
+        return;
+      }
+      // Locked pit: ease parallax back to center when the finger lifts
+      if (isCameraLocked()) {
+        state.pointer.nx = 0;
+        state.pointer.ny = 0;
+        state.pointer.active = false;
+      }
+      if (suppressTapReveal || touchFlagged || touchMoved) {
+        if (touchMoved && !isTiltDragOnly() && typeof state.hooks.onPersistTick === "function") {
+          state.hooks.onPersistTick(api);
+        }
+        suppressTapReveal = false;
+        touchFlagged = false;
+        touchMoved = false;
+        state.hoveredKey = null;
+        touchStartPos = null;
+        touchStartKey = null;
+        touchPanOrigin = null;
+        return;
+      }
+      const key = touchStartKey || state.hoveredKey;
+      if (key && !state.isGameOver) {
+        const cell = state.map.get(key);
+        if (cell) {
+          if (cellActionHandled(cell, "touch", e)) {
+            state.hoveredKey = null;
+            touchStartPos = null;
+            touchStartKey = null;
+            touchPanOrigin = null;
+            touchMoved = false;
+            return;
+          }
+          if (state.flagMode) {
+            if (!cell.revealed) toggleFlag(cell);
+          } else if (!cell.flagged && !cell.revealed) reveal(cell);
+          else if (cell.revealed) chord(cell);
+        }
+      }
+      state.hoveredKey = null;
+      touchStartPos = null;
+      touchStartKey = null;
+      touchPanOrigin = null;
+      touchMoved = false;
+    }
+
+    function handleWheel(e) {
+      e.preventDefault();
+      const anchor = canvasPointFromEvent(e);
+      const factor = e.deltaY < 0 ? 1.08 : 1 / 1.08;
+      applyViewZoom(state.viewZoom * factor, anchor);
+    }
+
+    function reveal(cell) {
+      if (!cell || cell._riftTorn || cell._pendingReveal) return;
+      if (state.isFirstClick) {
+        startTimer();
+        placeMines(cell.q, cell.r);
+        state.isFirstClick = false;
+      }
+      cell.revealed = true;
+      if (!cell.isMine) noteCleared(1);
+      if (typeof state.hooks.onReveal === "function") {
+        state.hooks.onReveal(cell, api, { source: "dig" });
+      }
+      if (cell.isMine) {
+        state.detonator = cell;
+        gameOver(false);
+      } else {
+        openFrontier(cell);
+        if (!state.floodPending) checkWin();
+      }
+    }
+
+    /** Flood empties, then grow the infinite field and re-flood into new rings. */
+    function openFrontier(seed) {
+      if (seed && seed.neighborMines === 0) floodFrom(seed);
+      if (!state.endless) {
+        // Finite: win check runs when the reveal wave settles.
+        if (!state.floodPending) checkWin();
+        return;
+      }
+      if (state.floodPending > 0) {
+        // Grow after the wave finishes so new rings can cascade.
+        state._growAfterFlood = true;
+        return;
+      }
+      growEndlessFrontier();
+    }
+
+    function growEndlessFrontier() {
+      for (let i = 0; i < 8; i++) {
+        const r0 = state.mapRadius;
+        ensureWorldCoverage(false);
+        if (state.mapRadius === r0) break;
+        // New empty cells adjacent to opened zeros should keep cascading
+        const seeds = [];
+        state.map.forEach((c) => {
+          if (c.revealed && !c.isMine && c.neighborMines === 0) seeds.push(c);
+        });
+        for (const s of seeds) floodFrom(s);
+        if (state.floodPending > 0) {
+          state._growAfterFlood = true;
+          return;
+        }
+      }
+      checkWin();
+    }
+
+    /**
+     * Classic empty-cell flood, but cells open in BFS rings from the dig so
+     * the clearing reads as a wave out to the numbered boundary — not a poof.
+     */
+    function floodFrom(startCell) {
+      const queue = [{ cell: startCell, dist: 0 }];
+      const visited = new Set([`${startCell.q},${startCell.r}`]);
+      const wave = [];
+      while (queue.length > 0) {
+        const { cell: current, dist } = queue.shift();
+        for (const n of getNeighbors(current.q, current.r)) {
+          const k = `${n.q},${n.r}`;
+          if (
+            visited.has(k) ||
+            n.revealed ||
+            n._pendingReveal ||
+            n.flagged ||
+            n.isMine ||
+            n._riftTorn
+          ) {
+            continue;
+          }
+          visited.add(k);
+          const nextDist = dist + 1;
+          wave.push({ cell: n, dist: nextDist });
+          if (n.neighborMines === 0) queue.push({ cell: n, dist: nextDist });
+        }
+      }
+      if (!wave.length) return;
+
+      const reduceMotion = effectsReduced();
+      const now = performance.now();
+      // Pace by ring distance; cap so huge clears still finish in about a second.
+      const stepMs = reduceMotion ? 0 : 32;
+      for (const { cell, dist } of wave) {
+        cell._pendingReveal = true;
+        cell.revealDue = now + Math.min(dist * stepMs, reduceMotion ? 0 : 920);
+        cell.animReveal = 0;
+      }
+      state.floodPending = (state.floodPending || 0) + wave.length;
+      stepRevealWave();
+    }
+
+    function commitFloodReveal(cell) {
+      if (!cell || cell.revealed) {
+        if (cell && cell._pendingReveal) {
+          cell._pendingReveal = false;
+          state.floodPending = Math.max(0, (state.floodPending || 1) - 1);
+        }
+        return;
+      }
+      cell.revealed = true;
+      cell._pendingReveal = false;
+      cell.revealDue = 0;
+      cell.animReveal = 0;
+      state.floodPending = Math.max(0, (state.floodPending || 1) - 1);
+      if (!cell.isMine) noteCleared(1);
+      if (typeof state.hooks.onReveal === "function") {
+        state.hooks.onReveal(cell, api, { source: "flood" });
+      }
+    }
+
+    function stepRevealWave() {
+      if (!state.floodPending) return;
+      const now = performance.now();
+      let opened = 0;
+      state.map.forEach((c) => {
+        if (c._pendingReveal && now >= (c.revealDue || 0)) {
+          commitFloodReveal(c);
+          opened++;
+        }
+      });
+      if (!opened) return;
+      updateUI();
+      if (state.floodPending > 0) return;
+      if (state._growAfterFlood) {
+        state._growAfterFlood = false;
+        growEndlessFrontier();
+      } else {
+        checkWin();
+      }
+    }
+
+    function toggleFlag(cell) {
+      if (!cell || cell.revealed || cell._pendingReveal || cell._riftTorn) return;
+      if (isProtectedCell(cell)) {
+        if (typeof state.hooks.onProtectedFlag === "function") {
+          state.hooks.onProtectedFlag(cell, api);
+        }
+        return;
+      }
+      cell.flagged = !cell.flagged;
+      state.flagsPlaced += cell.flagged ? 1 : -1;
+      updateUI();
+      if (typeof state.hooks.onFlag === "function") state.hooks.onFlag(cell, api);
+    }
+
+    function chord(cell) {
+      const neighbors = getNeighbors(cell.q, cell.r);
+      const flagged = neighbors.filter((n) => n.flagged).length;
+      if (flagged === cell.neighborMines) {
+        let hitMine = false;
+        for (const n of neighbors) {
+          if (!n.revealed && !n.flagged && !n._riftTorn) {
+            n.revealed = true;
+            if (!n.isMine) noteCleared(1);
+            if (typeof state.hooks.onReveal === "function") {
+              state.hooks.onReveal(n, api, { source: "chord" });
+            }
+            if (n.isMine) {
+              hitMine = true;
+              if (!state.detonator) state.detonator = n;
+            } else if (n.neighborMines === 0) floodFrom(n);
+          }
+        }
+        if (hitMine) gameOver(false);
+        else {
+          openFrontier(null);
+          if (!state.floodPending) checkWin();
+        }
+      }
+    }
+
+    function checkWin() {
+      // Endless Soft White: no clear-the-board win — the field keeps expanding.
+      // Escape: revealing the finish hex is a positive exit.
+      if (state.endless) {
+        if (state.finishKey) {
+          const fin = state.map.get(state.finishKey);
+          if (fin && fin.revealed && !fin.isMine) {
+            state.endReason = "finish";
+            gameOver(true);
+            return;
+          }
+        }
+        updateUI();
+        return;
+      }
+      let revealed = 0;
+      state.map.forEach((c) => {
+        if (c.revealed) revealed++;
+      });
+      if (revealed === state.map.size - state.mineCount) gameOver(true);
+    }
+
+    function gameOver(win) {
+      state.isGameOver = true;
+      state.win = win;
+      stopTimer();
+      const reason = state.endReason || (win ? "win" : "mine");
+      // Rift catch: don't spoil the board with revealed mines — the tear is the death.
+      if (!win && reason !== "rift")
+        state.map.forEach((c) => {
+          if (c.isMine && !c.flagged) c.revealed = true;
+        });
+      else if (win) {
+        state.map.forEach((c) => {
+          if (c.isMine) c.flagged = true;
+        });
+        state.flagsPlaced = state.mineCount;
+        updateUI();
+        state.detonator = null;
+      }
+      if (typeof state.hooks.onGameOver === "function") {
+        state.hooks.onGameOver(win, api, { detonator: state.detonator, reason });
+      }
+    }
+
+    function startTimer(resumeAt) {
+      if (state.timerInterval) return;
+      if (Number.isFinite(resumeAt)) state.timeElapsed = Math.max(0, resumeAt | 0);
+      else state.timeElapsed = 0;
+      state.timerInterval = setInterval(() => {
+        state.timeElapsed++;
+        updateUI();
+        if (typeof state.hooks.onPersistTick === "function") {
+          state.hooks.onPersistTick(api);
+        }
+      }, 1000);
+    }
+    function stopTimer() {
+      clearInterval(state.timerInterval);
+      state.timerInterval = null;
+    }
+
+    /**
+     * Pack a run for localStorage / file export. Only stores mines, revealed,
+     * flagged, and torn cells — sparse vs the complete board map.
+     */
+    function exportRunState() {
+      if (state.endless) ensureFinishStamp();
+      const mines = [];
+      const revealed = [];
+      const flagged = [];
+      const torn = [];
+      state.map.forEach((c) => {
+        const key = `${c.q},${c.r}`;
+        if (c.isMine && !isFinishCell(c)) mines.push(key);
+        if (c.revealed) revealed.push(key);
+        if (c.flagged) flagged.push(key);
+        if (c._riftTorn) torn.push(key);
+      });
+      return {
+        v: 1,
+        endless: !!state.endless,
+        difficulty: state.currentDifficulty,
+        density: state.mineDensity,
+        radius: state.mapRadius,
+        first: !!state.isFirstClick,
+        over: !!state.isGameOver,
+        win: state.win,
+        endReason: state.endReason || null,
+        finish: state.finishKey || null,
+        cleared: state.clearedSafe | 0,
+        flags: state.flagsPlaced | 0,
+        mineCount: state.mineCount | 0,
+        time: state.timeElapsed | 0,
+        cam: [state.camX || 0, state.camY || 0],
+        zoom: Number.isFinite(state.viewZoom) ? state.viewZoom : 1,
+        mines,
+        revealed,
+        flagged,
+        torn,
+      };
+    }
+
+    function exportEndlessState() {
+      return state.endless ? exportRunState() : null;
+    }
+
+    function buildMapToRadius(radius) {
+      const R = Math.max(1, radius | 0);
+      state.map.clear();
+      state.centerX = canvas.width / 2 + state.boardOffset.x;
+      state.centerY = canvas.height / 2 + state.boardOffset.y;
+      for (let q = -R; q <= R; q++) {
+        const r1 = Math.max(-R, -q - R);
+        const r2 = Math.min(R, -q + R);
+        for (let r = r1; r <= r2; r++) {
+          const cell = new Cell(q, r);
+          cell.calcGeometry(state.centerX, state.centerY, state.cellSize);
+          state.map.set(`${q},${r}`, cell);
+        }
+      }
+      state.mapRadius = R;
+    }
+
+    function applyKeyList(list, fn) {
+      if (!Array.isArray(list)) return;
+      for (const key of list) {
+        if (typeof key !== "string") continue;
+        let cell = state.map.get(key);
+        if (!cell) {
+          const parts = key.split(",");
+          const q = parseInt(parts[0], 10);
+          const r = parseInt(parts[1], 10);
+          if (!Number.isFinite(q) || !Number.isFinite(r)) continue;
+          cell = new Cell(q, r);
+          cell.calcGeometry(state.centerX, state.centerY, state.cellSize);
+          state.map.set(key, cell);
+          state.mapRadius = Math.max(state.mapRadius, cell.ring);
+        }
+        fn(cell);
+      }
+    }
+
+    /** Restore a snapshot for the currently booted topology. */
+    function applyRunState(data) {
+      if (!data || data.v !== 1 || typeof data.endless !== "boolean") return false;
+      if (!!data.endless !== !!state.endless) return false;
+      stopTimer();
+      if (data.difficulty && state.config[data.difficulty]) {
+        state.currentDifficulty = data.difficulty;
+      }
+      if (Number.isFinite(data.density)) {
+        state.mineDensity = data.density;
+        state._densityLocked = true;
+      }
+      const conf = state.config[state.currentDifficulty];
+      state.cellSize = computeCellSize(
+        state.currentDifficulty,
+        Math.max(conf?.radius || 6, data.radius | 0)
+      );
+      applyLayout();
+      syncDiffButtons();
+
+      const R = Math.max(conf?.radius || 6, data.radius | 0);
+      buildMapToRadius(R);
+
+      // Clear defaults then stamp sparse lists
+      state.map.forEach((c) => {
+        c.isMine = false;
+        c.isFinish = false;
+        c.revealed = false;
+        c.flagged = false;
+        c._riftTorn = false;
+        c.neighborMines = 0;
+        c.animReveal = 0;
+      });
+      applyKeyList(data.mines, (c) => {
+        c.isMine = true;
+      });
+      applyKeyList(data.revealed, (c) => {
+        c.revealed = true;
+        c.animReveal = 1;
+        c._pendingReveal = false;
+      });
+      applyKeyList(data.flagged, (c) => {
+        c.flagged = true;
+      });
+      applyKeyList(data.torn, (c) => {
+        c._riftTorn = true;
+        c._blastAlpha = 0.15;
+      });
+
+      state.isFirstClick = !!data.first;
+      state.isGameOver = !!data.over;
+      state.win = data.win == null ? null : !!data.win;
+      state.endReason = data.endReason || null;
+      state.clearedSafe = data.cleared | 0;
+      state.flagsPlaced = data.flags | 0;
+      state.mineCount = Number.isFinite(data.mineCount)
+        ? data.mineCount | 0
+        : Array.isArray(data.mines)
+          ? data.mines.length
+          : 0;
+      // Escape finish (axial key) — never a mine; stamp after mineCount restore.
+      if (state.endless && typeof data.finish === "string" && data.finish.includes(",")) {
+        const parts = data.finish.split(",");
+        setFinishCell(parseInt(parts[0], 10), parseInt(parts[1], 10));
+      } else {
+        state.finishKey = null;
+      }
+      if (state.endless) ensureFinishStamp();
+      recountNeighbors();
+      state.timeElapsed = data.time | 0;
+      state.detonator = null;
+      state.hitMaxRadius = false;
+      if (Array.isArray(data.cam) && data.cam.length >= 2) {
+        state.camX = Number(data.cam[0]) || 0;
+        state.camY = Number(data.cam[1]) || 0;
+        state.camTX = state.camX;
+        state.camTY = state.camY;
+      }
+      if (Number.isFinite(data.zoom)) {
+        // Restoring a lane's view, not choosing a zoom: leave the shared
+        // preference to explicit wheel / pinch / button input.
+        applyViewZoom(data.zoom, null, { persist: false });
+      }
+
+      updateUI();
+      if (!state.isFirstClick && !state.isGameOver) {
+        startTimer(state.timeElapsed);
+      }
+      if (typeof state.hooks.onRelayout === "function") state.hooks.onRelayout(api);
+      // Endless restores may need another ring to cover a changed viewport.
+      if (state.endless && !state.isGameOver) ensureWorldCoverage(true);
+      return true;
+    }
+
+    function applyEndlessState(data) {
+      if (!data || !data.endless || !state.endless) return false;
+      return applyRunState(data);
+    }
+
+    function updateUI() {
+      if (!statsMines || !statsTime) return;
+      if (state.endless) {
+        // Mines left · cells cleared (score); title includes best
+        const left = Math.max(0, state.mineCount - state.flagsPlaced);
+        statsMines.innerText = left >= 100 ? String(left) : left.toString().padStart(2, "0");
+        const score = state.clearedSafe || 0;
+        statsTime.innerText =
+          score >= 1000 ? String(score) : score.toString().padStart(3, "0");
+        const best = state.bestCleared || 0;
+        if (opts.tooltips !== false) {
+          statsMines.title = "Mines remaining (unflagged estimate)";
+          statsTime.title =
+            best > 0 ? `Safe cells cleared · best ${best}` : "Safe cells cleared (score)";
+        }
+        statsMines.setAttribute("data-label", "mines");
+        statsTime.setAttribute("data-label", best > 0 ? `best ${best}` : "cleared");
+      } else {
+        const left = Math.max(0, state.mineCount - state.flagsPlaced);
+        statsMines.innerText = left.toString().padStart(2, "0");
+        statsTime.innerText = Math.min(999, state.timeElapsed).toString().padStart(3, "0");
+        if (opts.tooltips !== false) {
+          statsMines.title = "Mines remaining";
+          statsTime.title = "Time";
+        }
+        statsMines.setAttribute("data-label", "mines");
+        statsTime.setAttribute("data-label", "time");
+      }
+    }
+
+    function drawDefaultCell(cell, size) {
+      const T = state.theme;
+      const scale = 0.92 + cell.animHover * 0.05;
+      const drawPath = cell.hexPath(size, scale);
+      const drawSize = size * scale;
+
+      ctx.fillStyle = cell.revealed ? T.revealed || T.covered : T.covered;
+      ctx.fill(drawPath);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      if (cell.animReveal < 0.99) {
+        const opacity = 1 - cell.animReveal;
+        ctx.globalAlpha = opacity;
+        ctx.strokeStyle = T.shadowLight;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 3; i <= 5; i++) {
+          const angle = (Math.PI / 180) * (30 + 60 * i);
+          const vx = cell.x + drawSize * Math.cos(angle);
+          const vy = cell.y + drawSize * Math.sin(angle);
+          if (i === 3) ctx.moveTo(vx, vy);
+          else ctx.lineTo(vx, vy);
+        }
+        ctx.stroke();
+        ctx.strokeStyle = T.shadowDark;
+        ctx.beginPath();
+        for (let i = 0; i <= 2; i++) {
+          const angle = (Math.PI / 180) * (30 + 60 * i);
+          const vx = cell.x + drawSize * Math.cos(angle);
+          const vy = cell.y + drawSize * Math.sin(angle);
+          if (i === 0) ctx.moveTo(vx, vy);
+          else ctx.lineTo(vx, vy);
+        }
+        ctx.stroke();
+      }
+
+      if (cell.animReveal > 0.01) {
+        ctx.globalAlpha = cell.animReveal;
+        ctx.strokeStyle = T.pressedDark || "#c8d0d9";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 3; i <= 5; i++) {
+          const angle = (Math.PI / 180) * (30 + 60 * i);
+          const vx = cell.x + drawSize * Math.cos(angle);
+          const vy = cell.y + drawSize * Math.sin(angle);
+          if (i === 3) ctx.moveTo(vx, vy);
+          else ctx.lineTo(vx, vy);
+        }
+        ctx.stroke();
+        ctx.strokeStyle = T.pressedLight || "#ffffff";
+        ctx.beginPath();
+        for (let i = 0; i <= 2; i++) {
+          const angle = (Math.PI / 180) * (30 + 60 * i);
+          const vx = cell.x + drawSize * Math.cos(angle);
+          const vy = cell.y + drawSize * Math.sin(angle);
+          if (i === 0) ctx.moveTo(vx, vy);
+          else ctx.lineTo(vx, vy);
+        }
+        ctx.stroke();
+      }
+
+      ctx.globalAlpha = 1;
+
+      if (cell.animReveal > 0.1) {
+        ctx.globalAlpha = cell.animReveal;
+        if (cell.isMine) {
+          ctx.fillStyle = T.text.mine;
+          ctx.beginPath();
+          ctx.arc(cell.x, cell.y, size * 0.4, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (cell.neighborMines > 0) {
+          ctx.fillStyle = T.text[cell.neighborMines] || "#333";
+          ctx.font = `700 ${size}px "Segoe UI", system-ui, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(cell.neighborMines, cell.x, cell.y + size * 0.05);
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      if (cell.flagged && !cell.revealed) {
+        ctx.fillStyle = T.flag;
+        ctx.font = `bold ${size}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("!", cell.x, cell.y + size * 0.1);
+      }
+    }
+
+    function updateCell(cell) {
+      if (cell._offscreen) return;
+      const isHovered = state.hoveredKey === `${cell.q},${cell.r}` && !state.isGameOver;
+      cell.animHover += ((isHovered ? 1 : 0) - cell.animHover) * 0.2;
+      cell.animReveal += ((cell.revealed ? 1 : 0) - cell.animReveal) * 0.15;
+    }
+
+    /** Canvas on-screen (IntersectionObserver) — offscreen iframes / desk pens rest. */
+    let frameVisible = true;
+    let lastPaintTs = 0;
+    const inIframe = typeof window !== "undefined" && window.self !== window.top;
+
+    function isEndlessIdle(ts) {
+      if (!state.endless) return false;
+      const z = Number.isFinite(state.viewZoom) ? state.viewZoom : 1;
+      if (z >= 0.87) return false;
+      const camMoving =
+        Math.abs(state.camTX - state.camX) > 0.5 || Math.abs(state.camTY - state.camY) > 0.5;
+      if (camMoving || state.pointer.active) return false;
+      if (state.revealWave && state.revealWave.length) return false;
+      if (state.hoveredKey) return false;
+      if (typeof state.hooks.isFrameBusy === "function" && state.hooks.isFrameBusy(api, ts)) {
+        return false;
+      }
+      return true;
+    }
+
+    function framePaintInterval(ts) {
+      if (!isEndlessIdle(ts)) return 0;
+      // Zoomed-out endless plate: 15 fps standalone, 5 fps in embeds / background pens.
+      if (inIframe || !frameVisible) return 200;
+      return 66;
+    }
+
+    function resumeGameLoop() {
+      if (rafId) return;
+      if (typeof document !== "undefined" && document.hidden) return;
+      if (!frameVisible) return;
+      rafId = requestAnimationFrame(gameLoop);
+    }
+
+    let rafId = 0;
+    function gameLoop(ts) {
+      rafId = 0;
+      // Hidden tabs / offscreen canvas: stop painting so endless Soft UI rests.
+      if (typeof document !== "undefined" && document.hidden) return;
+      if (!frameVisible) return;
+
+      const minGap = framePaintInterval(ts);
+      if (minGap > 0 && ts - lastPaintTs < minGap) {
+        rafId = requestAnimationFrame(gameLoop);
+        return;
+      }
+      lastPaintTs = ts;
+
+      state.now = ts - state.t0;
+      stepRevealWave();
+      stepCamera();
+      // Periodic coverage check (camera settled / first frames after boot)
+      if (state.endless && (ts | 0) % 8 === 0) ensureWorldCoverage(false);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (typeof state.hooks.beforeFrame === "function") state.hooks.beforeFrame(ctx, api);
+
+      // Draw far rings first for depth skins that sort
+      let cells = Array.from(state.map.values());
+      // Endless: cull parked / off-screen tiles (beforeFrame sets _offscreen).
+      if (state.endless) {
+        cells = cells.filter((c) => !c._offscreen);
+        if (cells.length > 200) {
+          const pad = state.cellSize * 3;
+          const w = canvas.width;
+          const h = canvas.height;
+          cells = cells.filter(
+            (c) => c.x > -pad && c.y > -pad && c.x < w + pad && c.y < h + pad
+          );
+        }
+      }
+      if (state.hooks.sortCells) cells.sort(state.hooks.sortCells);
+      else cells.sort((a, b) => a.ring - b.ring || a.y - b.y);
+
+      for (const cell of cells) {
+        updateCell(cell);
+        if (typeof state.hooks.drawCell === "function") state.hooks.drawCell(ctx, cell, state.cellSize, api);
+        else drawDefaultCell(cell, state.cellSize);
+        if (typeof state.hooks.decorateCell === "function")
+          state.hooks.decorateCell(ctx, cell, state.cellSize, api);
+      }
+
+      if (typeof state.hooks.afterFrame === "function") state.hooks.afterFrame(ctx, api);
+      rafId = requestAnimationFrame(gameLoop);
+    }
+    if (typeof document !== "undefined" && document.addEventListener) {
+      document.addEventListener("visibilitychange", () => {
+        resumeGameLoop();
+      });
+    }
+    if (typeof IntersectionObserver !== "undefined") {
+      const frameObserver = new IntersectionObserver(
+        (entries) => {
+          frameVisible = entries.some((e) => e.isIntersecting && e.intersectionRatio > 0);
+          if (frameVisible) resumeGameLoop();
+        },
+        { threshold: [0, 0.01] }
+      );
+      frameObserver.observe(canvas);
+    }
+    if (typeof document !== "undefined" && document.addEventListener && inIframe) {
+      window.addEventListener("focus", resumeGameLoop);
+      window.addEventListener("blur", () => {
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = 0;
+        }
+      });
+    }
+
+    canvas.addEventListener("mousemove", handleMouseMove);
+    canvas.addEventListener("mousedown", handleMouseDown);
+    canvas.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("mouseup", (e) => {
+      if (digSession) handleMouseUp(e);
+    });
+    canvas.addEventListener("mouseout", () => {
+      if (!digSession) {
+        state.hoveredKey = null;
+        state.pointer.active = false;
+        // Locked pits ease back to a calm center when the pointer leaves
+        if (isCameraLocked()) {
+          state.pointer.nx = 0;
+          state.pointer.ny = 0;
+        }
+        syncCursor();
+      }
+    });
+    canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+    canvas.addEventListener("wheel", handleWheel, { passive: false });
+    canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
+    canvas.addEventListener("touchend", handleTouchEnd, { passive: false });
+    canvas.addEventListener("touchcancel", handleTouchEnd, { passive: false });
+    canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
+    // Never reset the run on viewport change — endless depends on this.
+    let resizeTimer = null;
+    const scheduleRelayout = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => relayout(), 80);
+    };
+    window.addEventListener("resize", scheduleRelayout);
+    // Mobile URL-bar show/hide changes visualViewport without always firing resize.
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", scheduleRelayout);
+      window.visualViewport.addEventListener("scroll", scheduleRelayout);
+    }
+
+    window.addEventListener("keydown", (e) => {
+      if (
+        e.target &&
+        (e.target.closest?.("button, a, input, textarea, select, [contenteditable='true']") ||
+          /input|textarea|select/i.test(e.target.tagName))
+      ) {
+        return;
+      }
+      if (e.code === "Space") {
+        state.spaceDown = true;
+        if (!e.repeat) e.preventDefault();
+        syncCursor();
+      }
+      if (e.key === "Escape") {
+        closeModal();
+      }
+      if ((e.key === "+" || e.key === "=") && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        applyViewZoom(state.viewZoom * 1.1, {
+          x: canvas.width / 2,
+          y: canvas.height / 2,
+        });
+      }
+      if ((e.key === "-" || e.key === "_") && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        applyViewZoom(state.viewZoom / 1.1, {
+          x: canvas.width / 2,
+          y: canvas.height / 2,
+        });
+      }
+      if ((e.key === "f" || e.key === "F") && !e.metaKey && !e.ctrlKey) {
+        api.toggleFlagMode();
+      }
+      if ((e.key === "r" || e.key === "R") && !e.metaKey && !e.ctrlKey) {
+        if (!modal || !modal.classList.contains("open")) {
+          api.restart();
+        }
+      }
+    });
+    window.addEventListener("keyup", (e) => {
+      if (e.code === "Space") {
+        state.spaceDown = false;
+        syncCursor();
+      }
+    });
+
+    updateStatsVisibility();
+    // Skins finish chrome first, then call startFreshRun or restore — see index.html.
+    setDifficulty(state.currentDifficulty, { skipHooks: true });
+    // Re-apply persisted zoom after first layout (startFreshRun may override).
+    if (Math.abs(state.viewZoom - 1) > 0.01) {
+      applyViewZoom(state.viewZoom);
+    }
+    syncCursor();
+    rafId = requestAnimationFrame(gameLoop);
+
+    // Expose relayout for skins / debug
+    api.relayout = relayout;
+
+    return api;
+  }
+
+  global.Hexsweeper = {
+    boot,
+    DEFAULT_THEME,
+    DEFAULT_CONFIG,
+    SQRT3,
+    EFFECTS_KEY,
+    effectsReduced,
+    applyEffectsAttribute,
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+const CLASSIC_SIZE_KEY = "hexsweeper-classic-size-v1";
+const CLASSIC_RUN_KEY = "hexsweeper-classic-run-v1";
+const CLASSIC_SIZES = ["easy", "medium", "hard"];
+const classicParams = new URLSearchParams(location.search);
+let classicSize = "medium";
+try {
+  const requested = classicParams.get("size");
+  const stored = localStorage.getItem(CLASSIC_SIZE_KEY);
+  classicSize = CLASSIC_SIZES.includes(requested)
+    ? requested
+    : (CLASSIC_SIZES.includes(stored) ? stored : "medium");
+  localStorage.setItem(CLASSIC_SIZE_KEY, classicSize);
+} catch (_) {}
+
+let classicGame = null;
+let classicSaveTimer = 0;
+
+function clearClassicRun() {
+  clearTimeout(classicSaveTimer);
+  classicSaveTimer = 0;
+  try { localStorage.removeItem(CLASSIC_RUN_KEY); } catch (_) {}
+}
+
+function classicSnapshot() {
+  if (!classicGame || classicGame.state.endless || classicGame.state.isFirstClick || classicGame.state.isGameOver) {
+    return null;
+  }
+  const snapshot = classicGame.exportRunState();
+  if (!snapshot || !Array.isArray(snapshot.mines) || !snapshot.mines.length || !Array.isArray(snapshot.revealed) || !snapshot.revealed.length) {
+    return null;
+  }
+  snapshot.kind = "classic";
+  snapshot.savedAt = Date.now();
+  return snapshot;
+}
+
+function flushClassicRun() {
+  clearTimeout(classicSaveTimer);
+  classicSaveTimer = 0;
+  const snapshot = classicSnapshot();
+  if (!snapshot) {
+    if (classicGame && (classicGame.state.isFirstClick || classicGame.state.isGameOver)) clearClassicRun();
+    return;
+  }
+  try { localStorage.setItem(CLASSIC_RUN_KEY, JSON.stringify(snapshot)); } catch (_) {}
+}
+
+function scheduleClassicSave() {
+  clearTimeout(classicSaveTimer);
+  classicSaveTimer = setTimeout(flushClassicRun, 140);
+}
+
+function readClassicRun() {
+  let snapshot = null;
+  try { snapshot = JSON.parse(localStorage.getItem(CLASSIC_RUN_KEY) || "null"); } catch (_) {}
+  const valid = snapshot &&
+    snapshot.v === 1 &&
+    snapshot.kind === "classic" &&
+    snapshot.endless === false &&
+    snapshot.first === false &&
+    snapshot.over === false &&
+    CLASSIC_SIZES.includes(snapshot.difficulty) &&
+    Array.isArray(snapshot.mines) && snapshot.mines.length > 0 &&
+    Array.isArray(snapshot.revealed) && snapshot.revealed.length > 0 &&
+    Array.isArray(snapshot.flagged);
+  if (!valid) {
+    clearClassicRun();
+    return null;
+  }
+  return snapshot;
+}
+
+classicGame = Hexsweeper.boot({
+  difficulty: classicSize,
+  theme: {
+    bg: "#e0e5ec", shadowLight: "#ffffff", shadowDark: "#a3b1c6",
+    covered: "#e0e5ec", revealed: "#e0e5ec", flag: "#ef4444",
+    text: {1:"#3b82f6",2:"#10b981",3:"#ef4444",4:"#8b5cf6",5:"#f59e0b",6:"#ec4899",mine:"#333"}
+  },
+  hooks: {
+    onReveal: scheduleClassicSave,
+    onFlag: scheduleClassicSave,
+    onPersistTick: scheduleClassicSave,
+    onGameOver: clearClassicRun,
+    onClearPersist: clearClassicRun
+  }
+});
+
+if (classicParams.get("resume") === "1") {
+  const savedClassicRun = readClassicRun();
+  if (!savedClassicRun || !classicGame.applyRunState(savedClassicRun)) clearClassicRun();
+} else {
+  clearClassicRun();
+}
+
+document.addEventListener("click", (event) => {
+  if (event.target.closest(".app-back")) flushClassicRun();
+}, true);
+addEventListener("pagehide", flushClassicRun);
+addEventListener("beforeunload", flushClassicRun);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") flushClassicRun();
+});
+
+document.getElementById("diff-selector").addEventListener("click", (event) => {
+  const option = event.target.closest("[data-val]");
+  if (!option || !CLASSIC_SIZES.includes(option.dataset.val)) return;
+  try { localStorage.setItem(CLASSIC_SIZE_KEY, option.dataset.val); } catch (_) {}
+});
+
+</script>
+<script data-goatcounter="https://stats.dr.eamer.dev/count"
+        async src="https://stats.dr.eamer.dev/count.js"></script>
+<script>
+/* Shared Minimal control presentation. Luke Steuber. */
+(function () {
+  'use strict';
+  const config = {"id":"hex-classic","bar":".hud-actions","restart":"reset-btn","help":"menu-btn","required":["reset-btn","menu-btn"],"sheet":"modal-overlay","anchor":"#diff-selector","anchorRow":".modal-row","board":"#gameCanvas","keys":["point"]};
+  // Native payloads have their own release/acceptance contract.
+  if (window.HEXSWEEPER_SPHERE_APP) return;
+  // Where this file was loaded from; an inlined copy (a one-page build) has no
+  // address, so it cannot load Access and leaves its row out on purpose.
+  const here = new URL('controls.js', document.baseURI).href;
+  const byId = id => id && document.getElementById(id);
+  const cross = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
+  const restart = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a8 8 0 1 1 1 8M4 4v6h6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
+  let observer;
+  function apply() {
+    if (document.body.dataset.controlFrame === config.id) return true;
+    const existing = (config.required || []).map(byId);
+    if (existing.some(n => !n)) return false;
+    const root = config.root ? byId(config.root) : document.body;
+    const bar = document.querySelector(config.bar);
+    if (!root || !bar) return false;
+    let reset = byId(config.restart);
+    if (!reset && config.restartProxy && byId(config.restartProxy)) {
+      reset = document.createElement('button');reset.type='button';reset.id='control-restart';
+      reset.setAttribute('aria-label','Restart puzzle');reset.innerHTML=restart;
+      reset.addEventListener('click',()=>byId(config.restartProxy)?.click());
+    }
+    if (reset) {
+      reset.classList.add('control-icon','control-restart');
+      // Preserve an existing header's input boundary and delegated handlers.
+      if(!reset.isConnected || bar.contains(reset))root.prepend(reset);
+    }
+    const actions=document.createElement('div'),meta=document.createElement('div');
+    actions.className='control-actions';actions.setAttribute('role','group');actions.setAttribute('aria-label','Game actions');
+    meta.className='control-meta';meta.setAttribute('role','group');meta.setAttribute('aria-label','Settings and help');
+    const actionIds=[config.undo,config.hint,...(config.tools||[])].filter(Boolean);
+    const metaIds=[config.settings,config.help].filter(Boolean);
+    for(const id of actionIds){const n=byId(id);if(n){n.classList.add('control-icon');actions.append(n);}}
+    for(const id of metaIds){const n=byId(id);if(n){n.classList.add('control-icon');meta.append(n);}}
+    const kept = new Set([...actions.children,...meta.children]);
+    // All toolbar functions are explicitly declared. An unknown control stays
+    // in its own action slot rather than being lost during a presentation pass.
+    for(const node of [...bar.querySelectorAll('button')]){
+      if(node===reset||kept.has(node)||(config.completion||[]).includes(node.id))continue;
+      node.classList.add('control-icon');actions.append(node);
+    }
+    const completionNodes=(config.completion||[]).map(id=>byId(id)).filter(Boolean);
+    // Move the existing completion containers intact: their engines still own
+    // visibility, state, focus and recovery. A standalone Next keeps its own hidden flag.
+    if(config.completionRoot)document.body.dataset.completionRoot=config.completionRoot;
+    for(const node of completionNodes){
+      if(node===bar||node.contains(bar))continue;
+      node.classList.add('control-completion');(byId(config.completionRoot)||root).append(node);
+      for(const button of node.matches('button')?[node]:node.querySelectorAll('button')){
+        if(!button.querySelector('svg')&&button.id==='share-btn'){
+          if(!button.getAttribute('aria-label'))button.setAttribute('aria-label',button.textContent.trim());
+          button.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V3m-4 4 4-4 4 4M5 11v10h14V11" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
+        }
+        button.classList.add('control-icon');
+      }
+    }
+    // A standalone Next sits centred in the gap between the board and the
+    // toolbar when the gap holds it, otherwise centred on the toolbar's row
+    // between its two groups, so it never covers the board or a control. In
+    // landscape, where the toolbar stands at the side, it sits beside the board.
+    const nexts=completionNodes.filter(n=>n.matches('button'));
+    let spot=null,place=null;
+    if(nexts.length){
+      const board=document.querySelector(config.board||'#board');
+      // Where the disc stands: its left (undefined for the CSS centre) and its
+      // bottom, or null for the stylesheet's own place. Access reads it too, so
+      // its pad keeps clear of the disc before the disc appears.
+      spot=()=>{
+        const size=64,clear=size+16;
+        const tools=[...bar.querySelectorAll('button')].filter(b=>b.offsetParent!==null).map(b=>b.getBoundingClientRect());
+        if(!board||!tools.length)return null;
+        // An SVG board is measured by what it draws, so a page-sized drawing still leaves its gap.
+        let b=board.getBoundingClientRect();
+        if(board instanceof SVGSVGElement)try{const box=board.getBBox(),m=board.getScreenCTM();if(m&&box.width&&box.height){const p=[new DOMPoint(box.x,box.y).matrixTransform(m),new DOMPoint(box.x+box.width,box.y+box.height).matrixTransform(m)];b={left:Math.min(p[0].x,p[1].x),right:Math.max(p[0].x,p[1].x),top:Math.min(p[0].y,p[1].y),bottom:Math.max(p[0].y,p[1].y)};}}catch(_){}
+        const bottom=centre=>Math.max(6,Math.round(innerHeight-centre-size/2));
+        if(matchMedia('(max-height:520px) and (min-width:560px)').matches){
+          const side=Math.min(...tools.map(r=>r.left))-b.right,x=side>=clear?b.right+side/2:b.left>=clear?b.left/2:null;
+          if(x===null)return null;
+          return {left:Math.round(x),bottom:bottom((Math.max(0,b.top)+Math.min(innerHeight,b.bottom))/2)};
+        }
+        const top=Math.min(...tools.map(r=>r.top)),row=(top+Math.max(...tools.map(r=>r.bottom)))/2,gap=top-b.bottom;
+        return {bottom:bottom(gap>=clear?b.bottom+gap/2:row)};
+      };
+      place=()=>{
+        const style=document.body.style,s=spot();style.removeProperty('--control-next-left');
+        if(!s){style.removeProperty('--control-next-bottom');return;}
+        if(s.left!==undefined)style.setProperty('--control-next-left',s.left+'px');
+        style.setProperty('--control-next-bottom',s.bottom+'px');
+      };
+      for(const n of nexts)new MutationObserver(()=>{if(!n.hidden)requestAnimationFrame(place);}).observe(n,{attributes:true,attributeFilter:['hidden']});
+      addEventListener('resize',()=>requestAnimationFrame(place));requestAnimationFrame(place);
+    }
+    for(const n of [...bar.children])if(!n.matches('button')&&!n.contains(reset)&&!n.querySelector('button'))n.remove();
+    bar.classList.add('control-toolbar');bar.setAttribute('role','toolbar');bar.setAttribute('aria-label','Game controls');
+    bar.append(actions,meta);
+    for(const n of document.querySelectorAll('dialog,[role="dialog"],.modal-overlay')){
+      n.classList.add('control-sheet');
+      for(const close of n.querySelectorAll('button[aria-label^="Close"],button[aria-label^="close"]')){
+        close.classList.add('control-close');close.innerHTML=cross;
+      }
+    }
+    // Safari on iOS applies :active, the press band, only beneath a touch listener.
+    document.addEventListener('touchstart',()=>{},{passive:true});
+    if(config.keys&&here)try{access(completionNodes,nexts,spot,place);}catch(_){}
+    document.body.dataset.controlFrame=config.id;
+    observer?.disconnect();
+    window.addEventListener('pagehide',()=>observer?.disconnect(),{once:true});
+    return true;
+  }
+  // ---- Access: one switch, or look and hold, for every framed game. It is
+  // off until a player turns it on in Settings, where the frame adds its rows.
+  // Only those rows and the saved choice live here; the pad, the scan and the
+  // look and hold are in access.js beside this file, loaded the first time
+  // Access is on, so a game played without it carries none of that.
+  // The camera needs a page that lets WebAssembly compile and fetch run.
+  function cameraAllowed(){
+    const m=document.querySelector('meta[http-equiv="Content-Security-Policy" i]');if(!m)return true;
+    const d={};for(const part of m.content.split(';')){const [name,...v]=part.trim().split(/\s+/);if(name)d[name.toLowerCase()]=v;}
+    const script=d['script-src']||d['default-src'],connect=d['connect-src']||d['default-src'];
+    if(script&&!script.some(v=>v==="'wasm-unsafe-eval'"||v==="'unsafe-eval'"))return false;
+    return !connect||connect.some(v=>v==="'self'"||v==='*');
+  }
+  // An eye tracker comes through the gaze bridge on this computer
+  // (gaze-bridge/PROTOCOL.md), so the page must let it connect to 127.0.0.1.
+  function trackerAllowed(){
+    if(typeof WebSocket!=='function')return false;
+    const m=document.querySelector('meta[http-equiv="Content-Security-Policy" i]');if(!m)return true;
+    const d={};for(const part of m.content.split(';')){const [name,...v]=part.trim().split(/\s+/);if(name)d[name.toLowerCase()]=v;}
+    const connect=d['connect-src']||d['default-src'];
+    return !connect||connect.some(v=>v==='*'||/^ws:\/\/127\.0\.0\.1(:(\*|\d+))?$/.test(v));
+  }
+
+  function access(completionNodes,nexts,spot,place){
+    const KEY='minimal-access.v1:'+config.id;
+    const DEFAULT_KEY='minimal-access.v1:default';
+    // Up and down, flipped or not: the player's own, for every game on this site
+    // and each camera game's camera too (read by their gaze code).
+    const FLIP='minimal-gaze.v1:invert-y',cameraGame=!!document.querySelector('video#camera');
+    const flipped=()=>{try{return localStorage.getItem(FLIP)==='1'?'on':'off';}catch(_){return 'off';}};
+    const MODES=config.modes||['off','switch','look'],SPEEDS={slow:1600,normal:1100,fast:700},HOLDS=[600,800,1000,1400];
+    const camOK=cameraAllowed(),trackOK=trackerAllowed(),pointing=config.keys.some(k=>k==='point'||k==='drag'||k.id==='point'||k.id==='drag');
+    // Every choice and its first value, which is the default. Press time is
+    // how long a press must last to count; release time is how long after a
+    // press another is taken as a bounce. Long press takes back a step (off
+    // unless chosen); rest stops the scan after so many silent passes (never
+    // unless chosen).
+    const CHOICES={mode:MODES,speed:['normal','slow','fast'],scan:['groups','keys'],press:[0,200,500,1000],release:[300,600,1000,1500],long:[0,1000,1500,2000],rest:[0,2,4,8],highlight:['invert','outline'],brake:['off','on'],look:camOK?['head','eyes','pointer','tracker']:['pointer','head','eyes','tracker'],hold:[800,600,1000,1400]};
+    let prefs=Object.fromEntries(Object.entries(CHOICES).map(([k,v])=>[k,v[0]])),engine=null;
+    // A game never set keeps the player's choice from the collection's
+    // Accessibility page, where it fits this game; its own setting, once
+    // made, wins from then on.
+    try{if(localStorage.getItem(KEY)===null){const d=JSON.parse(localStorage.getItem(DEFAULT_KEY)||'null');if(d&&typeof d==='object')for(const k in CHOICES)if(CHOICES[k].includes(d[k]))prefs[k]=d[k];}}catch(_){}
+    // The setting is kept per game. Each value is read on its own: one this
+    // game does not know (an old choice, a damaged save) falls back to its
+    // default and the rest are kept, and the next change saves a whole, valid
+    // setting. A save that is not readable at all starts from the defaults.
+    // One bad value used to turn Access off and stop saving for good.
+    try{const raw=localStorage.getItem(KEY);if(raw!==null){const s=JSON.parse(raw);if(s&&typeof s==='object')for(const k in CHOICES)if(CHOICES[k].includes(s[k]))prefs[k]=s[k];}}catch(_){}
+    if(!camOK&&prefs.look!=='tracker'||prefs.look==='tracker'&&!trackOK)prefs.look='pointer';
+    const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(prefs));}catch(_){}};
+    const sheet=byId(config.sheet||'settings');
+    // The Access rows follow the sheet's Motion or Theme row, or, where a game
+    // names one, its own control (config.anchor) and that control's row
+    // (config.anchorRow, when the row is not a label or a .row).
+    const anchor=sheet&&((config.anchor&&sheet.querySelector(config.anchor))||sheet.querySelector('#motion')||sheet.querySelector('#theme,#theme-btn'));
+    const row0=anchor&&anchor.closest('label,.row,.setting-row,.setting'+(config.anchorRow?','+config.anchorRow:''));
+    if(!row0)return;
+    // Each row copies the sheet's own: a labelled select, or a text button
+    // that steps through its choices where the sheet uses those.
+    const picker=anchor.matches('select'),rows={};
+    function row(id,label,options){
+      const r={options};let n;
+      if(picker){
+        const c=document.createElement('select');c.id='access-'+id;if(anchor.className)c.className=anchor.className;
+        for(const [v,t,off] of options){const o=document.createElement('option');o.value=v;o.textContent=t;o.disabled=!!off;c.append(o);}
+        if(row0.tagName==='LABEL'){n=document.createElement('label');const t=row0.firstChild;n.append(label+(t&&t.nodeType===3&&/\s$/.test(t.textContent)?' ':''),c);if(row0.htmlFor)n.htmlFor=c.id;}
+        else{n=document.createElement('div');const s=document.createElement('span');s.id=c.id+'-label';s.textContent=label;c.setAttribute('aria-labelledby',s.id);n.append(s,c);}
+        c.addEventListener('change',()=>change(id,c.value,true));r.paint=v=>{c.value=String(v);};
+      }else{
+        n=document.createElement('div');const s=document.createElement('span'),c=document.createElement('button'),st=document.createElement('span');
+        s.id='access-'+id+'-label';s.textContent=label;c.type='button';c.id='access-'+id;if(anchor.className)c.className=anchor.className;
+        st.id=c.id+'-state';c.append(st);c.setAttribute('aria-labelledby',s.id+' '+st.id);n.append(s,c);
+        c.addEventListener('click',()=>{const on=options.filter(o=>!o[2]).map(o=>o[0]),i=on.indexOf(String(id==='flip'?flipped():prefs[id]));change(id,on[(i+1)%on.length],true);});
+        r.paint=v=>{st.textContent=(options.find(o=>o[0]===String(v))||options[0])[1];};
+      }
+      n.className=(row0.className?row0.className+' ':'')+'access-row';n.dataset.access=id;r.node=n;rows[id]=r;return n;
+    }
+    const names={off:'Off',switch:'One switch',look:'Look and hold'};
+    const cal=document.createElement('div'),calName=document.createElement('span'),calButton=document.createElement('button');
+    cal.className=(row0.className&&row0.tagName!=='LABEL'?row0.className:picker?row0.className||'row':'setting-row')+' access-row';cal.dataset.access='calibrate';
+    calName.textContent='Calibration';calButton.type='button';calButton.id='access-calibrate';calButton.className=picker?'access-action':anchor.className||'access-action';calButton.textContent='Calibrate';cal.append(calName,calButton);
+    calButton.addEventListener('click',()=>{if(sheet.open&&sheet.close)sheet.close();ensure(e=>e.calibrate());});
+    const secs=v=>v?v/1000+' s':'Off';
+    row0.after(row('mode','Access',MODES.map(m=>[m,names[m]])),row('speed','Speed',[['slow','Slow'],['normal','Normal'],['fast','Fast']]),
+      row('scan','Scan',[['groups','Groups'],['keys','Keys']]),row('press','Press time',CHOICES.press.map(v=>[String(v),secs(v)])),
+      row('release','Release time',CHOICES.release.map(v=>[String(v),secs(v)])),row('long','Long press',CHOICES.long.map(v=>[String(v),secs(v)])),
+      row('rest','Rest after',[['0','Never'],['2','2 passes'],['4','4 passes'],['8','8 passes']]),row('highlight','Highlight',[['invert','Invert'],['outline','Outline']]),
+      row('brake','Brake',[['off','Off'],['on','On']]),
+      row('look','Look with',[['head','Head',!camOK],['eyes','Eyes',!camOK],['pointer','Pointer'],['tracker','Eye tracker',!trackOK]]),row('hold','Hold',HOLDS.map(h=>[String(h),h/1000+' s'])),row('flip','Up and down',[['off','As I move'],['on','Flipped']]),cal);
+    // A clinician's lock (minimal-access.v1:locked, set by the accessible app):
+    // the Access rows show their values but cannot be changed here.
+    const locked=()=>{try{return localStorage.getItem('minimal-access.v1:locked')==='1';}catch(_){return false;}};
+    const lockNote=document.createElement('p');lockNote.className='access-row access-locked';lockNote.dataset.access='locked';lockNote.textContent='Set by your clinician.';lockNote.hidden=true;
+    rows.mode.node.before(lockNote);
+    // The lock can change while the page is open (the app sets it); Settings shows the current one.
+    byId(config.settings)?.addEventListener('click',()=>paintRows(),true);
+    // Exact timings from the accessible app (minimal-access.v1:exact): read live by
+    // the engine, each held to its range there; an unreadable one is ignored.
+    const exact=()=>{try{const e=JSON.parse(localStorage.getItem('minimal-access.v1:exact')||'null');return e&&typeof e==='object'?e:null;}catch(_){return null;}};
+    function paintRows(){
+      for(const id in rows)rows[id].paint(id==='flip'?flipped():prefs[id]);
+      const lock=locked();lockNote.hidden=!lock;for(const id in rows){const c=rows[id].node.querySelector('select,button');if(c)c.disabled=lock;}calButton.disabled=lock;
+      for(const id of ['speed','scan','press','release','long','rest','highlight'])rows[id].node.hidden=prefs.mode!=='switch';
+      rows.brake.node.hidden=prefs.mode!=='switch'||!pointing;
+      rows.look.node.hidden=rows.hold.node.hidden=prefs.mode!=='look';rows.flip.node.hidden=!cameraGame&&(prefs.mode!=='look'||prefs.look==='pointer');cal.hidden=prefs.mode!=='look'||prefs.look==='pointer';
+    }
+    function change(id,v,user){
+      if(locked()){paintRows();return;}
+      if(id==='flip'){try{if(v==='on')localStorage.setItem(FLIP,'1');else localStorage.removeItem(FLIP);}catch(_){}paintRows();return;}
+      prefs[id]=typeof CHOICES[id][0]==='number'?+v:v;save();paintRows();
+      if(prefs.mode!=='off'||engine)ensure(e=>e.set(user));
+    }
+    // access.js, once: it hands back the engine, which keeps reading these prefs.
+    let loading=null;
+    function ensure(then){
+      if(engine){then(engine);return;}
+      loading=loading||new Promise((done,fail)=>{const n=document.createElement('script');n.src=new URL('./access.js?v=b25ce723',here).href;n.onload=()=>window.MinimalAccessEngine?done():fail();n.onerror=fail;document.head.append(n);});
+      loading.then(()=>{engine=engine||window.MinimalAccessEngine({config,prefs,save,paintRows,completionNodes,nexts,spot,place,here,SPEEDS,exact});then(engine);},()=>{loading=null;});
+    }
+    paintRows();
+    if(prefs.mode!=='off')requestAnimationFrame(()=>ensure(e=>e.set(false)));
+
+  }
+  if(!apply()){
+    observer=new MutationObserver(()=>{if(apply())observer.disconnect();});
+    observer.observe(document.body,{childList:true,subtree:true});
+    // A failed game boot must not leave a whole-playfield observer behind.
+    setTimeout(()=>observer?.disconnect(),30000);
+  }
+})();
+</script>
+</body>
+</html>

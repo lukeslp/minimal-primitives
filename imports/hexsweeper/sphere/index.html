@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<!--
+  File Purpose: Production Hexsweeper on a closed hex sphere (Canvas projection).
+  Primary Functions/Classes: SphereSweeper.boot; hexasphere geometry; dig/flag/flood.
+  Inputs: hexasphere.js, sphere.js, skin-chrome.css. Outputs: standalone sphere game.
+  Chrome: quiet bar (Undo · Reset · Flag · Help) from sphere/quiet-chrome.js; the
+  Help overlay doubles as the settings sheet, tabbed Play · Themes · Board · Settings;
+  every tab shares one grid cell, so the sheet keeps one height. The sheet CSS
+  (sheet:begin … sheet:end) is copied into infinite.html by the exporter.
+  The shipped HUD stays hidden in the DOM so sphere.js wiring is untouched.
+  Notes: Starts zoomed out. Author: Luke Steuber <luke@lukesteuber.com>
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- viewport-fit=cover is required for env(safe-area-inset-*) to report real
+     values in iOS WebKit. Without it every inset reads 0, so the chrome's
+     max(12px, env(...)) rules collapse to 12px and the HUD lands under the
+     status bar in the native shell. Harmless in desktop browsers. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Hexsweeper 3D</title>
+<meta name="description" content="Hexsweeper on a sphere — the hex-tile take on classic Minesweeper. Themes, controls, and sharing.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Hexsweeper 3D">
+<meta property="og:description" content="Hexsweeper on a sphere — the hex-tile take on classic Minesweeper. Themes, controls, and sharing.">
+<meta property="og:url" content="https://dr.eamer.dev/games/hexsweeper/sphere/">
+<meta property="og:image" content="https://dr.eamer.dev/games/hexsweeper/assets/social/sphere-og.png?v=board-20261009">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Hexsweeper 3D">
+<meta name="twitter:description" content="Hexsweeper on a sphere — the hex-tile take on classic Minesweeper. Themes, controls, and sharing.">
+<meta name="twitter:image" content="https://dr.eamer.dev/games/hexsweeper/assets/social/sphere-og.png?v=board-20261009">
+<meta property="og:image:alt" content="A monochrome hexagonal Minesweeper sphere on a white background.">
+<meta name="twitter:image:alt" content="A monochrome hexagonal Minesweeper sphere on a white background.">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<link rel="stylesheet" href="../fonts/fonts.css">
+<link rel="stylesheet" href="../skin-chrome.css">
+<link rel="stylesheet" href="dev-chrome.css?v=20260810z11">
+<link rel="stylesheet" href="quiet-chrome.css?v=20260820a1">
+<!-- minimal-controls:start -->
+<link rel="stylesheet" href="controls.css?v=0ba2aa62">
+<!-- minimal-controls:end -->
+<style>
+/* Sphere chrome follows field (bg): light page for Light/Ink/Float/Card, dark for Shell/Dark */
+:root,
+body[data-sphere-chrome="light"],
+body[data-sphere-theme="light"],
+body[data-sphere-theme="ink"],
+body[data-sphere-theme="float"],
+body[data-sphere-theme="card"] {
+  --bg-color: #ffffff;
+  --text-main: #000000;
+  --text-sub: #666666;
+  --nav-bg: #f0f0f0;
+  --nav-ink: #000000;
+}
+body[data-sphere-chrome="dark"],
+body[data-sphere-theme="dark"],
+body[data-sphere-theme="shell"],
+body[data-sphere-theme="earth"],
+body[data-sphere-theme="moon"] {
+  --bg-color: #000000;
+  --text-main: #ffffff;
+  --text-sub: #888888;
+  --nav-bg: #111111;
+  --nav-ink: #ffffff;
+}
+body[data-sphere-theme="earth"],
+body[data-sphere-theme="moon"],
+body[data-sphere-theme="mercury"],
+body[data-sphere-theme="glow"] {
+  --bg-color: #05070c;
+  --nav-bg: #0c1018;
+}
+body[data-sphere-theme="glow"] {
+  --bg-color: #03050a;
+  --nav-bg: #071018;
+  --text-sub: #7a9ab0;
+}
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--bg-color);
+  color: var(--text-main);
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+}
+body.help-open { overflow: hidden; }
+/* Long-press must not select UI chrome or canvas (iOS callout / blue highlight) */
+.canvas-container,
+#gameCanvas,
+.hud-cluster,
+.hud-stats,
+.sphere-banner,
+.help-overlay {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.canvas-container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+#gameCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  outline: none;
+  -webkit-user-drag: none;
+}
+#gameCanvas:active { cursor: grabbing; }
+.hud-stats {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  z-index: 40;
+  display: flex;
+  gap: 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-sub);
+  pointer-events: none;
+}
+.hud-stats .stat-item { color: var(--text-main); }
+.sphere-banner {
+  position: fixed;
+  left: 50%;
+  bottom: max(88px, calc(env(safe-area-inset-bottom) + 84px));
+  transform: translateX(-50%) translateY(12px);
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 16px 18px 14px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bg-color) 94%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-main) 16%, transparent);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+  color: var(--text-main);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.sphere-banner.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+.sphere-banner .banner-msg {
+  line-height: 1.35;
+}
+.sphere-banner .banner-meta {
+  font-size: 0.75rem;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.sphere-banner .banner-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  justify-content: center;
+}
+.sphere-banner .banner-btn {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--text-main) 22%, transparent);
+  background: transparent;
+  color: var(--text-main);
+  border-radius: 999px;
+  /* Compact rectangular actions; labels preserve share progress and meaning. */
+  min-height: 44px;
+  padding: 0 14px 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sphere-banner .banner-btn svg { width: 18px; height: 18px; stroke-width: 2.1; flex: none; }
+.sphere-banner .banner-btn-label { white-space: nowrap; }
+/* The label still exists for screen readers and carries share progress —
+   sphere.js updates this span, never the button, so the icon survives. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* Share progress, shown without touching the button's children. */
+.sphere-banner .banner-btn[data-state="busy"] { opacity: 0.6; cursor: wait; }
+.sphere-banner .banner-btn[data-state="error"] {
+  border-color: #e02424;
+  color: #e02424;
+  background: transparent;
+}
+.sphere-banner .banner-btn.primary {
+  background: var(--text-main);
+  color: var(--bg-color);
+  border-color: transparent;
+}
+.sphere-banner .banner-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--text-main) 55%, transparent);
+  outline-offset: 2px;
+}
+.sphere-banner .banner-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.hud-cluster {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 50;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+  pointer-events: none;
+}
+.hud-cluster .hud-actions {
+  position: static;
+  pointer-events: auto;
+  background: color-mix(in srgb, var(--nav-bg) 52%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-main) 12%, transparent);
+}
+.hud-btn.active {
+  background: color-mix(in srgb, var(--text-main) 14%, transparent);
+  opacity: 1;
+}
+#flag-toggle.active { color: #ff0000; }
+/* Board size: XS/S/M/L/XL letter (scaled) — readable at a glance when static */
+#size-btn .size-mark {
+  display: block;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+#size-btn .size-mark[data-size="XS"] { font-size: 11px; }
+#size-btn .size-mark[data-size="S"] { font-size: 14px; }
+#size-btn .size-mark[data-size="M"] { font-size: 17px; }
+#size-btn .size-mark[data-size="L"] { font-size: 20px; }
+#size-btn .size-mark[data-size="XL"] { font-size: 12px; }
+/* Count-style btn — morphing icon per mode */
+#nest-btn .count-mark {
+  display: block;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1;
+  user-select: none;
+}
+#nest-btn.active { opacity: 1; }
+/* Count-style toast — above BR chrome */
+.count-style-toast {
+  position: fixed;
+  bottom: max(72px, calc(env(safe-area-inset-bottom, 0px) + 64px));
+  left: 50%;
+  z-index: 28;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-main);
+  background: color-mix(in srgb, var(--nav-bg) 55%, transparent);
+  backdrop-filter: blur(14px);
+  padding: 8px 14px;
+  border-radius: 999px;
+  opacity: 0;
+  transform: translate(-50%, -6px);
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.count-style-toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+/* sheet:begin — the help and settings sheet. tools/export-collection.py copies
+   this block verbatim into infinite.html, so Sphere and Infinite share one sheet. */
+/* Help — pure mono sheet, same language as the empty sphere chrome */
+.help-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  background: color-mix(in srgb, var(--bg-color) 88%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+.help-overlay.open { opacity: 1; pointer-events: auto; }
+.help-overlay[hidden] { display: none; }
+.help-panel {
+  width: min(360px, 100%);
+  max-height: calc(100dvh - 2.5rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  background: var(--bg-color);
+  color: var(--text-main);
+  border: 1px solid color-mix(in srgb, var(--text-main) 16%, transparent);
+  border-radius: 16px;
+  padding: 1.05rem 1rem 0.85rem;
+  position: relative;
+  text-align: left;
+  box-shadow: none;
+}
+.help-close {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-sub);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.help-close:hover,
+.help-close:focus-visible {
+  color: var(--text-main);
+  outline: none;
+}
+.help-panel h2 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 1.5rem 0.35rem 0;
+  letter-spacing: -0.02em;
+}
+.help-lede {
+  margin: 0 0 0.85rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-sub);
+}
+.help-controls {
+  list-style: none;
+  margin: 0 0 0.85rem;
+  padding: 0;
+  border-top: 1px solid color-mix(in srgb, var(--text-main) 10%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--text-main) 10%, transparent);
+}
+.help-controls li {
+  display: grid;
+  grid-template-columns: 5.2rem 1fr;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.46rem 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--text-main);
+}
+.help-controls li + li {
+  border-top: 1px solid color-mix(in srgb, var(--text-main) 8%, transparent);
+}
+.help-controls .act {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-sub);
+}
+.help-keylist kbd {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.92em;
+  border: 1px solid color-mix(in srgb, var(--text-main) 18%, transparent);
+  border-radius: 3px;
+  padding: 0.05em 0.28em;
+  color: var(--text-main);
+}
+.help-more {
+  margin: 0 0 0.75rem;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  color: var(--text-sub);
+}
+.help-more a {
+  color: var(--text-main);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+.help-done {
+  appearance: none;
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid color-mix(in srgb, var(--text-main) 16%, transparent);
+  border-radius: 999px;
+  padding: 0.55rem 0.75rem;
+  background: var(--text-main);
+  color: var(--bg-color);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+/* Plain settings rows; the text keeps each cycling control's current state. */
+.help-packs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin: 0 0 0.85rem;
+}
+.help-packs-cap {
+  grid-column: 1 / -1;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-sub);
+}
+.help-pack {
+  appearance: none;
+  min-height: 2.75rem;
+  border: 1px solid color-mix(in srgb, var(--text-main) 16%, transparent);
+  border-radius: 999px;
+  padding: 0.45rem 0.6rem;
+  background: transparent;
+  color: var(--text-main);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.help-pack:hover,
+.help-pack:focus-visible {
+  background: color-mix(in srgb, var(--text-main) 6%, transparent);
+  outline: none;
+}
+/* Theme picker: every look the flower cycles through, one tap each. */
+.help-themes { margin: 0 0 0.85rem; }
+.help-themes .help-packs-cap { display: block; margin-bottom: 0.4rem; }
+.help-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.45rem;
+}
+.help-theme {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--text-main) 16%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-main);
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.help-theme .help-theme-dot {
+  flex: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  background: var(--swatch, #888);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-main) 30%, transparent);
+}
+.help-theme[aria-pressed="true"] {
+  border-color: var(--text-main);
+  background: color-mix(in srgb, var(--text-main) 8%, transparent);
+}
+.help-theme:hover,
+.help-theme:focus-visible {
+  background: color-mix(in srgb, var(--text-main) 6%, transparent);
+  outline: none;
+}
+/* Compact board-size choices with an underline for the active size. */
+.help-title-sub { font-weight: 500; opacity: 0.55; font-size: 0.85em; margin-left: 0.35rem; }
+.help-sizes, .help-warnings { margin: 0 0 0.85rem; }
+.help-sizes .help-packs-cap, .help-warnings .help-packs-cap { display: block; margin-bottom: 0.4rem; }
+.help-packs-cap em { font-style: normal; text-transform: none; letter-spacing: 0; opacity: 0.8; }
+.help-size-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.4rem; }
+.help-warn-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.45rem; }
+.help-size, .help-warn {
+  appearance: none;
+  min-height: 2.75rem;
+  border: 1px solid color-mix(in srgb, var(--text-main) 16%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-main);
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.3rem 0.4rem;
+}
+.help-size { display: grid; place-items: center; line-height: 1.05; }
+.help-size b { font-size: 0.86rem; }
+.help-size small { font-size: 0.56rem; font-weight: 500; opacity: 0.7; }
+.help-egg-row { margin: -0.3rem 0 0.7rem; display: flex; justify-content: flex-end; opacity: 0.6; }
+/* The quiet door: a sinking hex under two waves, inline with the hint. */
+.help-egg-door {
+  appearance: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; margin: 0; padding: 0; vertical-align: middle;
+  border: 1px solid color-mix(in srgb, var(--text-main) 22%, transparent); border-radius: 999px;
+  background: transparent; color: var(--text-main); cursor: pointer;
+}
+.help-egg-door svg { width: 16px; height: 16px; }
+.help-egg-door:hover, .help-egg-door:focus-visible { background: color-mix(in srgb, var(--text-main) 8%, transparent); outline: none; }
+/* Sheet tabs — Play · Themes · Board · Settings. Title, ×, Done and credits stay put. */
+.help-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0.2rem 0 0.9rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--text-main) 12%, transparent);
+}
+.help-tab {
+  appearance: none;
+  flex: 1 1 0;
+  min-height: 44px;
+  padding: 0.4rem 0.2rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: transparent;
+  color: var(--text-sub);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+}
+.help-tab[aria-selected="true"] { color: var(--text-main); border-bottom-color: var(--text-main); }
+.help-tab:hover, .help-tab:focus-visible { background: color-mix(in srgb, var(--text-main) 6%, transparent); outline: none; }
+.help-tab:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--text-main) 45%, transparent); }
+/* One height for every tab: the panels share one grid cell, so the stack is as
+   tall as the tallest. Inactive panels keep their space but are invisible and
+   inert (hidden + inert, visibility removes them from the a11y tree). When the
+   sheet is capped by the viewport, only this stack scrolls; the title, tabs,
+   Done and links stay put. */
+.help-tabstack {
+  display: grid;
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.help-tabstack > .help-tabpanel { grid-area: 1 / 1; min-width: 0; }
+.help-tabstack > .help-tabpanel[hidden] { display: block; visibility: hidden; }
+.help-tabpanel .help-themes, .help-tabpanel .help-sizes, .help-tabpanel .help-packs { margin-top: 0.1rem; }
+.help-size .help-size-best { opacity: 1; font-weight: 600; font-variant-numeric: tabular-nums; }
+.help-size .help-size-best[hidden] { display: none; }
+.help-size[aria-pressed="true"], .help-warn[aria-pressed="true"] {
+  border-color: var(--text-main);
+  background: color-mix(in srgb, var(--text-main) 8%, transparent);
+}
+.help-size:hover, .help-size:focus-visible, .help-warn:hover, .help-warn:focus-visible {
+  background: color-mix(in srgb, var(--text-main) 6%, transparent);
+  outline: none;
+}
+/* Touch: no keyboard, no modifier-click. Keep the copy honest per surface. */
+@media (hover: none) and (pointer: coarse) {
+  .help-desk-only,
+  .help-tabstack > .help-tabpanel.help-desk-only[hidden] { display: none; }
+}
+@media (hover: hover) {
+  .help-touch-only { display: none; }
+  /* Room for "Hold / ⌃-click" on one line. */
+  .help-controls li { grid-template-columns: 6.6rem 1fr; }
+}
+.help-done:hover,
+.help-done:focus-visible {
+  background: color-mix(in srgb, var(--text-main) 6%, transparent);
+  outline: none;
+}
+/* Footer links, spelled out in full so a host page's own .menu-links rules
+   (play.html, skin-chrome.css) cannot restyle the sheet's footer. */
+.help-panel .menu-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 10px;
+  margin-top: 0.65rem;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--text-main) 12%, transparent);
+  font: 600 0.64rem/1.3 "IBM Plex Sans", system-ui, sans-serif;
+  text-align: center;
+}
+.help-panel .menu-links a {
+  color: var(--text-sub);
+  text-decoration: none;
+  border-radius: 4px;
+}
+.help-panel .menu-links a:hover { color: var(--text-main); }
+.help-panel .menu-links-sep {
+  color: color-mix(in srgb, var(--text-sub) 70%, transparent);
+  opacity: 0.45;
+  margin: 0 0.3rem;
+  user-select: none;
+}
+
+/* Sphere settings: flat swatches and rows, with icons reserved for familiar actions. */
+.help-panel { border-radius: 6px; padding: 20px 16px 14px; }
+.help-panel h2 { margin-bottom: 12px; }
+.help-close { border-radius: 4px; }
+.help-close svg, .help-done svg { width: 18px; height: 18px; flex: none; }
+.help-theme-grid { gap: 6px; }
+.help-theme {
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  min-height: 82px;
+  padding: 10px 4px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  font-size: 0.8rem;
+  line-height: 1.25;
+}
+.help-theme .help-theme-dot { width: 24px; height: 24px; position: relative; }
+.help-theme[aria-pressed="true"] { border-bottom-color: var(--text-main); }
+.help-theme[aria-pressed="true"] .help-theme-dot::after {
+  content: "✓"; position: absolute; right: -5px; bottom: -3px;
+  width: 15px; height: 15px; display: grid; place-items: center;
+  background: var(--text-main); color: var(--bg-color); border-radius: 50%;
+  font-size: 11px; font-weight: 700;
+}
+.help-size, .help-warn { border: 0; border-bottom: 2px solid transparent; border-radius: 0; min-height: 64px; }
+.help-size[aria-pressed="true"], .help-warn[aria-pressed="true"] { border-bottom-color: var(--text-main); }
+.help-size small { font-size: 0.6rem; }
+.help-packs { grid-template-columns: 1fr; gap: 0; }
+.help-packs .help-packs-cap { margin-bottom: 10px; }
+.help-pack {
+  display: flex; align-items: center; gap: 12px; text-align: left;
+  border: 0; border-top: 1px solid color-mix(in srgb, var(--text-main) 16%, transparent);
+  border-radius: 0; min-height: 56px; padding: 10px 8px; font-size: 0.88rem;
+}
+.help-pack:last-child { border-bottom: 1px solid color-mix(in srgb, var(--text-main) 16%, transparent); }
+.help-pack::before {
+  content: ""; width: 20px; height: 20px; flex: none; background: currentColor;
+  mask: var(--control-icon) center / contain no-repeat;
+}
+.help-pack[data-ctl="invert"] { --control-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8h18M3 8l4-4M3 8l4 4M21 16H3m18 0-4-4m4 4-4 4'/%3E%3C/svg%3E"); }
+.help-pack[data-ctl="effects"] { --control-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m10 3 2.5 6.5L19 12l-6.5 2.5L10 21l-2.5-6.5L1 12l6.5-2.5Z M19 2v4m-2-2h4'/%3E%3C/svg%3E"); }
+.help-pack[data-ctl="flag"] { --control-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 21V4M6 4h10l-2 4 2 4H6'/%3E%3C/svg%3E"); }
+.help-pack[data-ctl="export"] { --control-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v12m-5-5 5 5 5-5M5 21h14'/%3E%3C/svg%3E"); }
+.help-pack[data-ctl="import"] { --control-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 15V3M7 8l5-5 5 5M5 21h14'/%3E%3C/svg%3E"); }
+/* A toggle row (aria-pressed) shows its state at the far end; the name stays in aria-label. */
+.help-pack[aria-pressed]::after {
+  content: "Off"; margin-left: auto;
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.68rem; font-weight: 500;
+  letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-sub);
+}
+.help-pack[aria-pressed="true"]::after { content: "On"; color: var(--text-main); }
+/* Quiet score line (Infinite's Play tab). */
+.help-score {
+  margin: 0 0 0.6rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.68rem; font-weight: 500;
+  letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.help-score b { font-weight: 600; color: var(--text-main); }
+.help-done {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: 4px; min-height: 44px;
+}
+.help-done:hover, .help-done:focus-visible { background: var(--text-main); color: var(--bg-color); opacity: 0.85; }
+.help-egg-door { width: 44px; height: 44px; border: 0; border-radius: 4px; }
+.help-egg-door svg { width: 20px; height: 20px; }
+.help-panel:focus { outline: none; }
+.help-panel button:focus-visible,
+.help-panel a:focus-visible {
+  outline: 2px solid var(--text-main); outline-offset: 2px;
+}
+@media (max-width: 360px) {
+  .help-overlay { padding: 12px; }
+  .help-panel { padding-inline: 12px; max-height: calc(100dvh - 24px); }
+  .help-theme { font-size: 0.75rem; }
+  .help-tab { font-size: 0.73rem; }
+}
+/* sheet:end */
+@media (prefers-reduced-motion: reduce) {
+  .sphere-banner,
+  .help-overlay,
+  .count-style-toast { transition: none; }
+}
+.sphere-banner { border-radius: 6px; }
+.sphere-banner .banner-btn { border-radius: 4px; }
+
+</style>
+  <link rel="icon" href="/games/hexsweeper/favicon/favicon.ico?v=2" sizes="16x16 32x32 48x48">
+  <link rel="icon" type="image/png" sizes="32x32" href="/games/hexsweeper/favicon/favicon-32.png?v=2">
+  <link rel="apple-touch-icon" href="/games/hexsweeper/favicon/apple-touch-icon.png?v=2">
+</head>
+<body data-sphere-theme="light" data-sphere-chrome="light">
+<div class="canvas-container">
+  <canvas id="gameCanvas" aria-label="Hex sphere minesweeper board"></canvas>
+</div>
+
+<div class="sr-only" aria-live="polite">
+  <span><span class="stat-item" id="stats-mines">00</span> left</span>
+  <span><span class="stat-item" id="stats-time">000</span>s</span>
+</div>
+
+<div id="sphere-banner" class="sphere-banner" role="status" hidden>
+  <div class="banner-msg" id="banner-msg"></div>
+  <div class="banner-meta" id="banner-meta" hidden></div>
+  <div class="banner-actions" id="banner-actions" hidden>
+    <button type="button" class="banner-btn primary" id="share-win-btn" aria-label="Share image">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 15V3"></path>
+        <path d="M8 7l4-4 4 4"></path>
+        <path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"></path>
+      </svg>
+      <span class="banner-btn-label">Share</span>
+    </button>
+    <button type="button" class="banner-btn" id="banner-undo-btn" aria-label="Undo last move" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 14 4 9l5-5"></path>
+        <path d="M4 9h9.5a6.5 6.5 0 1 1 0 13H11"></path>
+      </svg>
+      <span class="banner-btn-label">Undo</span>
+    </button>
+    <button type="button" class="banner-btn" id="banner-again-btn" aria-label="Play again">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20 11a8 8 0 1 0-2.34 5.66"></path>
+        <path d="M20 4v7h-7"></path>
+      </svg>
+      <span class="banner-btn-label">New sphere</span>
+    </button>
+  </div>
+</div>
+
+<div class="hud-cluster dev-cluster" role="toolbar" aria-label="Game controls">
+  <div class="customize-panel" id="customize-panel" data-open="false" role="dialog" aria-label="Customize board" hidden></div>
+  <div class="hud-actions" aria-label="Board controls">
+    <button type="button" id="reset-btn" class="hud-btn" aria-label="Reset">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+      </svg>
+    </button>
+    <button type="button" id="customize-btn" class="hud-btn" aria-expanded="false" aria-controls="customize-panel" aria-label="Customize board">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3.2"></circle>
+        <path d="M19.4 15a1.6 1.6 0 0 0 .32 1.77l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.6 1.6 0 0 0-1.77-.32 1.6 1.6 0 0 0-1 1.47V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.77.32l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.6 1.6 0 0 0 4.72 15a1.6 1.6 0 0 0-1.47-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.32-1.77l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.6 1.6 0 0 0 9 4.72a1.6 1.6 0 0 0 1-1.47V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.47 1.6 1.6 0 0 0 1.77-.32l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.6 1.6 0 0 0 19.4 9a1.6 1.6 0 0 0 1.47 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"></path>
+      </svg>
+    </button>
+  </div>
+  <!-- Shipped controls, kept in the DOM so sphere.js wiring and label sync are untouched. -->
+  <div class="legacy-hud" aria-hidden="true">
+    <button type="button" id="size-btn" class="hud-btn" tabindex="-1" aria-label="Board size M, Medium, 1002 faces. Activate to cycle XS, S, M, L, XL.">
+      <span class="size-mark" data-size="M" aria-hidden="true">M</span>
+    </button>
+    <button type="button" id="theme-btn" class="hud-btn" tabindex="-1" aria-label="Theme: Light"></button>
+    <button type="button" id="nest-btn" class="hud-btn" tabindex="-1" aria-label="Count style: Numerals. Activate to cycle."></button>
+    <button type="button" id="flag-toggle" class="hud-btn" tabindex="-1" aria-label="Flag mode" aria-pressed="false"></button>
+  </div>
+  <div class="hud-actions" aria-label="Help">
+    <button type="button" id="help-btn" class="hud-btn" aria-label="Help">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<div id="count-style-toast" class="count-style-toast" role="status" aria-live="polite"></div>
+
+<div id="help-overlay" class="help-overlay" role="dialog" aria-modal="true" aria-labelledby="help-title" hidden>
+  <div class="help-panel" id="help-panel" tabindex="-1">
+    <button type="button" class="help-close" id="help-close-btn" aria-label="Close help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+    <h2 id="help-title">Hexsweeper 3D <span class="help-title-sub">settings</span></h2>
+    <div class="help-tabs" role="tablist" aria-label="Sheet sections" id="help-tabs">
+      <button type="button" role="tab" class="help-tab" id="help-tab-play" aria-controls="help-panel-play" aria-selected="true" data-tab="play">Play</button>
+      <button type="button" role="tab" class="help-tab" id="help-tab-themes" aria-controls="help-panel-themes" aria-selected="false" data-tab="themes" tabindex="-1">Themes</button>
+      <button type="button" role="tab" class="help-tab" id="help-tab-board" aria-controls="help-panel-board" aria-selected="false" data-tab="board" tabindex="-1">Board</button>
+      <button type="button" role="tab" class="help-tab" id="help-tab-settings" aria-controls="help-panel-settings" aria-selected="false" data-tab="settings" tabindex="-1">Settings</button>
+      <button type="button" role="tab" class="help-tab help-desk-only" id="help-tab-keys" aria-controls="help-panel-keys" aria-selected="false" data-tab="keys" tabindex="-1">Keys</button>
+    </div>
+    <div class="help-tabstack" id="help-tabstack">
+    <section class="help-tabpanel" role="tabpanel" id="help-panel-play" aria-labelledby="help-tab-play" data-tab="play">
+    <p class="help-lede">Clear every safe face. Numbers count the mines on the six faces around them.</p>
+    <ul class="help-controls" aria-label="Controls">
+      <li><span class="act">Tap</span><span>Clear a face</span></li>
+      <li><span class="act">Hold<span class="help-desk-only"> / ⌃-click</span></span><span>Flag it</span></li>
+      <li><span class="act">Drag</span><span>Spin the sphere</span></li>
+    </ul>
+    <p class="help-more">Also <a href="../infinite.html">Infinite</a> · <a href="../bounded.html">Classic</a></p>
+    </section>
+    <section class="help-tabpanel" role="tabpanel" id="help-panel-themes" aria-labelledby="help-tab-themes" data-tab="themes" hidden>
+    <div class="help-themes" id="help-themes" role="group" aria-label="Theme">
+      <span class="help-packs-cap">Theme</span>
+      <div class="help-theme-grid" id="help-theme-grid"></div>
+    </div>
+    </section>
+    <section class="help-tabpanel" role="tabpanel" id="help-panel-board" aria-labelledby="help-tab-board" data-tab="board" hidden>
+    <div class="help-sizes" id="help-sizes" role="group" aria-label="Board size">
+      <span class="help-packs-cap">Board size <em>· starts a new sphere · best times live here</em></span>
+      <div class="help-size-grid" id="help-size-grid"></div>
+    </div>
+    <p class="help-egg-row" id="help-egg-row">
+      <button type="button" class="help-egg-door" id="help-wheel-btn" aria-label="Open the Water Wheel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l4 2.3v4.6L12 12 8 9.9V5.3z"/><path d="M2.5 13c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M2.5 18c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg>
+      </button></p>
+    </section>
+    <section class="help-tabpanel" role="tabpanel" id="help-panel-settings" aria-labelledby="help-tab-settings" data-tab="settings" hidden>
+    <div class="help-packs" id="help-controls" role="group" aria-label="Controls">
+      <span class="help-packs-cap">Settings</span>
+      <button type="button" class="help-pack is-text" data-ctl="invert">Invert off</button>
+      <button type="button" class="help-pack is-text" data-ctl="effects">Effects auto</button>
+    </div>
+    </section>
+    <section class="help-tabpanel help-desk-only" role="tabpanel" id="help-panel-keys" aria-labelledby="help-tab-keys" data-tab="keys" hidden>
+    <ul class="help-controls help-keylist" aria-label="Keyboard shortcuts">
+      <li><span class="act"><kbd>?</kbd></span><span>Open or close this sheet</span></li>
+      <li><span class="act"><kbd>Esc</kbd></span><span>Close this sheet</span></li>
+      <li><span class="act"><kbd>F</kbd></span><span>Toggle flag mode</span></li>
+      <li><span class="act"><kbd>R</kbd></span><span>New sphere</span></li>
+      <li><span class="act"><kbd>T</kbd></span><span>Cycle theme</span></li>
+      <li><span class="act"><kbd>N</kbd></span><span>Cycle count style</span></li>
+      <li><span class="act"><kbd>S</kbd></span><span>Small board</span></li>
+      <li><span class="act"><kbd>M</kbd></span><span>Medium board</span></li>
+      <li><span class="act"><kbd>L</kbd></span><span>Large board</span></li>
+    </ul>
+    </section>
+    </div>
+    <button type="button" class="help-done" id="help-done-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><span>Done</span></button>
+    <nav class="menu-links" aria-label="Elsewhere">
+      <a href="https://lukesteuber.com" rel="noopener noreferrer">lukesteuber.com</a>
+      <span class="menu-links-sep" aria-hidden="true">·</span>
+      <a href="https://datapoems.io" rel="noopener noreferrer">datapoems.io</a>
+    </nav>
+  </div>
+</div>
+
+<script src="hexasphere.js?v=20260810z11"></script>
+<script src="sphere.js?v=20261007help"></script>
+<script src="mirror-material.js?v=20260820a1"></script>
+<script src="quiet-chrome.js?v=20261007help"></script>
+<!-- minimal-controls:start -->
+<script src="controls.js?v=b817233a"></script>
+<!-- minimal-controls:end -->
+<script>
+// Play starts at once on every surface: no welcome card, no settings
+// sheet. Help stays behind ? (and ?welcome=1 still previews it).
+const sphereGame = SphereSweeper.boot({ canvasId: "gameCanvas", autoWelcome: false });
+document.getElementById("help-wheel-btn")?.addEventListener("click", () => {
+  if (typeof sphereGame.pauseTimer === "function") sphereGame.pauseTimer();
+  window.location.href = window.HEXSWEEPER_WHEEL_HREF || "../wheel/";
+});
+// Exposed for tooling and the settings sheet below.
+window.HEXSWEEPER_SPHERE_GAME = sphereGame;
+const sphereChrome = initQuietChrome(sphereGame);
+// Settings sheet (the ? overlay): theme grid, board size, warning style;
+// Invert and Effects state is wired inside sphere.js.
+(function () {
+  const grid = document.getElementById("help-theme-grid");
+  if (!grid || !window.SphereSweeper) return;
+  const ROSTER = ["light", "dark", "stratosphere", "mercury", "ion-storm", "aurora", "galaxy", "gilded-ribbon", "heat-lightning"];
+  const themes = SphereSweeper.THEMES;
+  function swatchFor(t) {
+    if (t.reflectionSurface) return "linear-gradient(145deg, " + (t.fallbackBgGlow || "#666") + ", " + (t.fallbackBg || "#000") + ")";
+    return "linear-gradient(145deg, " + (t.covered || "#fff") + " 45%, " + (t.bg || "#000") + " 55%)";
+  }
+  const buttons = [];
+  ROSTER.forEach((id) => {
+    const index = themes.findIndex((t) => t.id === id);
+    if (index < 0) return;
+    const t = themes[index];
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "help-theme";
+    b.dataset.theme = id;
+    b.style.setProperty("--swatch", swatchFor(t));
+    b.setAttribute("aria-pressed", "false");
+    b.innerHTML = '<span class="help-theme-dot" aria-hidden="true"></span><span>' + t.name + "</span>";
+    b.addEventListener("click", () => {
+      sphereGame.setThemeIndex(index);
+      sync();
+    });
+    grid.appendChild(b);
+    buttons.push(b);
+  });
+  function sync() {
+    const current = themes[sphereGame.getThemeIndex()];
+    buttons.forEach((b) => b.setAttribute("aria-pressed", String(!!current && b.dataset.theme === current.id)));
+  }
+  sync();
+  const helpBtn = document.getElementById("help-btn");
+  if (helpBtn) helpBtn.addEventListener("click", sync);
+  document.addEventListener("keydown", (e) => { if (e.key === "?" || e.key === "t" || e.key === "T") setTimeout(sync, 0); });
+  window.HEXSWEEPER_SYNC_HELP_THEMES = sync;
+
+  // Board size — five choices; a change starts a new sphere (as the size button always did).
+  const SIZES = [["xsmall", "XS", "162 faces"], ["easy", "S", "362 faces"], ["medium", "M", "1,002 faces"], ["hard", "L", "1,442 faces"], ["xlarge", "XL", "2,252 faces"]];
+  const sizeGrid = document.getElementById("help-size-grid");
+  const sizeButtons = [];
+  if (sizeGrid) {
+    SIZES.forEach(([id, letter, faces]) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "help-size";
+      b.dataset.size = id;
+      b.setAttribute("aria-pressed", "false");
+      b.setAttribute("aria-label", "Board size " + letter + ", " + faces + ". Starts a new sphere.");
+      b.innerHTML = "<b>" + letter + "</b><small>" + faces + '</small><small class="help-size-best" data-best></small>';
+      b.addEventListener("click", () => {
+        if (sphereGame.getState().difficulty === id) return;
+        sphereGame.setSize(id);
+        syncSizes();
+      });
+      sizeGrid.appendChild(b);
+      sizeButtons.push(b);
+    });
+  }
+  function syncSizes() {
+    const d = sphereGame.getState().difficulty;
+    const best = (sphereGame.getBestTimes && sphereGame.getBestTimes()) || {};
+    sizeButtons.forEach((b) => {
+      b.setAttribute("aria-pressed", String(b.dataset.size === d));
+      const slot = b.querySelector("[data-best]");
+      if (!slot) return;
+      const entry = best[b.dataset.size];
+      slot.textContent = entry ? "Best " + sphereGame.formatTime(entry.seconds) : "";
+      slot.hidden = !entry;
+    });
+  }
+
+  function syncAll() { sync(); syncSizes(); }
+  syncAll();
+  if (helpBtn) helpBtn.addEventListener("click", syncAll);
+  window.HEXSWEEPER_SYNC_SETTINGS = syncAll;
+
+  // Tabs: Play · Themes · Board · Settings · Keys. The last tab is remembered
+  // so a player who lives in Themes lands there; roving tabindex + arrow keys.
+  // Keys only exists where a keyboard plausibly does — this mirrors the CSS
+  // that hides .help-desk-only, so one build ships everywhere and the surface
+  // decides. A remembered "keys" falls back to Play on a bare touch screen.
+  const TAB_KEY = "hexsweeper-sphere-sheet-tab-v1";
+  const tabs = Array.from(document.querySelectorAll("#help-tabs .help-tab"));
+  const panels = Array.from(document.querySelectorAll(".help-tabpanel"));
+  const TOUCH_ONLY = "(hover: none) and (pointer: coarse)";
+  const keyboardLikely = () =>
+    typeof matchMedia !== "function" || !matchMedia(TOUCH_ONLY).matches;
+  const usable = (t) => t.dataset.tab !== "keys" || keyboardLikely();
+  const liveTabs = () => tabs.filter(usable);
+  function showTab(id, focus) {
+    if (!liveTabs().some((t) => t.dataset.tab === id)) id = "play";
+    tabs.forEach((t) => {
+      const on = t.dataset.tab === id;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.tabIndex = on ? 0 : -1;
+      if (on && focus) t.focus();
+    });
+    panels.forEach((p) => {
+      const off = p.dataset.tab !== id;
+      p.hidden = off;
+      p.inert = off;
+    });
+    try { localStorage.setItem(TAB_KEY, id); } catch (_) {}
+    const stack = document.getElementById("help-tabstack");
+    if (stack) stack.scrollTop = 0;
+  }
+  tabs.forEach((t) => {
+    t.addEventListener("click", () => showTab(t.dataset.tab));
+    t.addEventListener("keydown", (e) => {
+      const live = liveTabs();
+      const i = live.indexOf(t);
+      if (i < 0) return;
+      const dir = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : e.key === "Home" ? -i : e.key === "End" ? live.length - 1 - i : 0;
+      if (!dir) return;
+      e.preventDefault();
+      showTab(live[(i + dir + live.length) % live.length].dataset.tab, true);
+    });
+  });
+  let stored = "play";
+  try { stored = localStorage.getItem(TAB_KEY) || "play"; } catch (_) {}
+  showTab(stored);
+  window.HEXSWEEPER_SHOW_SHEET_TAB = showTab;
+})();
+</script>
+<!-- GoatCounter Analytics -->
+<script data-goatcounter="https://stats.dr.eamer.dev/count"
+        async src="https://stats.dr.eamer.dev/count.js"></script>
+</body>
+</html>

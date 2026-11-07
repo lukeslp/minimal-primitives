@@ -1,0 +1,26 @@
+{
+  "id": "pursuit",
+  "entry": "index.html",
+  "files": [
+    "THIRD_PARTY.md",
+    "boards.js",
+    "engine.js",
+    "favicon.svg",
+    "fonts/IBMPlexMono-500.woff2",
+    "fonts/IBMPlexSans-400.woff2",
+    "fonts/OFL.txt",
+    "gaze.js",
+    "index.html",
+    "payoff.js",
+    "pursuit.css",
+    "pursuit.js",
+    "track.js",
+    "controls.css",
+    "controls.js",
+    "access.js",
+    "bridge-client.js"
+  ],
+  "embeddedAssets": {
+    "track.js::../glance/vendor/vision_bundle.mjs": "MediaPipe Tasks Vision is not copied into Pursuit: track.js loads the module, WebAssembly and face model that Glance already publishes at ../glance/vendor/ on the same origin, and only once the camera is chosen."
+  }
+}

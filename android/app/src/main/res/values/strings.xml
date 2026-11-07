@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Minimal Primitives</string>
+    <string name="no_browser_message">No web browser is available to open this link.</string>
+    <string name="webview_restart_message">Minimal Primitives stopped unexpectedly and is restarting.</string>
+</resources>

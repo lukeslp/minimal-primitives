@@ -1,0 +1,24 @@
+{
+  "id": "bridges",
+  "entry": "index.html",
+  "files": [
+    "bridges.css",
+    "bridges.js",
+    "circuits.js",
+    "engine.js",
+    "favicon.svg",
+    "fonts/IBMPlexMono-500.woff2",
+    "fonts/IBMPlexSans-400.woff2",
+    "fonts/OFL.txt",
+    "index.html",
+    "levels.js",
+    "og.png",
+    "paint-input.js",
+    "score-clock.js",
+    "scores.js",
+    "controls.css",
+    "controls.js",
+    "access.js",
+    "bridge-client.js"
+  ]
+}

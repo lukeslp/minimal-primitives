@@ -1,0 +1,53 @@
+{
+  "runtimeCommit": "15b9bece878934da9283d9225893cd0b185275ad",
+  "catalogs": [
+    {
+      "game": "horologist",
+      "slug": "horologist",
+      "catalog": "boards.js",
+      "originalBoards": 14,
+      "boards": 50,
+      "sha256": "ed22056ff71114589351ed53132bbc7833c448e93e4ca131ed2be620b608c8e7",
+      "verifiedHosts": [
+        "https://lukesteuber.com/games/horologist/boards.js",
+        "https://dr.eamer.dev/games/horologist/boards.js"
+      ]
+    },
+    {
+      "game": "tilt",
+      "slug": "tilt",
+      "catalog": "levels.js",
+      "originalBoards": 12,
+      "boards": 50,
+      "sha256": "e3d3850e2f1a7dbc6541d1430eeac7abc3a016dbf8a474715d01339d09d8a91d",
+      "verifiedHosts": [
+        "https://lukesteuber.com/games/tilt/levels.js",
+        "https://dr.eamer.dev/games/tilt/levels.js"
+      ]
+    },
+    {
+      "game": "fold",
+      "slug": "fold",
+      "catalog": "levels.js",
+      "originalBoards": 18,
+      "boards": 50,
+      "sha256": "6fd987a1daf90d5a9a9c6f12b5e8972bad85a21b8b71a3fb27fb2302919828a0",
+      "verifiedHosts": [
+        "https://lukesteuber.com/games/fold/levels.js",
+        "https://dr.eamer.dev/games/fold/levels.js"
+      ]
+    },
+    {
+      "game": "bending",
+      "slug": "light",
+      "catalog": "boards.mjs",
+      "originalBoards": 24,
+      "boards": 50,
+      "sha256": "7924441f9af310640c5248466d14e6f8c094bf6501d205db58ebb63b60e4cc91",
+      "verifiedHosts": [
+        "https://lukesteuber.com/games/light/boards.mjs",
+        "https://dr.eamer.dev/games/light/boards.mjs"
+      ]
+    }
+  ]
+}

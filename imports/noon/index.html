@@ -1,0 +1,27 @@
+<!doctype html>
+<!-- Noon. By Luke Steuber. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="description" content="A picture puzzle played with one switch: fill the cells its numbers describe, pressing as a cell's clock reaches noon.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src ws://127.0.0.1:47913 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; font-src 'self'; media-src 'none'; object-src 'none'; base-uri 'none'">
+<title>Noon</title>
+<link rel="icon" href="./favicon.svg">
+<link rel="stylesheet" href="./noon.css?v=37255cb7">
+<link rel="stylesheet" href="./controls.css?v=2e033f1e">
+</head>
+<body>
+<header><h1 class="sr-only">Noon</h1><button id="restart-btn" class="ib" type="button" aria-label="Restart board"></button><div id="readout" class="readout"><span id="readout-text"></span><span id="speed-glyph" aria-hidden="true"></span></div></header>
+<main id="board-shell"><div id="stage"><div id="board" role="application" tabindex="0" aria-roledescription="clocks" aria-label="Clocks"></div><div id="completion"><button id="next-btn" class="ib" type="button" aria-label="Next board" hidden></button></div></div></main>
+<canvas id="clocks" aria-hidden="true"></canvas>
+<div id="speed-flash" aria-hidden="true" hidden></div>
+<p id="announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+<nav class="toolbar" aria-label="Game controls"><div><button id="undo-btn" class="ib" type="button" aria-label="Undo"></button><button id="hint-btn" class="ib" type="button" aria-label="Hint"></button></div><div><button id="settings-btn" class="ib" type="button" aria-label="Settings"></button><button id="help-btn" class="ib" type="button" aria-label="Help"></button></div></nav>
+<dialog id="settings" class="sheet" aria-labelledby="settings-title"><div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body"><label class="row speed-row">Speed <input id="speed" type="range" min="0" max="6" step="1"></label><label class="row">Choose <select id="choose"><option value="auto">Auto</option><option value="cell">Cell</option><option value="line">Line</option></select></label><label class="row">Rewards <select id="rewards"><option value="colour">Colour</option><option value="calm">Calm</option></select></label><label class="row">Theme <select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label class="row">Motion <select id="motion"><option value="system">System</option><option value="reduce">Reduced</option></select></label><label class="row">Adapt to my timing <select id="adapt"><option value="on">On</option><option value="off">Off</option></select></label><label class="row">Sound <select id="sound"><option value="off">Off</option><option value="on">On</option></select></label><label class="row">Hold to take back <select id="hold"><option value="off">Off</option><option value="1000">1 s</option><option value="1500">1.5 s</option><option value="2000">2 s</option></select></label><label class="row">Release time <select id="release"><option value="off">Off</option><option value="100">0.1 s</option><option value="250">0.25 s</option><option value="500">0.5 s</option><option value="1000">1 s</option></select></label><section aria-labelledby="catalog-title"><h3 id="catalog-title">Boards</h3><ol id="board-catalog" class="campaign-catalog"></ol></section></div><footer class="sheet-foot"><a href="https://lukesteuber.com">Luke Steuber</a></footer></dialog>
+<dialog id="help" class="sheet" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">How to play</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body"><p>One switch: any key, or a tap anywhere.</p><p>Press as a clock's hand reaches the top: it fills or empties that cell, or opens that row.</p><p>Fill the cells the numbers describe, each number a run in its row or column.</p></div><footer class="sheet-foot"><a href="https://lukesteuber.com">Luke Steuber</a></footer></dialog>
+<script src="./engine.js?v=d4b33342"></script><script src="./boards.js?v=0c64d247"></script><script src="./noon.js?v=dfdfe959"></script>
+<script defer src="./controls.js?v=ed68f152"></script>
+</body>
+</html>

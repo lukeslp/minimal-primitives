@@ -1,0 +1,179 @@
+/* Rimlight follows the minimal family brief: black, white and greys; the well
+ * is the page; a mono readout at top centre and bare line icons below. */
+
+@font-face {
+  font-family: "Plex Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("./fonts/IBMPlexMono-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Plex Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./fonts/IBMPlexSans-400.woff2") format("woff2");
+}
+
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --ink: #000000;
+  --text: #111111;
+  --sub: #5e5e5e;
+  --line: #d4d4d4;
+  --guide: #8f8f8f;
+  --frame: #1c1c1c;
+  --band: rgba(0, 0, 0, .05);
+  --scrim: rgba(255, 255, 255, .84);
+  --mono: "Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --sans: "Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #000000;
+    --ink: #ffffff;
+    --text: #ededed;
+    --sub: #a6a6a6;
+    --line: #2f2f2f;
+    --guide: #8f8f8f;
+    --frame: #ededed;
+    --band: rgba(255, 255, 255, .06);
+    --scrim: rgba(0, 0, 0, .8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #000000;
+  --ink: #ffffff;
+  --text: #ededed;
+  --sub: #a6a6a6;
+  --line: #2f2f2f;
+  --guide: #8f8f8f;
+  --frame: #ededed;
+  --band: rgba(255, 255, 255, .06);
+  --scrim: rgba(0, 0, 0, .8);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+/* manipulation on the root stops double-tap zoom everywhere, including the
+ * readout and the gaps between buttons, while pinch zoom keeps working.
+ * (Avoid user-scalable=no: iOS ignores it and it blocks pinch zoom.) */
+html, body { width: 100%; min-width: 0; height: 100%; margin: 0; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--sans); -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+button, input { font: inherit; color: inherit; }
+.sr-only { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* ---------- page ---------- */
+#app {
+  min-width: 0; height: 100%; height: 100dvh;
+  display: grid;
+  grid-template-rows: calc(52px + env(safe-area-inset-top)) minmax(0, 1fr) calc(64px + env(safe-area-inset-bottom));
+  grid-template-columns: minmax(0, 1fr);
+  background: var(--bg);
+}
+.readout {
+  display: grid; align-content: center; justify-items: center; gap: 4px; min-width: 0;
+  padding: env(safe-area-inset-top) 16px 0;
+  font: 500 13px/1 var(--mono); letter-spacing: .02em; font-variant-numeric: tabular-nums;
+  color: var(--sub); white-space: nowrap;
+}
+#score-feedback { font: 500 11px/1 var(--mono); letter-spacing: .02em; color: var(--text); }
+#well { width: 100%; height: 100%; min-width: 0; min-height: 0; display: block; outline: none; touch-action: none; cursor: crosshair; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
+/* ---------- bar ---------- */
+.bar {
+  min-width: 0; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px;
+  padding: 0 max(6px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(6px, env(safe-area-inset-left));
+}
+.group { display: flex; gap: 2px; }
+.group:last-child { justify-self: end; }
+.ib, .fire-button { appearance: none; border-radius: 0; background: none; cursor: pointer; touch-action: manipulation; transition: opacity .15s, transform .1s; }
+.ib { position: relative; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; color: var(--text); }
+.ib svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.ib:active, .fire-button:active { transform: scale(.94); }
+.ib:disabled, .fire-button:disabled { opacity: .32; cursor: default; }
+/* Fire is the one primary control: a hairline box with a word that says what it does now. */
+.fire-button { display: inline-grid; grid-auto-flow: column; place-items: center; gap: 8px; min-width: 48px; height: 48px; padding: 0 16px; border: 1px solid var(--frame); color: var(--ink); font: 500 13px/1 var(--mono); letter-spacing: .02em; }
+.fire-button svg { width: 16px; height: 16px; fill: currentColor; stroke: none; }
+@media (hover: hover) {
+  .ib:hover:not(:disabled), .fire-button:hover:not(:disabled) { background: var(--band); }
+}
+/* After a shot that clears nothing, a hairline square around Undo pulses three
+ * times, then stays until the next action: the retry is free. */
+.ib.cue { color: var(--ink); }
+.ib.cue::after { content: ""; position: absolute; inset: 2px; border: 1px solid var(--frame); animation: cue-pulse 1.2s ease-in-out 3; pointer-events: none; }
+@keyframes cue-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .15; } }
+
+/* Landscape phones: the bar becomes a right rail. */
+@media (max-height: 500px) and (orientation: landscape) {
+  #app { grid-template-rows: calc(36px + env(safe-area-inset-top)) minmax(0, 1fr); grid-template-columns: minmax(0, 1fr) calc(64px + env(safe-area-inset-right)); }
+  .readout { grid-column: 1; grid-row: 1; }
+  #score-feedback { display: none; }
+  #well { grid-column: 1; grid-row: 2; padding-bottom: env(safe-area-inset-bottom); }
+  .bar { grid-column: 2; grid-row: 1 / 3; grid-template-columns: none; grid-template-rows: 1fr auto 1fr; justify-items: center; padding: max(6px, env(safe-area-inset-top)) env(safe-area-inset-right) max(6px, env(safe-area-inset-bottom)) 0; }
+  .group { flex-direction: column; }
+  .group:first-child { align-self: start; }
+  .group:last-child { justify-self: center; align-self: end; }
+  .fire-button { grid-auto-flow: row; gap: 4px; width: 56px; height: 56px; padding: 0; font-size: 12px; }
+}
+
+/* ---------- sheets ---------- */
+dialog.sheet {
+  width: min(32rem, calc(100vw - 16px)); max-width: none;
+  max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); height: fit-content;
+  margin: auto; padding: 0; border: 1px solid var(--frame); border-radius: 0;
+  background: var(--bg); color: var(--text); overflow: hidden;
+}
+dialog.sheet[open] { display: block; }
+dialog.sheet::backdrop { background: var(--scrim); }
+@media (prefers-reduced-motion: no-preference) {
+  dialog.sheet[open], dialog.sheet[open]::backdrop { animation: sheet-in .18s ease-out; }
+  @keyframes sheet-in { from { opacity: 0; } }
+}
+.sheet-in { max-height: calc(100dvh - 18px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); display: flex; flex-direction: column; min-height: 0; font: 400 16px/1.45 var(--sans); }
+.sheet-head { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--line); }
+.sheet-head form { margin: 0; }
+.sheet h2 { margin: 0; font: 500 16px/1.3 var(--mono); }
+.sheet-x { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 0; background: none; color: var(--text); cursor: pointer; }
+.sheet-x svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.sheet-body { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 20px 24px; scroll-padding: 12px; }
+.sheet p { margin: 0 0 16px; max-width: 60ch; }
+.sheet h3 { margin: 0 0 8px; font: 500 16px/1.3 var(--mono); color: var(--sub); }
+.sheet section + section { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 20px; }
+.keys { display: grid; gap: 6px; margin: 0 0 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+.keys div { display: flex; flex-wrap: wrap; gap: 0 8px; }
+.keys dt { color: var(--text); }
+.keys dt::after { content: " \2014"; color: var(--sub); }
+.keys dd { margin: 0; color: var(--sub); }
+kbd { font: 500 15px/1 var(--mono); color: var(--text); }
+.sheet-foot { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 20px; }
+.foot-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--sub); text-underline-offset: 3px; }
+.text-action { appearance: none; min-width: 44px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 0; background: none; color: var(--text); font: 500 16px/1.3 var(--mono); cursor: pointer; touch-action: manipulation; }
+.setting-row .text-action { min-width: 5em; }
+.text-action[data-armed] { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+.setting-row { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.setting-row + .setting-row { margin-top: 8px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.stage-list { margin: 0; padding: 0; list-style: none; }
+.stage-list button { width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 8px; border: 1px solid transparent; border-radius: 0; background: none; color: var(--sub); text-align: left; cursor: pointer; }
+.stage-list button[data-complete="true"] { color: var(--text); }
+.stage-list button[aria-current="true"] { border-color: var(--frame); color: var(--ink); }
+.stage-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.best-score { flex: none; font: 500 13px/1 var(--mono); letter-spacing: .02em; font-variant-numeric: tabular-nums; color: var(--sub); }
+@media (hover: hover) {
+  .text-action:hover, .stage-list button:hover, .sheet-x:hover { background: var(--band); }
+}
+.save-note { margin: 16px 0 0; color: var(--sub); }
+@media (max-width: 480px) { .sheet-body { padding: 16px; } .sheet-head { padding: 8px 12px; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+@media (forced-colors: active) {
+  :root { --bg: Canvas; --ink: CanvasText; --text: CanvasText; --sub: CanvasText; --line: GrayText; --guide: GrayText; --frame: CanvasText; --band: Canvas; }
+  button, dialog { forced-color-adjust: auto; }
+  :focus-visible { outline-color: Highlight; }
+}

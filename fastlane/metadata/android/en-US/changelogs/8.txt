@@ -1,0 +1,1 @@
+First F-Droid release. Changes from the direct-download app 0.3.2: this build has no camera input (no head, eye or eye-tracker pointing, no MediaPipe) and no camera permission. Look and hold still works by pointer, with a finger, mouse or head mouse. Every game and every switch, touch and keyboard mode is the same as in the direct download.

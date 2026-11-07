@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<title>Notan</title>
+<meta name="description" content="A quiet black-and-white nonogram. Fill the squares each row and column asks for and a small picture appears. Starts at two by two and eases up to fifteen.">
+<link rel="canonical" href="https://playnotan.com/">
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Notan">
+<meta property="og:description" content="A quiet black-and-white nonogram that starts at two by two and eases up to fifteen.">
+<meta property="og:url" content="https://playnotan.com/">
+<meta property="og:image" content="https://playnotan.com/og.png?v=3">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A Notan puzzle in progress: a three-by-three grid in white on black, its row and column numbers above and to the left, five squares filled.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="./fonts/IBMPlexMono-500.woff2" as="font" type="font/woff2" crossorigin>
+<script>
+// Apply saved appearance before the stylesheet or body can paint.
+try {
+  const appearance = JSON.parse(localStorage.getItem('ink.v1') || '{}') || {};
+  if (['light', 'dark'].includes(appearance.theme)) document.documentElement.dataset.theme = appearance.theme;
+  if ([100, 115, 130, 150].includes(appearance.zoom)) document.documentElement.style.setProperty('--zoom', appearance.zoom / 100);
+} catch (_) { /* Defaults also work when storage is unavailable. */ }
+</script>
+<link rel="stylesheet" href="./notan.css?v=5832eaee">
+<link rel="stylesheet" href="./controls.css?v=2e033f1e">
+</head>
+<body>
+<main id="app">
+  <h1 class="sr-only">Notan, a nonogram</h1>
+
+  <div class="hud">
+    <button type="button" class="hud-lvl" id="lvl-btn" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="4" width="16" height="16"/><path d="M12 4v16M4 12h16"/></svg>
+      <span id="lvl-text">1</span>
+    </button>
+    <span class="hud-time">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 3h6"/></svg>
+      <span id="clock" role="timer" aria-label="Time">0:00</span>
+    </span>
+  </div>
+
+  <div class="board" id="board">
+    <div class="band band-r" aria-hidden="true"></div>
+    <div class="band band-c" aria-hidden="true"></div>
+    <div class="cursor" aria-hidden="true"></div>
+    <div class="hint" aria-hidden="true"></div>
+    <div class="grid" id="grid" role="grid" aria-describedby="grid-keys"></div>
+  </div>
+  <p id="grid-keys" class="sr-only">Arrow keys move. Space fills a square, X marks it empty, Delete clears it, Z undoes. Hold Shift with an arrow to paint. L locks or unlocks the row; Shift+L the column.</p>
+
+  <div class="caption" id="caption" hidden>
+    <p id="cap-name"></p>
+    <p id="unlock-notice" hidden>New Game+ unlocked</p>
+    <button type="button" class="ib" id="next-btn" aria-label="Next level">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+    <button type="button" class="foot-btn share-btn" id="share-btn" hidden>Share blank</button>
+  </div>
+
+  <div class="bar">
+    <div class="group" role="group" aria-label="Board">
+      <button type="button" class="ib" id="undo-btn" aria-label="Undo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h9.5a6.5 6.5 0 1 1 0 13H11"/></svg>
+      </button>
+      <button type="button" class="ib" id="mode-btn" aria-label="Mark mode" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6"/><rect class="m-fill" x="8.5" y="8.5" width="7" height="7" fill="currentColor"/><circle class="m-dot" cx="12" cy="12" r="2" fill="currentColor" style="display:none"/></svg>
+      </button>
+      <button type="button" class="ib" id="hint-btn" aria-label="Hint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z"/></svg>
+      </button>
+    </div>
+    <div class="group" role="group" aria-label="Settings and help">
+      <button type="button" class="ib" id="settings-btn" aria-label="Settings" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 7h4m4 0h8M4 17h8m4 0h4"/><circle cx="10" cy="7" r="2"/><circle cx="14" cy="17" r="2"/></svg>
+      </button>
+      <button type="button" class="ib" id="help-btn" aria-label="How to play" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M9.3 9.4a2.8 2.8 0 0 1 5.4.9c0 1.9-2.7 2.6-2.7 4.1"/><path d="M12 17.6h.01"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <p id="live" class="sr-only" role="status" aria-live="polite"></p>
+</main>
+
+<dialog class="sheet" id="help" aria-labelledby="help-title"><div class="sheet-in"><header class="sheet-head"><h2 id="help-title">How to play</h2><form method="dialog"><button class="sheet-x" aria-label="Close" autofocus><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></header><div class="sheet-body">
+<p>Fill squares to match every row and column. Each number is one run.</p>
+<section class="lesson" aria-labelledby="lesson-title">
+  <div class="lesson-heading"><h3 id="lesson-title"></h3><span id="lesson-count" aria-label="Lesson"></span></div>
+  <p id="lesson-task"></p>
+  <div class="practice-line">
+    <div id="lesson-possibilities" class="is-off" aria-label="Two possible positions of the run"></div>
+    <span id="practice-clue" aria-label="Row clue"></span>
+    <div id="practice" role="grid" aria-label="Practice row" aria-describedby="lesson-task practice-controls">
+      <div role="row" id="practice-row"></div>
+    </div>
+  </div>
+  <div class="practice-tools" role="group" aria-label="Practice tools">
+    <button type="button" class="text-action" id="practice-mode" aria-pressed="false">Mark empty</button>
+    <button type="button" class="text-action" id="practice-undo">Undo</button>
+    <button type="button" class="text-action" id="practice-reset" hidden>Reset</button>
+    <button type="button" class="text-action" id="practice-show">Show me</button>
+  </div>
+  <p id="practice-feedback" role="status" aria-live="polite"></p>
+  <nav class="lesson-nav" aria-label="Lessons"><button type="button" class="text-action" id="lesson-prev">Back</button><button type="button" class="text-action" id="lesson-next">Next</button></nav>
+</section>
+<dl class="controls" id="practice-controls">
+  <div><dt>Tap</dt><dd>fills or clears</dd></div>
+  <div><dt>Drag</dt><dd>fills a line</dd></div>
+  <div><dt>Double-tap, hold, right-click</dt><dd>marks a square empty</dd></div>
+</dl>
+<div class="sheet-foot"><a class="foot-btn" href="https://lukesteuber.com/">lukesteuber.com</a></div>
+</div></div></dialog>
+
+<dialog class="sheet" id="levels" aria-labelledby="levels-title"><div class="sheet-in"><header class="sheet-head"><h2 id="levels-title">Levels</h2><form method="dialog"><button class="sheet-x" aria-label="Close" autofocus><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></header><div class="sheet-body"><p class="sr-only" id="lv-meta"></p>
+    <ol class="lv-grid" id="lv-grid"></ol>
+    <section id="plus-section" hidden aria-labelledby="plus-title">
+      <h3 id="plus-title">New Game+</h3>
+      <ol class="lv-grid" id="plus-grid"></ol>
+    </section>
+<section aria-labelledby="levels-quick-title"><h3 id="levels-quick-title">New puzzle</h3><div class="sizes" id="sizes" role="group" aria-labelledby="levels-quick-title"></div></section></div></div></dialog>
+
+<dialog class="sheet" id="settings" aria-labelledby="settings-title"><div class="sheet-in"><header class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="sheet-x" aria-label="Close" autofocus><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></header><div class="sheet-body">
+<section aria-labelledby="settings-quick-title"><h3 id="settings-quick-title">New puzzle</h3>
+<div class="sizes" id="settings-sizes" role="group" aria-labelledby="settings-quick-title"></div></section>
+<section aria-labelledby="appearance-title"><h3 id="appearance-title">Appearance</h3>
+<div class="setting-row"><span id="zoom-title">Zoom</span><div class="sizes" id="zoom-sizes" role="group" aria-labelledby="zoom-title"></div></div>
+<div class="setting-row"><span>Theme</span><button type="button" class="text-action" id="theme-btn" aria-label="Theme: system. Switch to light."></button></div></section>
+<section aria-labelledby="reset-title"><h3 id="reset-title">Reset</h3><div class="practice-tools"><button type="button" class="text-action" id="reset-level">Reset puzzle</button><button type="button" class="text-action" id="reset-all" aria-haspopup="dialog">Erase progress…</button></div></section>
+</div></div></dialog>
+
+<dialog class="sheet" id="reset-confirm" aria-labelledby="reset-confirm-title"><div class="sheet-in"><header class="sheet-head"><h2 id="reset-confirm-title">Erase progress?</h2><form method="dialog"><button class="sheet-x" aria-label="Close" autofocus><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></header><div class="sheet-body"><p>Erase this Preview’s saved progress and start at level 1? Production progress is kept.</p><div class="practice-tools"><form method="dialog"><button class="text-action">Cancel</button></form><button type="button" class="text-action" id="confirm-reset">Erase progress</button></div></div></div></dialog>
+
+<script src="./engine.js?v=61f57d3c"></script>
+<script src="./levels.js?v=4e9118b8"></script>
+<script src="./plus-levels.js?v=4f48e40f"></script>
+<script src="./paint-input.js?v=5bb412f7"></script>
+<script src="./notan.js?v=547ddbbc"></script>
+<script src="./practice.js?v=292120d0"></script>
+<script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
+<script defer src="./controls.js?v=b8507b4c"></script>
+</body>
+</html>

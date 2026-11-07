@@ -1,0 +1,23 @@
+{
+  "id": "akari",
+  "entry": "index.html",
+  "files": [
+    "akari.css",
+    "akari.js",
+    "engine.js",
+    "favicon.svg",
+    "fonts/IBMPlexMono-500.woff2",
+    "fonts/IBMPlexSans-400.woff2",
+    "fonts/OFL.txt",
+    "index.html",
+    "levels.js",
+    "light-field.js",
+    "look.js",
+    "og.png",
+    "paint-input.js",
+    "controls.css",
+    "controls.js",
+    "access.js",
+    "bridge-client.js"
+  ]
+}

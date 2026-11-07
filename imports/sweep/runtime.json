@@ -1,0 +1,22 @@
+{
+  "id": "sweep",
+  "entry": "index.html",
+  "files": [
+    "THIRD_PARTY.md",
+    "boards.js",
+    "engine.js",
+    "favicon.svg",
+    "fonts/IBMPlexMono-500.woff2",
+    "fonts/IBMPlexSans-400.woff2",
+    "fonts/OFL.txt",
+    "index.html",
+    "payoff.js",
+    "scan.js",
+    "sweep.css",
+    "sweep.js",
+    "controls.css",
+    "controls.js",
+    "access.js",
+    "bridge-client.js"
+  ]
+}

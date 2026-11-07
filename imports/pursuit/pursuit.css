@@ -1,0 +1,44 @@
+/* Pursuit. By Luke Steuber. */
+@font-face{font-family:"Plex Mono";src:url("./fonts/IBMPlexMono-500.woff2") format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"Plex Sans";src:url("./fonts/IBMPlexSans-400.woff2") format("woff2");font-weight:400;font-display:swap}
+/* Marks, decoys and filled sockets differ by shape and lightness: a ring in
+   ink, a smaller disc in mid grey, a full disc in ink. */
+:root{color-scheme:light;--bg:#fff;--ink:#000;--text:#111;--sub:#5e5e5e;--line:#d4d4d4;--faint:#c4c4c4;--decoy:#8f8f8f;--scrim:rgba(255,255,255,.84);--mono:"Plex Mono",monospace;--sans:"Plex Sans",sans-serif}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--bg:#000;--ink:#fff;--text:#ededed;--sub:#a6a6a6;--line:#2f2f2f;--faint:#4a4a4a;--decoy:#7a7a7a;--scrim:rgba(0,0,0,.8)}}
+:root[data-theme=dark]{color-scheme:dark;--bg:#000;--ink:#fff;--text:#ededed;--sub:#a6a6a6;--line:#2f2f2f;--faint:#4a4a4a;--decoy:#7a7a7a;--scrim:rgba(0,0,0,.8)}
+*{box-sizing:border-box;border-radius:0}html,body{touch-action:none}.sheet{touch-action:pan-y}
+body{margin:0;height:100dvh;overflow:hidden;background:var(--bg);color:var(--text);font:16px/1.45 var(--sans);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+button,select{font:inherit;color:inherit}button{cursor:pointer}button:disabled,select:disabled{opacity:.35;cursor:default}button:focus-visible,select:focus-visible{outline:2px solid var(--ink);outline-offset:2px}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.readout{position:fixed;top:max(16px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);font:500 13px/1.4 var(--mono);letter-spacing:.02em;color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap;z-index:2}
+#restart-btn{position:fixed;top:max(0px,env(safe-area-inset-top));left:8px;z-index:2}
+/* While the camera is on: a small solid dot, hollow while no face is seen. */
+.live{position:fixed;top:max(18px,calc(env(safe-area-inset-top) + 18px));right:max(20px,env(safe-area-inset-right));width:12px;height:12px;border:1.5px solid var(--ink);border-radius:50%;background:var(--ink);box-shadow:0 0 0 3px var(--bg);z-index:2}.live[data-face=none]{background:transparent}.live[hidden]{display:none}
+#board-shell{position:absolute;inset:max(52px,env(safe-area-inset-top)) 8px max(60px,env(safe-area-inset-bottom));display:grid;place-items:center}#stage{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center}
+#board{display:block;flex:none;outline:none;transition:opacity .3s ease}#board:focus-visible{outline:1px dashed var(--line);outline-offset:6px}#completion{height:0;display:flex;justify-content:center;align-items:center;width:100%}
+/* The first screen only lightly dims the play; following a dot dims it well back. */
+body[data-phase=prompt] #scene,body[data-phase=starting] #scene{opacity:.8}
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block;pointer-events:none;z-index:1}
+/* The camera's place to begin: one large glyph in the rest area below the
+   board, where the Next disc sits; pursuit.js places and sizes it. */
+.camera-start{position:fixed;left:0;top:0;width:132px;height:132px;border:1px solid var(--ink);border-radius:50%;background:var(--bg);color:var(--ink);display:grid;place-items:center;padding:0;z-index:3}.camera-start[hidden]{display:none}.camera-start svg{width:var(--glyph-icon,52px);height:var(--glyph-icon,52px);fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.camera-start::after{content:"";position:absolute;inset:-9px;border-radius:50%;border:2px solid transparent;pointer-events:none}
+body[data-phase=starting] .camera-start::after{border-color:var(--ink) transparent transparent transparent;animation:pursuit-turn 1.1s linear infinite}
+@keyframes pursuit-turn{to{transform:rotate(1turn)}}
+/* The camera's video is never seen, but kept in the page (some browsers stop
+   decoding a video that is not laid out). */
+#camera{position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none;z-index:-1}
+.toolbar{position:fixed;bottom:max(6px,env(safe-area-inset-bottom));left:8px;right:8px;display:flex;justify-content:space-between;z-index:3}.toolbar>div{display:flex}.ib{display:inline-grid;place-items:center;width:48px;height:48px;min-width:48px;min-height:48px;border:0;background:none;padding:12px;color:var(--ink)}.ib svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.ib:active{transform:scale(.94)}.ib[hidden]{display:none}
+#camera-btn .lens-dot{fill:currentColor;stroke:none;opacity:0}#camera-btn[aria-pressed=true] .lens-dot{opacity:1}
+/* While the camera is on, the toolbar's own Undo grows to a sixth of the
+   short side (pursuit.js sets --tool) inside a hairline circle, and its glyph
+   orbits within it so that following it chooses it; nothing is duplicated. */
+body[data-look=follow] #undo-btn{width:var(--tool)!important;height:var(--tool)!important;min-width:var(--tool)!important;min-height:var(--tool)!important;padding:0!important;border:1px solid var(--line)!important;border-radius:50%!important;background-clip:padding-box}
+body[data-look=follow] #undo-btn svg{width:calc(var(--tool) * .36)!important;height:calc(var(--tool) * .36)!important}
+@media(max-height:520px) and (min-width:560px){body[data-control-frame][data-look=follow] .control-toolbar{width:var(--tool)!important}}
+.sheet{width:min(32rem,calc(100vw - 16px));max-height:calc(100dvh - 16px);border:1px solid var(--ink);padding:0;background:var(--bg);color:var(--text);user-select:text;-webkit-user-select:text}.sheet[open]{display:flex;flex-direction:column}.sheet::backdrop{background:var(--scrim)}.sheet-head{display:flex;justify-content:space-between;align-items:center;padding:8px 16px;gap:12px;flex:none;border-bottom:1px solid var(--line)}h2{font:500 16px/1.3 var(--mono);margin:0}.sheet-head form{margin:0}.sheet-x{width:44px;height:44px;min-width:44px;min-height:44px;padding:10px}.sheet-body{padding:20px 24px;overflow:auto;min-height:0;overscroll-behavior:contain}.sheet-body p{margin:0 0 16px}.sheet-body p:last-child{margin-bottom:0}.row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;border-bottom:1px solid var(--line)}.row select{max-width:65%;min-height:44px;background:var(--bg);border:0;padding:4px 8px}.row .text-btn{min-height:44px;background:var(--bg);border:1px solid var(--line);padding:4px 14px}.sheet-foot{padding:12px 24px;border-top:1px solid var(--line);flex:none;color:var(--sub);font-size:14px}.sheet-foot a{color:inherit;text-underline-offset:3px}
+/* Settings campaign catalog. */
+#catalog-title{font:500 16px/1.3 var(--mono);margin:20px 0 12px}.campaign-catalog{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;list-style:none;padding:0;margin:0}.campaign-catalog button{width:100%;min-height:56px;padding:8px;border:1px solid var(--line);background:var(--bg);text-align:left;color:var(--text)}.campaign-catalog button span{display:block}.catalog-state{font-size:12px;color:var(--sub)}.campaign-catalog button[aria-current]{border:2px solid var(--ink);padding:7px}
+@media(orientation:landscape) and (max-height:500px){#board-shell{inset:38px 72px 6px 56px}.toolbar{left:auto;right:8px;top:8px;bottom:8px;flex-direction:column;width:48px}.toolbar>div{flex-direction:column}.readout{left:calc(50% - 8px)}.live{right:auto;left:62px;top:18px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}:root[data-motion=reduce] *{animation:none!important;transition:none!important}
+@media(prefers-reduced-motion:reduce){body[data-phase=starting] .camera-start::after{border-color:var(--ink);border-style:dashed}}:root[data-motion=reduce] body[data-phase=starting] .camera-start::after{border-color:var(--ink);border-style:dashed}
+@media(forced-colors:active){:root{--bg:Canvas;--ink:CanvasText;--text:CanvasText;--sub:CanvasText;--line:GrayText;--faint:GrayText;--decoy:GrayText}}

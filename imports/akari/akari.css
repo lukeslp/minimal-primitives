@@ -1,0 +1,77 @@
+@font-face{font-family:"Plex Mono";src:url("fonts/IBMPlexMono-500.woff2") format("woff2");font-weight:500;font-display:swap}@font-face{font-family:"Plex Sans";src:url("fonts/IBMPlexSans-400.woff2") format("woff2");font-weight:400;font-display:swap}
+:root{color-scheme:dark;--bg:#000;--ink:#fff;--text:#ededed;--sub:#a6a6a6;--line:#2f2f2f;--guide:#8f8f8f;--frame:#ededed;--band:rgba(255,255,255,.06);--scrim:rgba(0,0,0,.8);--lit:#333;--unlit:#000;--mono:"Plex Mono",monospace;--sans:"Plex Sans",sans-serif}
+*{box-sizing:border-box;border-radius:0}body{margin:0;height:100dvh;overflow:hidden;background:var(--bg);color:var(--text);font:16px/1.45 var(--sans);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}button,select,input{font:inherit;color:inherit}button{cursor:pointer}button:disabled{opacity:.35;cursor:default}button:focus-visible,select:focus-visible,.cell:focus-visible{outline:2px solid var(--ink);outline-offset:2px}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.readout{position:fixed;top:calc(max(0px,env(safe-area-inset-top)) + 18px);left:50%;transform:translateX(-50%);font:500 13px/1 var(--mono);letter-spacing:.02em;color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap}
+#board-shell{position:absolute;inset:58px 12px 88px;display:flex;overflow:auto;overscroll-behavior:contain;touch-action:none;padding:5px;scrollbar-width:thin}.board{display:flex;flex-direction:column;flex:none;margin:auto;user-select:none;touch-action:none;border:1px solid var(--ink)}.grid-row{display:flex;flex:none}.cell{width:var(--cell);height:var(--cell);flex:none;position:relative;display:grid;place-items:center;border-right:1px solid var(--guide);border-bottom:1px solid var(--guide);font:500 calc(var(--cell)*.42)/1 var(--mono);background:var(--unlit);color:var(--ink);touch-action:none}.grid-row:last-child .cell{border-bottom:0}.cell:last-child{border-right:0}.cell.wall{background:var(--ink);color:var(--bg);border-color:var(--bg)}.cell.lit{background:var(--lit)}.cell svg{width:70%;height:70%;stroke:currentColor;stroke-width:1.7;fill:none}.cell.excluded:before{content:'×';font:400 calc(var(--cell)*.54)/1 var(--sans)}.cell.conflict{background:repeating-linear-gradient(135deg,var(--lit) 0 4px,var(--guide) 4px 6px)}.cell.conflict:after{content:'';position:absolute;inset:2px;border:2px solid currentColor;border-radius:50%}.cell.rule-error{outline:2px dashed currentColor;outline-offset:-4px}.cell.evidence{outline:2px dashed currentColor;outline-offset:-3px}.cell.hint-target:after{content:'';position:absolute;inset:3px;border:3px solid currentColor;border-radius:50%;animation:pulse 650ms 2}.cell.inner-group{outline:4px double currentColor;outline-offset:-6px}.cell.hint-target{z-index:1}.cell:focus-visible{z-index:2;outline-offset:-3px}.board.solved{outline:2px solid var(--ink);outline-offset:5px}
+#feedback{position:fixed;bottom:64px;left:16px;right:16px;margin:0;text-align:center;color:var(--sub);font:14px/1.3 var(--sans);pointer-events:none}.toolbar{position:fixed;bottom:max(6px,env(safe-area-inset-bottom));left:8px;right:8px;display:flex;justify-content:space-between}.toolbar>div{display:flex}.ib{display:inline-grid;place-items:center;width:48px;height:48px;min-width:48px;min-height:48px;border:0;background:none;padding:12px;color:var(--ink);transition:opacity .15s,transform .1s}.ib svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.ib:active{transform:scale(.94)}.ib[aria-pressed=true]{outline:1px solid var(--ink);outline-offset:-7px}
+.sheet{width:min(32rem,calc(100vw - 16px));max-height:calc(100dvh - 16px);border:1px solid var(--frame);padding:0;background:var(--bg);color:var(--text)}.sheet[open]{display:flex;flex-direction:column}.sheet::backdrop{background:var(--scrim)}.sheet-head{display:flex;justify-content:space-between;align-items:center;padding:0 10px 0 24px;flex:none;border-bottom:1px solid var(--line)}h2{font:500 16px/1 var(--mono)}.sheet-head form{margin:0}.sheet-x{font:28px/1 var(--sans)}.sheet-body{padding:20px 24px;overflow:auto;min-height:0}.sheet-body p:first-child{margin-top:0}.sheet-body p{max-width:60ch}.row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;border-bottom:1px solid var(--line)}.row[hidden]{display:none}.row select{max-width:65%;min-height:44px;background:var(--bg);border:0;padding:4px 8px}.row button{min-height:44px;background:none;border:0;padding:8px}.row button:not(:disabled){text-decoration:underline;text-underline-offset:4px}.quiet{color:var(--sub);font:13px/1.4 var(--mono);overflow-wrap:anywhere;margin-top:8px}.sheet-foot{padding:12px 24px;border-top:1px solid var(--line);flex:none;color:var(--sub);font-size:14px}.sheet-foot a{color:inherit}section{border-block:1px solid var(--line);padding-block:16px}
+@keyframes pulse{50%{opacity:.3}}
+@media(orientation:landscape) and (max-height:500px){#board-shell{inset:52px 72px 12px 12px}.toolbar{left:auto;right:8px;top:12px;bottom:12px;flex-direction:column;width:48px}.toolbar>div{flex-direction:column}#feedback{left:12px;right:72px;bottom:4px;background:var(--bg);font-size:12px}.readout{left:calc(50% - 32px)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}:root[data-motion=reduce] *,:root[data-motion=reduce] *::after{animation:none!important;transition:none!important}
+@media(forced-colors:active){.cell{forced-color-adjust:none;background:Canvas;color:CanvasText;border-color:CanvasText}.cell.wall{background:CanvasText;color:Canvas}.cell:not(.wall):not(.lit){background:repeating-linear-gradient(135deg,Canvas 0 5px,GrayText 5px 6px)}.cell.conflict{outline:3px dashed CanvasText;outline-offset:-4px}.cell.lit{background:Canvas}.sheet{border-color:CanvasText}}
+
+/* A completed board settles once; its next arrow appears beneath it. */
+.board-stage{flex:none;margin:auto;display:flex;flex-direction:column;align-items:center;gap:16px}.board-stage .board{margin:0}.completion{display:flex;justify-content:center;animation:next-reveal .18s .7s both}.completion[hidden]{display:none}.board.solved{outline:none}.board.solved .cell:not(.wall){border-color:var(--line)}
+@keyframes next-reveal{from{opacity:0}to{opacity:1}}
+
+.cell.excluded:before{transition:opacity .6s}.board.solved .cell.excluded:before{opacity:0}
+
+/* Final light-and-material study: luminous sources over a charcoal floor. */
+.board{position:relative;isolation:isolate;border:1px solid #ffffff10;background:#000;filter:drop-shadow(0 16px 24px #0003)}
+.light-field{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:-1}
+.cell,.cell.lit{background:transparent;color:#fff;border-color:#ffffff06;font:400 calc(var(--cell)*.23)/1 var(--sans)}
+.cell:not(.wall)::after{content:'';position:absolute;inset:1px;pointer-events:none;background:#484848cc;opacity:1;transition:opacity .24s}
+.cell.lit::after{opacity:0}.cell.excluded::before{font-size:calc(var(--cell)*.25);color:#fff;z-index:1}
+.cell.wall{background:#000;color:#fff;border-color:#ffffff06;box-shadow:inset 0 -1px #000;isolation:isolate}
+.cell.wall::before{content:'';position:absolute;inset:0 0 6px;background:linear-gradient(145deg,#ffffff05,transparent 65%),#000;border-top:1px solid var(--rim-top,#ffffff33);border-left:1px solid var(--rim-left,#ffffff1a);border-right:1px solid var(--rim-right,transparent);border-bottom:1px solid var(--rim-bottom,transparent);box-shadow:0 1px 0 #000,0 5px 7px #0007;z-index:-1}
+.wall-label{transform:translateY(-3px)}.wall.satisfied .wall-label{color:#a6def5;text-shadow:none}.wall.overfull .wall-label{color:#ffff00}
+.cell.wall.join-below::before{bottom:0;box-shadow:none;border-bottom-color:#ffffff0b}.cell.wall.join-above::before{border-top-color:transparent}.cell.wall.join-right::before{border-right-color:#ffffff0b}.cell.wall.join-left::before{border-left-color:transparent}
+.lamp{width:4%;min-width:3px;aspect-ratio:1;border-radius:50%;background:#fff;box-shadow:0 0 2px 1px #fff,0 0 8px 2px #ffffff66,0 0 16px 4px #ffffff14;z-index:1}
+.cell:focus,.cell:focus-visible{outline:none}.cell.conflict .lamp{background:#ffabb1;box-shadow:0 0 5px 2px #f39298}.cell.conflict::after{opacity:1;border:1px dashed #f39298;background:none;inset:20%;border-radius:50%}
+.cell.hint-target::after{opacity:1;background:none;border:3px solid #a6def5;inset:15%;border-radius:50%}.cell.rule-error,.cell.evidence{outline-color:#a6def5}.board.solved .cell:not(.wall){border-color:#ffffff06}
+@media(forced-colors:active){.light-field{display:none}.cell,.cell.lit{background:Canvas;color:CanvasText}.cell.wall{background:CanvasText;color:Canvas}.cell.wall::before{display:none}.wall .wall-label{color:Canvas;text-shadow:none}.cell:not(.wall):not(.lit){background:repeating-linear-gradient(135deg,Canvas 0 5px,GrayText 5px 6px)}.cell::after{display:none}.lamp{width:16%;background:CanvasText;box-shadow:none}.cell:focus-visible{outline:2px solid Highlight;outline-offset:-3px}}
+/* Routine clue status uses the number, reserving outlines for requested hints. */
+.cell.wall.rule-error:not(.evidence):not(.hint-target){outline:none}
+
+.cell.source{overflow:hidden}
+
+/* Quiet controls; inverted mark tool follows Notan. */
+.toolbar .ib{color:#999}.toolbar .ib:focus-visible{color:#fff}@media (hover:hover) and (pointer:fine){.toolbar .ib:hover{color:#fff}}.toolbar #mark-btn[aria-pressed=true]{background:#fff;color:#000;outline:none}
+#restart-btn{position:fixed;top:max(0px,env(safe-area-inset-top));left:8px;color:#999;z-index:2}#restart-btn:focus-visible{color:#fff}@media (hover:hover) and (pointer:fine){#restart-btn:hover{color:#fff}}
+@media(forced-colors:active){.toolbar .ib,#restart-btn{color:ButtonText}.toolbar #mark-btn[aria-pressed=true]{background:Highlight;color:HighlightText}}
+
+/* Sheets follow the same hierarchy as Notan. */
+.sheet-head{padding:8px 16px;gap:12px}.sheet-head h2{margin:0;line-height:1.3}.sheet-x{width:44px;height:44px;min-width:44px;min-height:44px;padding:10px}.sheet-x svg{width:24px;height:24px}
+.sheet-body{overscroll-behavior:contain;scroll-padding:12px}.sheet-body p{margin:0 0 16px}.sheet-foot{font-size:14px}
+
+
+.text-action{min-height:44px;padding:8px 12px;border:1px solid var(--line);background:none;font:500 14px/1.3 var(--mono);color:var(--text)}.text-action[aria-pressed=true]{background:var(--ink);color:var(--bg)}.text-action:focus-visible,.sheet summary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.controls{border-top:1px solid var(--line);padding-top:16px}.controls p{margin:0 0 6px}.help-more{border-top:1px solid var(--line);margin-top:16px;padding-top:4px}.help-more summary{cursor:pointer;min-height:44px;padding:12px 0;color:var(--sub)}.help-more p{font-size:14px}.sheet-body .help-more p:last-child{margin-bottom:0}
+@media(max-width:480px){.sheet-head{padding:8px 12px}.sheet-body{padding:16px}}
+
+/* Suppress Safari text selection and long-press callouts on play surfaces only. */
+.board,.board *,header,.toolbar,.toolbar *,button,button *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+
+/* The solved light field becomes one image before the next arrow arrives. */
+#board{transform-origin:top left;transition:border-color .6s}#board .cell{transition:border-color .6s}#board .wall-label{transition:opacity .6s}#board.solved,#board.solved .cell{border-color:transparent}#board.solved .wall-label{opacity:0}
+
+/* A number still short of its bulbs is grey; blue is exact and yellow is too many. */
+.wall.short .wall-label{color:#787878}
+@media(forced-colors:active){.wall.short .wall-label{color:Canvas}}
+
+/* Bulbs that face each other are plainly wrong: red, not pink. */
+.cell.conflict .lamp{background:#ff3b30;box-shadow:0 0 5px 2px #ff3b30,0 0 16px 6px #ff3b3066}.cell.conflict::after{border:2px solid #ff3b30}
+
+
+/* Share sits beside Next on a finished board. */
+.completion{gap:12px}#share-btn[hidden]{display:none}#settings-feedback a{overflow-wrap:anywhere}
+
+.milestone{color:var(--sub);font:14px/1.3 var(--sans);text-align:center;margin:0;grid-row:2;grid-column:1/-1;justify-self:center;white-space:nowrap}.milestone:empty{display:none}.completion:not([hidden]):has(.milestone:not(:empty)){display:grid;grid-template-columns:repeat(2,48px);height:auto;row-gap:0}
+
+/* Double-tap zoom: touch-action is intersected across every ancestor, so
+   manipulation on the root stops double-tap zoom page-wide (readouts, gaps
+   between controls, sheet backdrops) while pinch zoom still works. */
+html, body { touch-action: manipulation; }
+
+/* The alternate board is a native link, with the same reachable target as settings controls. */
+.row .look-link{display:inline-flex;align-items:center;min-height:44px;padding:8px;color:inherit;text-underline-offset:4px}.look-link:focus-visible{outline:2px solid var(--ink);outline-offset:2px}

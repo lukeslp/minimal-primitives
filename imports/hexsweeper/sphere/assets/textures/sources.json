@@ -1,0 +1,88 @@
+{
+  "assets": [
+    {
+      "path": "sphere/assets/textures/earth_daymap_2k.jpg",
+      "sha256": "6b300dcad1d336e53f7a1ff3559236319399a379322c489cc29991f04cc648c4",
+      "size": [
+        2048,
+        1024
+      ],
+      "bytes": 139537,
+      "origin": "Solar System Scope textures, copied through Orrery",
+      "credit": "Solar System Scope / INOVE",
+      "upstream_credit_url": "https://www.solarsystemscope.com/textures/",
+      "license": "CC-BY-4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "exact_copy_from": "https://github.com/data-poems/orrery/blob/10d7586b2e3554b09a2ea8cbbe646a7adf9a7a51/public/textures/earth_daymap_2k.jpg",
+      "upstream_notice": "https://github.com/data-poems/orrery/blob/10d7586b2e3554b09a2ea8cbbe646a7adf9a7a51/THIRD_PARTY_NOTICES.md",
+      "modifications": "Copied unchanged from Orrery; the initial upstream JPEG conversion recipe was not retained.",
+      "verification": "SHA-256 matches the pinned Orrery asset exactly. Solar System Scope attribution follows its retained notice and the original Hexsweeper source comment."
+    },
+    {
+      "path": "sphere/assets/textures/earth_gloss_2k.webp",
+      "sha256": "0c1421c80362c0bc56993a12d4c224c9119a4e233212248466b9e40c0ce9bf4f",
+      "size": [
+        2048,
+        1024
+      ],
+      "bytes": 492762,
+      "origin": "Hexsweeper project artwork",
+      "credit": "Luke Steuber",
+      "created": "2026-08-14",
+      "source_png_sha256": "5a9d44d05cd6c2a71d19d9129950373bb8e2248289a95e773314e5664bab83b2",
+      "transformation": {
+        "filter": "Lanczos",
+        "dimensions": [
+          2048,
+          1024
+        ],
+        "colorspace": "sRGB",
+        "format": "WebP",
+        "quality": 86
+      },
+      "verification": "Reproduced bytes match the tracked file exactly."
+    },
+    {
+      "path": "sphere/assets/textures/earth_gloss_4k.webp",
+      "sha256": "ebfd9b28ebd79f268ab6f78571f041f77de8aa0ce751839f0d2c69d8e168c1b2",
+      "size": [
+        4096,
+        2048
+      ],
+      "bytes": 1155990,
+      "origin": "Hexsweeper project artwork",
+      "credit": "Luke Steuber",
+      "created": "2026-08-14",
+      "source_png_sha256": "5a9d44d05cd6c2a71d19d9129950373bb8e2248289a95e773314e5664bab83b2",
+      "transformation": {
+        "filter": "Lanczos",
+        "dimensions": [
+          4096,
+          2048
+        ],
+        "colorspace": "sRGB",
+        "format": "WebP",
+        "quality": 88
+      },
+      "verification": "Reproduced bytes match the tracked file exactly."
+    },
+    {
+      "path": "sphere/assets/textures/moon_2k.jpg",
+      "sha256": "626a5cfc610db1893e884fee0943f4b1e9be5c06b0108de6ce8c1a462d439866",
+      "size": [
+        2048,
+        1024
+      ],
+      "bytes": 275385,
+      "origin": "Solar System Scope textures, copied through Orrery",
+      "credit": "Solar System Scope / INOVE",
+      "upstream_credit_url": "https://www.solarsystemscope.com/textures/",
+      "license": "CC-BY-4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "exact_copy_from": "https://github.com/data-poems/orrery/blob/10d7586b2e3554b09a2ea8cbbe646a7adf9a7a51/public/textures/moon_2k.jpg",
+      "upstream_notice": "https://github.com/data-poems/orrery/blob/10d7586b2e3554b09a2ea8cbbe646a7adf9a7a51/THIRD_PARTY_NOTICES.md",
+      "modifications": "Copied unchanged from Orrery; the initial upstream JPEG conversion recipe was not retained.",
+      "verification": "SHA-256 matches the pinned Orrery asset exactly. Solar System Scope attribution follows its retained notice and the original Hexsweeper source comment."
+    }
+  ]
+}

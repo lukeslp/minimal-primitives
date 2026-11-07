@@ -1,0 +1,5 @@
+<resources>
+    <!-- Follow the device's light or dark setting, so the games' own
+         prefers-color-scheme themes match what a mobile browser shows. -->
+    <style name="Base.Theme.MinimalPrimitives" parent="android:Theme.DeviceDefault.DayNight" />
+</resources>

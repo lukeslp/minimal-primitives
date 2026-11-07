@@ -1,0 +1,6 @@
+<resources>
+    <style name="Base.Theme.MinimalPrimitives" parent="android:Theme.DeviceDefault.DayNight">
+        <item name="android:windowSplashScreenBackground">@color/shell_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+    </style>
+</resources>

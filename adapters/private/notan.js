@@ -1,0 +1,11 @@
+const __minimal = MinimalBridge.install({
+  rulesVersion:'__RULES__', scoringPolicy:'__POLICY__',
+  describe(){const p=S.puz;return{id:p.endless?`endless:${p.size}:${p.seed}`:p.id,mode:p.endless?'endless':p.plus?'plus':'campaign',layout:{w:p.w,h:p.h,rows:p.rows,cols:p.cols},solved:S.solved,repeat:typeof save.solved[p.id]==='number',restored:S.cells.some(v=>v!==0)||S.time>0,value:0,progress:{completed:Object.keys(save.solved).length+(S.solved&&typeof save.solved[p.id]!=='number'?1:0)}};},
+  snapshot(){return{puzzle:S.puz,save,state:{...S,cells:Array.from(S.cells),undo:S.undo.map(a=>({cells:Array.from(a),locks:a.locks})),drag:null,pending:null,geo:null,lastTap:null},clockRunning:!!tick,clockRemaining:tick?Math.max(0,1000-(performance.now()-__minimalTickAt)):null,live:live.textContent,dialogs:dialogs.filter(d=>d.open).map(d=>d.id)};},
+  restore(d){painter.cancel();stopClock();Object.assign(save,d.save);open(d.puzzle);stopClock();const geometry=S.geo;Object.assign(S,d.state);S.geo=geometry;S.cells=Int8Array.from(d.state.cells);S.undo=d.state.undo.map(v=>{const a=Int8Array.from(v.cells);if(v.locks)a.locks=v.locks;return a;});appearance();renderAll();layout();cellEls.forEach(n=>n.tabIndex=-1);setFocus(d.state.focus,false);if(S.solved){const saved=MinimalBridge.clone(save);finish(true);Object.assign(save,saved);}else{if(d.state.hint)showHint();if(d.clockRunning){const left=Math.max(0,Math.min(1000,d.clockRemaining??1000));__minimalTickAt=performance.now()-(1000-left);tick=setTimeout(()=>{tick=null;if(!document.hidden&&!modalOpen()){S.time++;clock.textContent=fmt(S.time);if(S.time%10===0)storeBoard();}startClock();},left);}}hud();clearTimeout(liveTimer);live.textContent=d.live||'';for(const id of d.dialogs||[])document.getElementById(id)?.showModal();persist();},
+  settle(){painter.cancel();},
+  undoDepth:()=>S.undo.length,
+  proof(){return{cells:Array.from(S.cells),generated:S.puz.endless?{size:S.puz.size,seed:S.puz.seed}:null};}
+});
+const __minimalPersist=persist;persist=function(){const value=__minimalPersist.apply(this,arguments);__minimal.changed();return value;};
+const __minimalOpen=open;open=function(){const value=__minimalOpen.apply(this,arguments);__minimal.changed();return value;};

@@ -1,0 +1,26 @@
+{
+  "id": "nod",
+  "entry": "index.html",
+  "files": [
+    "THIRD_PARTY.md",
+    "engine.js",
+    "favicon.svg",
+    "fonts/IBMPlexMono-500.woff2",
+    "fonts/IBMPlexSans-400.woff2",
+    "fonts/OFL.txt",
+    "gaze.js",
+    "index.html",
+    "levels.js",
+    "nod.css",
+    "nod.js",
+    "payoff.js",
+    "track.js",
+    "controls.css",
+    "controls.js",
+    "access.js",
+    "bridge-client.js"
+  ],
+  "embeddedAssets": {
+    "track.js::../glance/vendor/vision_bundle.mjs": "MediaPipe loads from Glance's published folder beside this one, on the same origin, once the camera is chosen; it is not shipped with Nod."
+  }
+}

@@ -1,0 +1,370 @@
+/*
+ * File Purpose: Shared HUD chrome for Hexsweeper lab skins (+ helpers for production).
+ * Primary Classes: .skin-nav, .hud-actions, .hud-btn, .menu-stats, .menu-links, .fx-layer, overlays.
+ * Inputs: CSS variables --nav-bg, --nav-ink, --bg-color, --text-main, --text-sub.
+ * Outputs: Visual chrome only; no game logic.
+ * Chrome: BR Reset · hex Menu; scores + outbound links live in Menu (no BL score rail).
+ */
+*, *::before, *::after { box-sizing: border-box; }
+
+.skin-nav {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top, 0px));
+  left: max(12px, env(safe-area-inset-left, 0px));
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+  pointer-events: none;
+}
+.skin-nav a, .skin-nav button {
+  pointer-events: auto;
+  appearance: none;
+  border: 0;
+  background: color-mix(in srgb, var(--nav-bg, #e0e5ec) 50%, transparent);
+  color: var(--nav-ink, #4a5568);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 999px;
+  padding: 8px 12px;
+  text-decoration: none;
+  cursor: pointer;
+  line-height: 1;
+  transition: opacity 0.15s ease, background 0.15s ease;
+  box-shadow: none;
+}
+.skin-nav a:hover, .skin-nav button:hover { opacity: 0.92; }
+.skin-nav a:active, .skin-nav button:active { transform: scale(0.96); }
+.skin-nav .meta {
+  pointer-events: none;
+  opacity: 0.7;
+  padding: 0 4px;
+  max-width: min(42vw, 220px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.skin-nav .tag {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+/* Lab + production BR cluster: Reset · Menu */
+.hud-actions {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: max(14px, env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  align-items: center;
+  pointer-events: none;
+  padding: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--nav-bg, #e0e5ec) 52%, transparent);
+  backdrop-filter: blur(16px) saturate(1.1);
+  -webkit-backdrop-filter: blur(16px) saturate(1.1);
+  border: 1px solid color-mix(in srgb, var(--text-main, #4a5568) 12%, transparent);
+}
+.hud-actions > * { pointer-events: auto; }
+.hud-btn {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--text-main, #4a5568);
+  border-radius: 999px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  opacity: 0.88;
+}
+.hud-btn svg { width: 20px; height: 20px; stroke-width: 2; }
+.hud-btn:hover { opacity: 1; background: color-mix(in srgb, var(--nav-bg, #e0e5ec) 72%, transparent); }
+.hud-btn:active { transform: scale(0.94); }
+.hud-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--text-main, #4a5568) 55%, transparent);
+  outline-offset: 2px;
+}
+.menu-title {
+  margin: 0 0 12px;
+  font: 700 1.05rem/1.2 "IBM Plex Sans", system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  color: var(--text-main, #4a5568);
+  text-align: left;
+}
+.menu-stats {
+  display: flex;
+  gap: 18px;
+  width: 100%;
+  padding: 2px 0;
+}
+.menu-stats .stat-item {
+  opacity: 0.95;
+  min-width: 0;
+  align-items: flex-start;
+  text-align: left;
+  font-size: 1.1rem;
+}
+.modal-section-label {
+  width: 100%;
+  margin: 0 0 6px;
+  font: 700 0.68rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-sub, #a0aec0);
+  text-align: left;
+}
+#run-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+.canvas-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+canvas { display: block; cursor: crosshair; max-width: 100%; }
+
+/* Legacy lab score rail — unused after Menu chrome; kept inert if referenced. */
+.bottom-bar,
+.score-rail { display: none !important; }
+.stat-item {
+  font-family: "IBM Plex Mono", "Segoe UI Mono", "Roboto Mono", monospace;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-main, #2f3a4a);
+  min-width: 52px;
+  width: auto;
+  padding: 0 6px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: auto;
+  /* Endless scores can climb past 999 */
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.1;
+}
+.stat-item::after {
+  content: attr(data-label);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-sub, #5c6b7e);
+  margin-top: 2px;
+}
+.stat-item.visible { opacity: 1; }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--bg-color, #e0e5ec) 90%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+.modal-overlay.open { opacity: 1; pointer-events: auto; }
+.modal-content {
+  background: color-mix(in srgb, var(--bg-color, #e0e5ec) 92%, transparent);
+  color: var(--text-main, #4a5568);
+  padding: 30px;
+  border-radius: 28px;
+  width: 280px;
+  text-align: center;
+  border: 0;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  transform: scale(0.95);
+  transition: transform 0.2s ease;
+  position: relative;
+}
+.modal-overlay.open .modal-content { transform: scale(1); }
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--text-sub, #a0aec0);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+}
+.close-btn:hover { color: var(--text-main, #4a5568); }
+.close-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--text-main, #4a5568) 55%, transparent);
+  outline-offset: 2px;
+}
+.modal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 25px;
+  padding: 0 10px;
+}
+.icon-label {
+  color: var(--text-main, #4a5568);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.diff-selector { display: flex; gap: 5px; }
+.diff-option {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 1px solid var(--text-sub, #a0aec0);
+  border-radius: 8px;
+  color: var(--text-sub, #a0aec0);
+  background: transparent;
+  transition: all 0.2s;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  padding: 0;
+  line-height: 1;
+}
+.diff-option:hover {
+  border-color: var(--text-main, #4a5568);
+  color: var(--text-main, #4a5568);
+}
+.diff-option.active,
+.diff-option[aria-pressed="true"] {
+  background: var(--text-main, #4a5568);
+  border-color: var(--text-main, #4a5568);
+  color: var(--bg-color, #e0e5ec);
+}
+.diff-option:focus-visible {
+  outline: 2px solid var(--text-main, #4a5568);
+  outline-offset: 2px;
+}
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: transparent;
+  border: 2px solid var(--text-sub, #a0aec0);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.toggle-switch.active {
+  background: var(--text-main, #4a5568);
+  border-color: var(--text-main, #4a5568);
+}
+.toggle-knob {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 14px; height: 14px;
+  background: var(--text-sub, #a0aec0);
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+.toggle-switch.active .toggle-knob {
+  background: var(--bg-color, #e0e5ec);
+  transform: translateX(20px);
+}
+.refresh-btn {
+  width: 60px;
+  height: 60px;
+  margin: 10px auto 0 auto;
+  border: none;
+  border-radius: 50%;
+  background: var(--text-main, #4a5568);
+  color: var(--bg-color, #e0e5ec);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, opacity 0.2s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.refresh-btn:active { transform: scale(0.9); opacity: 0.9; }
+.instructions-text {
+  margin-top: 25px;
+  font-size: 11px;
+  color: var(--text-sub, #a0aec0);
+  line-height: 1.5;
+  text-align: center;
+}
+.menu-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--text-main, #4a5568) 12%, transparent);
+  font: 600 0.78rem/1.3 "IBM Plex Sans", system-ui, sans-serif;
+}
+.menu-links a {
+  color: var(--text-sub, #a0aec0);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+  border-radius: 4px;
+}
+.menu-links a:hover { color: var(--text-main, #4a5568); }
+.menu-links a:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--text-main, #4a5568) 55%, transparent);
+  outline-offset: 3px;
+}
+.menu-links-sep {
+  color: color-mix(in srgb, var(--text-sub, #a0aec0) 70%, transparent);
+  user-select: none;
+}
+/* Media query = OS Reduce Motion; attribute = the in-app Effects setting
+   (see Hexsweeper.applyEffectsAttribute). Kept separate so the setting can
+   reduce with the OS switch off, and keep effects with it on. */
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay,
+  .modal-content,
+  .hud-btn { transition: none; }
+  .modal-overlay.open .modal-content { transform: none; }
+}
+:root[data-effects="reduced"] .modal-overlay,
+:root[data-effects="reduced"] .modal-content,
+:root[data-effects="reduced"] .hud-btn { transition: none; }
+:root[data-effects="reduced"] .modal-overlay.open .modal-content { transform: none; }
+:root[data-effects="full"] .modal-overlay,
+:root[data-effects="full"] .modal-content,
+:root[data-effects="full"] .hud-btn { transition: revert; }
+
+.fx-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}

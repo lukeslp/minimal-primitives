@@ -1,0 +1,27 @@
+{
+  "id": "glyph",
+  "entry": "index.html",
+  "files": [
+    "THIRD_PARTY.md",
+    "boards.js",
+    "engine.js",
+    "favicon.svg",
+    "fonts/IBMPlexMono-500.woff2",
+    "fonts/IBMPlexSans-400.woff2",
+    "fonts/OFL.txt",
+    "gaze.js",
+    "glyph.css",
+    "glyph.js",
+    "index.html",
+    "payoff.js",
+    "trace.js",
+    "track.js",
+    "controls.css",
+    "controls.js",
+    "access.js",
+    "bridge-client.js"
+  ],
+  "sharedAssets": {
+    "../glance/vendor/": "MediaPipe Tasks Vision and its face landmarker model are not shipped here: track.js loads them, same origin, from the published Glance folder (/games/glance/vendor/) once the player chooses the camera. See THIRD_PARTY.md."
+  }
+}

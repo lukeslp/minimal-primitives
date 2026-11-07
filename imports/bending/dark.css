@@ -1,0 +1,38 @@
+.dark #board { position: relative; min-width: 0; min-height: 0; }
+.dark #sky { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.dark #app { position: relative; background: transparent; }
+.dark #well { cursor: default; }
+.dark #restart { position: fixed; top: max(0px, env(safe-area-inset-top)); left: 8px; z-index: 2; color: var(--sub); }
+.dark .stage-list { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.dark .stage-list button { justify-content: center; padding: 0; color: var(--sub); font: 500 13px/1 var(--mono); }
+.dark .stage-list button[data-complete="true"] { color: var(--ink); background: var(--band); }
+.dark .keys { border-top: 0; padding-top: 0; }
+.dark .help-more summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--sub); font: 500 13px/1 var(--mono); }
+.dark .help-more p { margin: 0 0 12px; color: var(--sub); }
+.dark .planet-button {
+  position: absolute; width: 44px; height: 44px; padding: 0; border: 0;
+  border-radius: 50%; background: transparent; pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+.dark .planet-button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.dark[data-input="pointer"] .planet-button:focus-visible { outline: none; }
+.dark .bar { grid-template-columns: auto minmax(0, 1fr) auto; gap: 0; }
+.dark .bar .group:last-child { grid-column: 3; }
+.dark .completion { position: absolute; transform: translate(-50%, -50%); animation: next-reveal .45s .4s both; }
+.dark.still .completion { animation: none; }
+@keyframes next-reveal { from { opacity: 0; transform: translate(-50%, calc(-50% + 4px)); } }
+@media (prefers-reduced-motion: reduce) { .dark .completion { animation: none; } }
+.dark [hidden] { display: none !important; }
+.dark .ib, .dark .fire-button { transition: none; }
+.dark .ib:active, .dark .fire-button:active { transform: none; }
+.dark dialog.sheet[open], .dark dialog.sheet[open]::backdrop { animation: none; }
+@media (max-width: 350px) { .dark .group { gap: 0; } }
+@media (max-height: 500px) and (orientation: landscape) {
+  .dark #board { grid-column: 1; grid-row: 2; }
+  .dark .bar { grid-template-columns: none; grid-template-rows: auto minmax(0, 1fr) auto; }
+  .dark .bar .group:last-child { grid-column: auto; grid-row: 3; }
+}
+
+.dark .stage-list button { flex-direction: column; gap: 4px; min-height: 48px; padding: 6px 0; }
+.dark .stage-state { font: 400 9px/1.2 var(--mono); }
+.dark .stage-list button:disabled { opacity: .55; cursor: default; }

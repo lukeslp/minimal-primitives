@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The full flavor plays the whole collection, camera input included. CAMERA is
+  asked for only when a player turns on Look and hold by head or eyes; frames
+  stay on the phone. A phone with no camera can still install the app. The
+  fdroid flavor leaves this file out and has no camera input.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="false" />
+
+</manifest>

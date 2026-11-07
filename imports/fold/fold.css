@@ -1,0 +1,87 @@
+/* Fold. Luke Steuber. */
+@font-face{font-family:"Plex Mono";src:url("fonts/IBMPlexMono-500.woff2") format("woff2");font-weight:500;font-display:swap}@font-face{font-family:"Plex Sans";src:url("fonts/IBMPlexSans-400.woff2") format("woff2");font-weight:400;font-display:swap}
+:root{color-scheme:dark;--bg:#000;--ink:#fff;--text:#ededed;--sub:#a6a6a6;--line:#2f2f2f;--guide:#666;--frame:#ededed;--band:rgba(255,255,255,.06);--scrim:rgba(0,0,0,.8);--mono:"Plex Mono",monospace;--sans:"Plex Sans",sans-serif}
+:root[data-theme=light]{color-scheme:light;--bg:#fff;--ink:#000;--text:#121212;--sub:#595959;--line:#d0d0d0;--guide:#999;--frame:#121212;--band:rgba(0,0,0,.06);--scrim:rgba(255,255,255,.8)}
+@media(prefers-color-scheme:light){:root[data-theme=system]{color-scheme:light;--bg:#fff;--ink:#000;--text:#121212;--sub:#595959;--line:#d0d0d0;--guide:#999;--frame:#121212;--band:rgba(0,0,0,.06);--scrim:rgba(255,255,255,.8)}}
+*{box-sizing:border-box;border-radius:0}body{margin:0;height:100dvh;overflow:hidden;background:var(--bg);color:var(--text);font:16px/1.45 var(--sans);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}button,select{font:inherit;color:inherit}button{cursor:pointer}button:disabled{opacity:.35;cursor:default}[hidden]{display:none!important}button:focus-visible,select:focus-visible,.cell:focus-visible,summary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.readout{position:fixed;top:calc(max(0px,env(safe-area-inset-top)) + 18px);left:50%;transform:translateX(-50%);font:500 13px/1 var(--mono);letter-spacing:.02em;color:var(--on-table);white-space:nowrap}#restart-btn{position:fixed;top:max(0px,env(safe-area-inset-top));left:8px;z-index:2}
+#board-shell{position:absolute;inset:58px 12px 114px;display:flex;overflow:auto;overscroll-behavior:contain;padding:48px 28px}.board-stage{position:relative;flex:none;margin:auto}#paper-stage{position:absolute;perspective:800px}.board{position:relative;display:flex;flex-direction:column;border:1px solid var(--ink);background:var(--band);touch-action:none}.grid-row{display:flex}.cell{position:relative;width:var(--cell);height:var(--cell);flex:none;display:grid;place-items:center;touch-action:none;color:var(--ink)}.cell:focus-visible{outline-offset:-4px;z-index:3}.cell.picked{outline:1px solid var(--ink);outline-offset:-4px}
+.dot,.hole{position:absolute;border-radius:50%;pointer-events:none}.dot{width:40%;height:40%;background:var(--paper-ink)}.hole{width:60%;height:60%;border:1px solid var(--paper-edge)}
+.crease-line{position:absolute;pointer-events:none;z-index:2}.crease-line.v{top:0;bottom:0;border-left:1px dashed var(--guide)}.crease-line.h{left:0;right:0;border-top:1px dashed var(--guide)}.crease-line.target,.crease-line.hint{border-color:var(--ink);border-width:2px}.crease-line.hint{border-style:solid}
+.crease-handle{position:absolute;width:44px;height:44px;min-width:44px;min-height:44px;display:grid;place-items:center;border:0;padding:0;color:var(--on-table-quiet);background:none;touch-action:manipulation}.crease-handle.v{top:-46px;transform:translateX(-50%);place-items:end center;padding-bottom:5px}.crease-handle.h{left:-46px;transform:translateY(-50%);place-items:center end;padding-right:5px}.crease-handle svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.2}.crease-handle.target,.crease-handle.hint{color:var(--ink)}.crease-handle.hint{outline:1px solid var(--ink);outline-offset:-4px}.crease-handle.choice{color:var(--ink)}.crease-handle.choice.left{margin-left:-24px}.crease-handle.choice.right{margin-left:24px}.crease-handle.choice.top{margin-top:-24px}.crease-handle.choice.bottom{margin-top:24px}.crease-handle.choice svg{stroke-width:1.6}
+.flap{position:absolute;overflow:hidden;pointer-events:none;background:var(--bg);border:1px solid var(--ink);z-index:4;backface-visibility:visible}.flap .board{position:absolute;border:0;background:var(--band)}
+#feedback{position:fixed;bottom:70px;left:16px;right:16px;margin:0;text-align:center;color:var(--on-table);font:14px/1.3 var(--sans);pointer-events:none}.toolbar{position:fixed;bottom:max(6px,env(safe-area-inset-bottom));left:8px;right:8px;display:flex;justify-content:space-between}.toolbar>div{display:flex}.ib{display:inline-grid;place-items:center;width:48px;height:48px;min-width:48px;min-height:48px;border:0;background:none;padding:12px;color:var(--ink);transition:opacity .15s,transform .1s}.ib svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.ib:active{transform:scale(.94)}.toolbar .ib,#restart-btn{color:var(--on-table-quiet)}.ib:focus-visible{color:var(--ink)}@media (hover:hover) and (pointer:fine){.ib:hover{color:var(--ink)}}
+.completion{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);display:flex;justify-content:center;z-index:2}.completion-actions{display:flex;gap:12px;animation:completion-in .3s ease-out}.milestone{position:absolute;top:100%;width:240px;margin:0;color:var(--on-table);font:14px/1.3 var(--sans);text-align:center}body:has(#completion:not([hidden])) #feedback{bottom:116px}@keyframes completion-in{from{opacity:0}to{opacity:1}}
+.sheet{width:min(32rem,calc(100vw - 16px));max-height:calc(100dvh - 16px);border:1px solid var(--frame);padding:0;background:var(--bg);color:var(--text)}.sheet[open]{display:flex;flex-direction:column}.sheet::backdrop{background:var(--scrim)}.sheet-head{display:flex;justify-content:space-between;align-items:center;padding:8px 16px;gap:12px;flex:none;border-bottom:1px solid var(--line)}.sheet-head h2{font:500 16px/1.3 var(--mono);margin:0}.sheet-head form{margin:0}.sheet-x{width:44px;height:44px;min-width:44px;min-height:44px;padding:10px}.sheet-body{padding:20px 24px;overflow:auto;min-height:0;overscroll-behavior:contain;scroll-padding:12px}.sheet-body p{margin:0 0 16px;max-width:60ch}.row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;border-bottom:1px solid var(--line)}.row select{max-width:65%;min-height:44px;background:var(--bg);border:0;padding:4px 8px}.row button{min-height:44px;background:none;border:0;padding:8px}.row button:not(:disabled){text-decoration:underline;text-underline-offset:4px}.quiet{color:var(--sub);font:13px/1.4 var(--mono);overflow-wrap:anywhere;margin-top:8px}.sheet-foot{padding:12px 24px;border-top:1px solid var(--line);flex:none;color:var(--sub);font-size:14px}.sheet-foot a{color:inherit}.text-action{min-height:44px;padding:8px 12px;border:1px solid var(--line);background:none;font:500 14px/1.3 var(--mono);color:var(--text)}.controls{border-top:1px solid var(--line);padding-top:16px}.controls p{margin:0 0 6px}.help-more{border-top:1px solid var(--line);margin-top:16px;padding-top:4px}.help-more summary{cursor:pointer;min-height:44px;padding:12px 0;color:var(--sub)}.help-more p{font-size:14px}#settings-feedback a{overflow-wrap:anywhere;-webkit-user-select:text;user-select:text}
+.board,.board *,#handles,header,.toolbar,button,button *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+@media(max-width:480px){.sheet-head{padding:8px 12px}.sheet-body{padding:16px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}:root[data-motion=reduce] *,:root[data-motion=reduce] *::before,:root[data-motion=reduce] *::after{animation:none!important;transition:none!important}
+@media(forced-colors:active){:root{--bg:Canvas;--ink:CanvasText;--text:CanvasText;--sub:CanvasText;--line:GrayText;--guide:GrayText;--frame:CanvasText;--band:Canvas;--scrim:Canvas}.board,.dot,.hole{forced-color-adjust:none}.dot{background:CanvasText}.hole{background:Canvas;border-color:CanvasText;box-shadow:none}.sheet{border-color:CanvasText}.ib,.crease-handle{color:ButtonText}}
+
+/* A dead end is never a loss: Undo simply asks to be pressed. */
+.toolbar #undo-btn.nudge{color:var(--ink);animation:undo-nudge 1.6s ease-in-out infinite}
+@keyframes undo-nudge{50%{transform:scale(1.18)}}
+@media(prefers-reduced-motion:reduce){.toolbar #undo-btn.nudge{animation:none;outline:1px solid var(--ink);outline-offset:-7px}}
+:root[data-motion=reduce] .toolbar #undo-btn.nudge{animation:none;outline:1px solid var(--ink);outline-offset:-7px}
+
+/* Double-tap zoom: touch-action is intersected across every ancestor, so
+   manipulation on the root stops double-tap zoom page-wide (readouts, gaps
+   between controls, sheet backdrops) while pinch zoom still works. */
+html, body { touch-action: manipulation; }
+
+/* Paper depth moves independently of the playable sheet and crease targets. */
+/* The three things on screen sit a clear step of lightness apart, so they never depend on hue: ink is black, the table is a mid slate, the paper is light. */
+:root{--surface:#5a5c5e;--surface-lit:#606264;--on-table:#fff;--on-table-quiet:#e6e6e6;--paper:#c6c5c0;--paper-lit:#d8d7d2;--paper-back:#b0aea8;--paper-edge:#8a8780;--paper-line:#5f5c56;--paper-shine:#ffffff59;--paper-ink:#000000;--paper-grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' opacity='.055' filter='url(%23g)'/%3E%3C/svg%3E")}
+:root[data-theme=light]{--surface:#e4e2dc;--surface-lit:#f2f1ed;--on-table:#595959;--on-table-quiet:#595959;--paper:#eeede7;--paper-lit:#fffefa;--paper-back:#d7d5ce;--paper-edge:#aaa79f;--paper-line:#77736c;--paper-shine:#fffc}
+@media(prefers-color-scheme:light){:root[data-theme=system]{--surface:#e4e2dc;--surface-lit:#f2f1ed;--on-table:#595959;--on-table-quiet:#595959;--paper:#eeede7;--paper-lit:#fffefa;--paper-back:#d7d5ce;--paper-edge:#aaa79f;--paper-line:#77736c;--paper-shine:#fffc}}
+body{background:var(--surface) radial-gradient(ellipse at 35% 25%,var(--surface-lit),var(--surface) 75%)}
+#paper-stage{--look-x:0px;--look-y:0px;--lamp-x:35%;--lamp-y:25%;--thickness:.7px;isolation:isolate}
+#paper-depth{position:absolute;inset:1px;pointer-events:none;transform:translate(var(--look-x),var(--look-y));transition:transform .14s ease-out;z-index:0;filter:drop-shadow(2px 5px 4px #0005)}
+.paper-ply{position:absolute;width:var(--cell);height:var(--cell);background:var(--paper-back);transform:translate(calc(var(--ply) * .6px),calc(var(--ply) * .6px));border:0}
+.paper-ply.open{-webkit-mask:radial-gradient(closest-side,transparent calc(60% - .5px),#000 60%);mask:radial-gradient(closest-side,transparent calc(60% - .5px),#000 60%)}
+.paper-ply.exposed-bottom{border-bottom:1px solid var(--paper-edge)}.paper-ply.exposed-right{border-right:1px solid var(--paper-edge)}
+/* The paper is its own layer so that holes can be cut out of it: --cuts is a path with one circle for every hole that goes right through. */
+.board::before,.flap-back::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:var(--paper-grain),radial-gradient(ellipse at var(--lamp-x) var(--lamp-y),var(--paper-lit),var(--paper) 85%);clip-path:var(--cuts,none)}
+.board{z-index:1;background:none;border-color:var(--paper-edge);box-shadow:0 .6px 0 var(--paper-back),1px 2px 2px #0005,4px 9px 16px #0003}
+.dot{background:var(--paper-ink);box-shadow:none}.cell{color:var(--paper-ink)}.cell.picked,.cell:focus-visible{outline-color:var(--paper-ink)}
+.cell.step-right::after,.cell.step-bottom::before{content:"";position:absolute;pointer-events:none;z-index:1;background:linear-gradient(90deg,#0003,transparent)}.cell.step-right::after{top:0;bottom:0;right:-6px;width:6px}.cell.step-bottom::before{left:0;right:0;bottom:-6px;height:6px;background:linear-gradient(#0003,transparent)}
+.crease-line{border-color:var(--paper-line);opacity:.65}.crease-line.v{box-shadow:1px 0 0 var(--paper-shine),-1px 0 2px #0002}.crease-line.h{box-shadow:0 1px 0 var(--paper-shine),0 -1px 2px #0002}.crease-line.target,.crease-line.hint{opacity:1;border-color:var(--paper-ink)}
+.flap{overflow:visible;border:0;background:none;transform-style:preserve-3d;backface-visibility:visible;z-index:4}
+.flap-face{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;border:1px solid var(--paper-edge);box-shadow:0 0 1px var(--paper-edge),0 var(--thickness) 0 var(--paper-back)}
+.flap-front{transform:translateZ(.5px)}.flap.v .flap-back{transform:rotateY(180deg) translateZ(.5px)}.flap.h .flap-back{transform:rotateX(180deg) translateZ(.5px)}
+.flap .board{background:none;box-shadow:none}
+.fold-hinge{position:absolute;pointer-events:none;z-index:3;background:linear-gradient(90deg,#fff8,#0004);width:3px;top:0;bottom:0;transform:translateX(-1px)}.fold-hinge.h{height:3px;width:auto;left:0;right:0;bottom:auto;background:linear-gradient(#fff8,#0004);transform:translateY(-1px)}
+.fold-shadow{position:absolute;pointer-events:none;background:#000;opacity:0;z-index:2}
+@media(prefers-reduced-motion:reduce){#paper-depth{transform:none!important}}:root[data-motion=reduce] #paper-depth{transform:none!important}
+@media(forced-colors:active){:root{--paper-ink:CanvasText;--on-table:CanvasText;--on-table-quiet:ButtonText}body{background:Canvas}#paper-depth,.fold-shadow,.fold-hinge,.cell::before,.cell::after{display:none}.board,.flap-face,.flap .board{border-color:CanvasText;box-shadow:none}.board::before,.flap-back::before{background:Canvas}.hole::after{display:none}.hole.shows-table,.hole.shows-paper,.hole.shows-dot{background:Canvas;border-color:CanvasText}.crease-line{opacity:1;border-color:GrayText;box-shadow:none}.crease-line.target,.crease-line.hint{border-color:CanvasText}.flap{box-shadow:none}}
+@media(orientation:landscape) and (max-height:500px){#board-shell{inset:48px 72px 24px 12px}.toolbar{left:auto;right:8px;top:12px;bottom:12px;flex-direction:column;width:48px}.toolbar>div{flex-direction:column}.readout{left:calc(50% - 32px)}#feedback{left:12px;right:72px;bottom:4px;font-size:12px}.completion{left:auto;right:84px;bottom:20px;transform:none}body:has(#completion:not([hidden])) #feedback{bottom:4px}.milestone{right:0;top:-24px;width:180px}}
+/* The sheet has two faces. Ink is printed on the front, so paper lying face down is a shade greyer
+   and its dots are only the print showing through. */
+:root{--paper-turned:rgba(21,21,20,.1);--ink-through:#5b5a58;--hole-rim:#66645f}
+.cell.back{background:var(--paper-turned)}
+/* A hole is an opening, never a painted disc. The top sheet's shade stops at the cut, the sheet seen through it
+   brings its own shade, and the cut edge throws its shadow over whatever lies beneath, ink included. */
+.cell.back.cut{background:radial-gradient(closest-side,transparent calc(60% - .5px),var(--paper-turned) 60%)}
+.hole{border-color:var(--hole-rim)}.hole.on-back{background:var(--paper-turned)}
+.hole::after{content:"";position:absolute;inset:-1px;border-radius:50%;z-index:1;box-shadow:inset 2.5px 3.5px 0 -1px #0000002e,inset 2px 3px 4px #0005}
+.dot.through{background:radial-gradient(closest-side,var(--ink-through) 64%,transparent)}
+@media(forced-colors:active){.cell.back,.cell.back.cut,.hole.on-back{background:none}.dot.through{background:CanvasText}}
+/* A hint hatches the side that would fold over; a flat tint would read as paper lying face down. */
+.hint-side{position:absolute;pointer-events:none;z-index:1;background:repeating-linear-gradient(135deg,var(--paper-ink) 0 1px,transparent 1px 7px);opacity:.34}
+@media(forced-colors:active){.hint-side{background:none;opacity:1;outline:2px solid Highlight;outline-offset:-3px}}
+/* Paper lying straight on a hole is thin enough to tell: the hole shows through as a faint shade, the way ink does.
+   So a hole that a fold covers is still there to be seen, and turning the stack over brings it out, not back. */
+/* It has to read by lightness alone, about half as much again darker than the paper round it, with a thin rim. */
+.under-hole{position:absolute;width:60%;height:60%;border-radius:50%;pointer-events:none;background:#00000030;box-shadow:inset 0 0 0 1px #00000038,inset 1px 2px 3px #00000026}
+.under-hole.fresh{animation:trace-in .28s ease-out both}
+@keyframes trace-in{from{opacity:0}}
+:root[data-motion=reduce] .under-hole.fresh{animation:none}
+@media(prefers-reduced-motion:reduce){.under-hole.fresh{animation:none}}
+@media(forced-colors:active){.under-hole{background:none;box-shadow:none;border:1px dashed GrayText}}
+/* A dead end offers the way back where a finished board offers the way on. Hint points at it first. */
+body:has(#dead-end:not([hidden])) #feedback{bottom:116px}
+#back-btn.hint{outline:1px solid var(--on-table,var(--ink));outline-offset:-7px;animation:undo-nudge 1.6s ease-in-out infinite}
+:root[data-motion=reduce] #back-btn.hint{animation:none}
+@media(prefers-reduced-motion:reduce){#back-btn.hint{animation:none}}
+/* The handle on the folded edge turns the last fold back. */
+.crease-handle.unfold svg{width:18px;height:18px;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}

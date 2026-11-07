@@ -1,0 +1,457 @@
+/* Notan: a quiet nonogram. Black, white and grays only; the board is the page.
+ * Chrome follows Hexsweeper's sphere: a tiny mono readout at top center and
+ * bare line icons in the bottom corners. */
+
+@font-face {
+  font-family: "Plex Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("./fonts/IBMPlexMono-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Plex Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./fonts/IBMPlexSans-400.woff2") format("woff2");
+}
+
+:root {
+  color-scheme: light;
+  --zoom: 1;
+  --bg: #ffffff;
+  --ink: #000000;
+  --text: #111111;
+  --sub: #5e5e5e;
+  --done: #737373;
+  --line: #d4d4d4;
+  --guide: #8f8f8f;
+  --frame: #1c1c1c;
+  --mark: #8a8a8a;
+  --band: rgba(0, 0, 0, 0.05);
+  --icon: #262626;
+  --scrim: rgba(255, 255, 255, 0.84);
+  --mono: "Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --sans: "Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #000000;
+    --ink: #ffffff;
+    --text: #ededed;
+    --sub: #a6a6a6;
+    --done: #888888;
+    --line: #2f2f2f;
+    --guide: #6c6c6c;
+    --frame: #e4e4e4;
+    --mark: #7c7c7c;
+    --band: rgba(255, 255, 255, 0.07);
+    --icon: #dddddd;
+    --scrim: rgba(0, 0, 0, 0.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+    --bg: #000000;
+    --ink: #ffffff;
+    --text: #ededed;
+    --sub: #a6a6a6;
+    --done: #888888;
+    --line: #2f2f2f;
+    --guide: #6c6c6c;
+    --frame: #e4e4e4;
+    --mark: #7c7c7c;
+    --band: rgba(255, 255, 255, 0.07);
+    --icon: #dddddd;
+    --scrim: rgba(0, 0, 0, 0.8);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+button { font: inherit; color: inherit; }
+
+/* ---------- top readout ---------- */
+.hud {
+  position: fixed;
+  top: max(6px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font: 500 calc(13px * var(--zoom))/1 var(--mono);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--sub);
+  white-space: nowrap;
+}
+.hud svg { width: 14px; height: 14px; flex: none; }
+.hud-lvl {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--sub);
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.hud-lvl:hover { color: var(--text); }
+.hud-time { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0 10px; min-width: 6ch; }
+
+/* ---------- board ---------- */
+.board {
+  position: absolute;
+  --cell: 32px;
+  --f: 13px;
+  --cw: 40px;
+  --ch: 40px;
+  --dot: 5px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+  transition: transform 0.7s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.board.instant, .board.instant * , .board.instant *::before, .board.instant *::after { transition: none !important; }
+.band {
+  /* Selection stays on the square; only completed clue numbers dim. */
+  display: none;
+}
+.cursor {
+  position: absolute;
+  z-index: 3;
+  width: var(--cell);
+  height: var(--cell);
+  border: 2px solid var(--ink);
+  box-shadow: 0 0 0 1px var(--bg), inset 0 0 0 1px var(--bg);
+  pointer-events: none;
+  display: none;
+}
+.cursor.on { display: block; }
+/* Hint: a ring on one square, dashed when the square is wrong, solid when the
+ * outlined clue settles it. It pulses three times, then stays until the next move. */
+.hint {
+  position: absolute;
+  z-index: 3;
+  width: var(--cell);
+  height: var(--cell);
+  border: 3px solid var(--ink);
+  box-shadow: 0 0 0 1px var(--bg), inset 0 0 0 1px var(--bg);
+  pointer-events: none;
+  display: none;
+}
+.hint.on { display: block; animation: hint-pulse 1.2s ease-in-out 3; }
+.hint.wrong { border-style: dashed; }
+@keyframes hint-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.15; }
+}
+.clue.hinted { outline: 2px solid var(--ink); outline-offset: -2px; }
+
+.grid { position: relative; z-index: 1; }
+.gr { display: flex; }
+.corner { flex: none; width: var(--cw); height: var(--ch); }
+
+.clue {
+  flex: none;
+  display: flex;
+  font: 500 var(--f)/1.18 var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  transition: color 0.3s, opacity 0.5s;
+  position: relative;
+}
+.cc {
+  width: var(--cell);
+  height: var(--ch);
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding-bottom: calc(var(--f) * 0.4);
+}
+.rc {
+  width: var(--cw);
+  height: var(--cell);
+  justify-content: flex-end;
+  align-items: center;
+  gap: calc(var(--f) * 0.5);
+  padding-right: calc(var(--f) * 0.55);
+}
+.clue.ok { color: var(--done); }
+/* Each number fades on its own once its run is finished. It does not bounce. */
+.clue span { display: inline-block; transition: color 0.3s; }
+.clue span.n-done { color: var(--done); text-decoration: line-through; text-decoration-thickness: 2px; }
+/* A line that can't work as marked gets a short dashed tick beside it. */
+.clue.bad::after {
+  content: "";
+  position: absolute;
+  border: 0 dashed var(--text);
+}
+.cc.bad::after { left: 25%; right: 25%; bottom: 2px; border-bottom-width: 1px; }
+.rc.bad::after { top: 25%; bottom: 25%; right: 2px; border-right-width: 1px; }
+
+.cell {
+  flex: none;
+  position: relative;
+  width: var(--cell);
+  height: var(--cell);
+  --guide-x: 0px;
+  --guide-y: 0px;
+  --lt: transparent;
+  --ll: transparent;
+  --lr: var(--line);
+  --lb: var(--line);
+  box-shadow:
+    inset calc(-1px - var(--guide-x)) 0 0 var(--lr),
+    inset 0 calc(-1px - var(--guide-y)) 0 var(--lb),
+    inset 1px 0 0 var(--ll),
+    inset 0 1px 0 var(--lt);
+  outline: none;
+  cursor: pointer;
+  transition: box-shadow 0.6s;
+}
+.cell.gx { --lr: var(--guide); --guide-x: 1px; }
+.cell.gy { --lb: var(--guide); --guide-y: 1px; }
+.cell.t { --lt: var(--frame); }
+.cell.l { --ll: var(--frame); }
+.cell.rt { --lr: var(--frame); }
+.cell.bt { --lb: var(--frame); }
+.cell::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; right: 1px; bottom: 1px;
+  background: var(--ink);
+  transform: scale(0);
+  transition: transform 0.12s ease-out, right 0.6s, bottom 0.6s, top 0.6s, left 0.6s;
+}
+.cell.t::before { top: 1px; }
+.cell.l::before { left: 1px; }
+.cell.ink::before { transform: scale(1); }
+.cell.gx::before { right: 0; box-shadow: inset -2px 0 var(--bg); }
+.cell.gy::before { bottom: 0; box-shadow: inset 0 -2px var(--bg); }
+.cell.gx.gy::before { box-shadow: inset -2px 0 var(--bg), inset 0 -2px var(--bg); }
+.board.solved .cell::before { box-shadow: none; }
+.cell::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  width: var(--dot); height: var(--dot);
+  margin: calc(var(--dot) / -2) 0 0 calc(var(--dot) / -2);
+  border-radius: 50%;
+  background: var(--mark);
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.cell.mark::after { opacity: 1; }
+
+/* Solved: the lines, marks and clues go; the picture stays and moves to center. */
+.board { transform-origin: 0 0; }
+.board.solved { --line: transparent; --guide: transparent; --frame: transparent; transform: var(--solved); }
+.board.solved .cell { cursor: default; }
+/* Fills overlap by a pixel so the scaled picture shows no seams. */
+.board.solved .cell::before { top: 0; left: 0; right: -1px; bottom: -1px; }
+.board.solved .cell::after,
+.board.solved .clue,
+.board.solved .band,
+.board.solved .cursor,
+.board.solved .hint { opacity: 0; }
+
+.caption {
+  position: absolute;
+  left: 0; right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.6s 0.5s;
+  pointer-events: none;
+}
+.caption[hidden] { display: none; }
+.caption.show { opacity: 1; pointer-events: auto; }
+.caption .share-btn { min-height: 36px; }
+.caption .share-btn[hidden] { display: none; }
+.caption p { margin: 0; font: 500 calc(13px * var(--zoom))/1.3 var(--mono); letter-spacing: 0.04em; color: var(--sub); }
+
+/* ---------- corner icons ---------- */
+.bar {
+  position: fixed;
+  left: max(6px, env(safe-area-inset-left));
+  right: max(6px, env(safe-area-inset-right));
+  bottom: max(6px, env(safe-area-inset-bottom));
+  z-index: 5;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  pointer-events: none;
+}
+.group { display: flex; gap: 2px; pointer-events: auto; }
+.ib {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--icon);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.ib svg { width: 24px; height: 24px; }
+.ib:active { transform: scale(0.94); }
+.ib[aria-disabled="true"] { opacity: 0.32; cursor: default; }
+.ib:focus-visible,
+.hud-lvl:focus-visible,
+.lv:focus-visible,
+.text-action:focus-visible,
+.size-choice:focus-visible,
+.sheet-x:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+@media (hover: hover) {
+  .ib:hover:not([aria-disabled="true"]) { background: var(--band); }
+}
+
+
+/* Sheets: the header stays put; only the content scrolls. */
+dialog.sheet {
+  width:min(calc(32rem * var(--zoom)),calc(100vw - 16px));
+  max-width:none; max-height:calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  height:fit-content; padding:0; margin:auto; border:1px solid var(--frame);
+  border-radius:0; background:var(--bg); color:var(--text); overflow:hidden;
+}
+dialog.sheet[open] { display:block; }
+dialog.sheet::backdrop { background:var(--scrim); }
+.sheet-in { max-height:calc(100dvh - 18px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); display:flex; flex-direction:column; min-height:0; width:100%; font:400 calc(16px * var(--zoom))/1.45 var(--sans); }
+.sheet-head { display:flex; flex:none; align-items:center; justify-content:space-between; gap:12px; padding:8px 16px; border-bottom:1px solid var(--line); }
+.sheet-head form { margin:0; }
+.sheet h2 { margin:0; font:500 calc(16px * var(--zoom))/1.3 var(--mono); }
+.sheet-x { display:grid; place-items:center; width:44px; height:44px; padding:0; border:0; background:none; color:var(--text); cursor:pointer; }
+.sheet-x svg { width:24px; height:24px; }
+.sheet-body { min-height:0; overflow:auto; overscroll-behavior:contain; padding:20px 24px; scroll-padding:12px; }
+.sheet p { margin:0 0 16px; }
+.sheet h3 { margin:0 0 8px; font:500 1em/1.4 var(--sans); }
+.sheet section + section { border-top:1px solid var(--line); margin-top:20px; padding-top:20px; }
+.sheet .sizes { display:flex; flex-wrap:wrap; gap:4px; }
+.text-action,.size-choice,.lv {
+  appearance:none; min-width:44px; min-height:44px; padding:8px 12px; border:1px solid var(--line); border-radius:0;
+  background:none; color:var(--text); font:500 calc(16px * var(--zoom))/1.3 var(--mono); cursor:pointer; touch-action:manipulation;
+}
+.size-choice { padding:8px; border-color:transparent; color:var(--sub); }
+.size-choice[aria-pressed="true"],.text-action[aria-pressed="true"] { border-color:var(--frame); color:var(--ink); }
+.text-action:disabled { opacity:.45; cursor:default; }
+.text-action[aria-disabled="true"] { color:var(--sub); cursor:default; }
+.text-action:hover,.size-choice:hover,.lv:hover { background:var(--band); }
+.sheet :is(button,a,summary,[role="gridcell"]):focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+.setting-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 16px; margin-top:8px; }
+#theme-btn { display:flex; align-items:center; gap:8px; }
+#theme-btn svg { width:20px; height:20px; flex:none; }
+.practice-tools { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
+.practice-tools form { margin:0; }
+.sheet-foot { border-top:1px solid var(--line); padding-top:12px; margin-top:20px; }
+.foot-btn { display:inline-flex; align-items:center; min-height:44px; font:400 16px/1.4 var(--sans); color:var(--sub); text-underline-offset:3px; background:none; border:0; cursor:pointer; }
+.lv-grid { list-style:none; margin:0 0 20px; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(max(44px,calc(40px * var(--zoom))),1fr)); gap:4px; }
+.lv { width:100%; padding:8px 0; border-color:transparent; color:var(--sub); }
+.lv.done { color:var(--ink); }
+.lv[aria-current="true"] { border-color:var(--frame); }
+.lesson { padding-top:4px; }
+.lesson-heading { display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
+#lesson-count { color:var(--sub); white-space:nowrap; }
+/* The clue sits in the left margin, as row clues do on the board, so the strip stays centered over its tools. */
+.practice-line { display:grid; grid-template-columns:1fr min(calc(100% - 5em),calc(280px * var(--zoom))) 1fr; justify-content:center; align-items:center; column-gap:12px; row-gap:8px; margin:20px 0 12px; }
+#practice-clue { grid-column:1; justify-self:end; font:500 calc(20px * var(--zoom))/1.3 var(--mono); text-align:right; white-space:nowrap; }
+#practice { grid-column:2; width:100%; touch-action:none; user-select:none; }
+#practice-reset[hidden] { display:none; }
+#practice-row { display:grid; grid-template-columns:repeat(5,1fr); }
+.practice-cell { aspect-ratio:1; min-width:44px; min-height:44px; padding:0; border:1px solid var(--guide); border-right:0; position:relative; background:var(--bg); touch-action:none; }
+.practice-cell:last-child { border-right:1px solid var(--guide); }
+.practice-cell.ink { background:var(--ink); }
+.practice-cell.mark::after { content:""; position:absolute; width:14%; height:14%; top:43%; left:43%; border-radius:50%; background:var(--mark); }
+.practice-key { display:flex; flex-wrap:wrap; justify-content:center; gap:8px 16px; font-size:16px; color:var(--sub); }
+.practice-key span { display:inline-flex; align-items:center; gap:6px; }
+.practice-key i { display:inline-block; width:16px; height:16px; border:1px solid var(--guide); position:relative; }
+.practice-key .filled { background:var(--ink); }
+.practice-key .empty::after { content:""; position:absolute; width:4px; height:4px; border-radius:50%; background:var(--mark); top:5px; left:5px; }
+#practice-feedback { margin:8px 0 10px; min-height:1.45em; color:var(--sub); text-align:center; }
+.lesson-nav { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+#lesson-possibilities { grid-column:2; margin:0; width:100%; }
+#lesson-possibilities:not([hidden]) { display:grid; gap:8px; }
+.possibility { display:grid; grid-template-columns:repeat(5,1fr); height:calc(18px * var(--zoom)); border:1px solid var(--guide); }
+.possibility i { border-right:1px solid var(--guide); }
+.possibility i:last-child { border-right:0; }
+.possibility i.on { background:var(--ink); }
+.rules { border-top:1px solid var(--line); margin-top:20px; }
+.rules summary { min-height:44px; padding:12px 0; cursor:pointer; }
+.rules p { color:var(--sub); margin:0 0 10px; font-size:calc(15px * var(--zoom)); line-height:1.45; }
+.rules b { color:var(--text); font-weight:500; }
+@media(max-width:480px) { .sheet-body { padding:16px; } .sheet-head { padding:8px 12px; } }
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; animation:none!important; } }
+@media(forced-colors:active) { :root { --ink:CanvasText; --text:CanvasText; --bg:Canvas; --line:GrayText; --guide:GrayText; --frame:CanvasText; --mark:CanvasText; --done:GrayText; --icon:ButtonText; } .board,.practice-cell,.possibility { forced-color-adjust:none; } .cursor,.hint { border-color:Highlight; } }
+
+/* Quiet rules beside locked clues, independent of completion and conflict ticks. */
+/* A locked line's numbers turn red. The lock used to be a short bar beside the
+ * clue, in the same spot as the cannot-fit tick. */
+.clue.locked, .clue.locked span, .clue.locked span.n-done { color: #d93036; }
+@media(forced-colors:active) { .clue.locked { outline: 1px solid CanvasText; outline-offset: -2px; } }
+/* The hint shows its answer inside the ring: a faint fill, or the empty dot. */
+.hint.fill::after, .hint.empty::after { content: ""; position: absolute; background: var(--ink); opacity: 0.38; }
+.hint.fill::after { inset: 22%; }
+.hint.empty::after { left: 50%; top: 50%; width: var(--dot); height: var(--dot); margin: calc(var(--dot) / -2) 0 0 calc(var(--dot) / -2); border-radius: 50%; opacity: 0.8; }
+
+#mode-btn[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+/* Controls, at a glance (Luke, 2026-10-06: "don't need much more text whatsoever"). */
+.controls { margin:16px 0 0; padding-top:12px; border-top:1px solid var(--line); display:grid; gap:6px; }
+.controls div { display:flex; flex-wrap:wrap; gap:0 8px; }
+.controls dt { color:var(--text); }
+.controls dt::after { content:" \2014"; color:var(--sub); }
+.controls dd { margin:0; color:var(--sub); }
+
+/* The possibility bars keep their space in every lesson, so the sheet never changes height. */
+#lesson-possibilities { display: grid !important; }
+#lesson-possibilities.is-off { visibility: hidden; }
+
+/* Lesson tasks reserve two lines, so a one-line task does not shrink the sheet. */
+#lesson-task { min-height: 2lh; }
+
+/* Holding a lesson square marks it; it must not start a text selection or callout. */
+#help { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+
+/* Double-tap zoom: touch-action is intersected across every ancestor, so
+   manipulation on the root stops double-tap zoom page-wide (readouts, gaps
+   between controls, sheet backdrops) while pinch zoom still works. */
+html, body { touch-action: manipulation; }

@@ -1,0 +1,134 @@
+@font-face{font-family:"Plex Mono";src:url("./fonts/IBMPlexMono-500.woff2") format("woff2");font-weight:500;font-display:swap}@font-face{font-family:"Plex Sans";src:url("./fonts/IBMPlexSans-400.woff2") format("woff2");font-weight:400;font-display:swap}
+:root{color-scheme:dark;--bg:#000;--ink:#fff;--text:#ededed;--sub:#a6a6a6;--line:#2f2f2f;--guide:#8f8f8f;--frame:#ededed;--band:rgba(255,255,255,.06);--scrim:rgba(0,0,0,.8);--lit:#333;--unlit:#000;--mono:"Plex Mono",monospace;--sans:"Plex Sans",sans-serif}
+*{box-sizing:border-box;border-radius:0}body{margin:0;height:100dvh;overflow:hidden;background:var(--bg);color:var(--text);font:16px/1.45 var(--sans);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}button,select,input{font:inherit;color:inherit}button{cursor:pointer}button:disabled{opacity:.35;cursor:default}button:focus-visible,select:focus-visible,.cell:focus-visible{outline:2px solid var(--ink);outline-offset:2px}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.readout{position:fixed;top:max(12px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);font:500 13px/1 var(--mono);letter-spacing:.02em;color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap}
+#board-shell{position:absolute;inset:38px 12px 88px;display:flex;overflow:auto;overscroll-behavior:contain;touch-action:none;padding:5px;scrollbar-width:thin}.board{display:flex;flex-direction:column;flex:none;margin:auto;user-select:none;touch-action:none;border:1px solid var(--ink)}.grid-row{display:flex;flex:none}.cell{width:var(--cell);height:var(--cell);flex:none;position:relative;display:grid;place-items:center;border-right:1px solid var(--guide);border-bottom:1px solid var(--guide);font:500 calc(var(--cell)*.42)/1 var(--mono);background:var(--unlit);color:var(--ink);touch-action:none}.grid-row:last-child .cell{border-bottom:0}.cell:last-child{border-right:0}.cell.wall{background:var(--ink);color:var(--bg);border-color:var(--bg)}.cell.lit{background:var(--lit)}.cell svg{width:70%;height:70%;stroke:currentColor;stroke-width:1.7;fill:none}.cell.excluded:before{content:'×';font:400 calc(var(--cell)*.54)/1 var(--sans)}.cell.conflict{background:repeating-linear-gradient(135deg,var(--lit) 0 4px,var(--guide) 4px 6px)}.cell.conflict:after{content:'';position:absolute;inset:2px;border:2px solid currentColor;border-radius:50%}.cell.rule-error{outline:2px dashed currentColor;outline-offset:-4px}.cell.evidence{outline:2px dashed currentColor;outline-offset:-3px}.cell.hint-target:after{content:'';position:absolute;inset:3px;border:3px solid currentColor;border-radius:50%;animation:pulse 650ms 2}.cell.inner-group{outline:4px double currentColor;outline-offset:-6px}.cell.hint-target{z-index:1}.cell:focus-visible{z-index:2;outline-offset:-3px}.board.solved{outline:2px solid var(--ink);outline-offset:5px}
+#feedback{position:fixed;bottom:64px;left:16px;right:16px;margin:0;text-align:center;color:var(--sub);font:14px/1.3 var(--sans);pointer-events:none}.toolbar{position:fixed;bottom:max(6px,env(safe-area-inset-bottom));left:8px;right:8px;display:flex;justify-content:space-between}.toolbar>div{display:flex}.ib{display:inline-grid;place-items:center;width:48px;height:48px;min-width:48px;min-height:48px;border:0;background:none;padding:12px;color:var(--ink);transition:opacity .15s,transform .1s}.ib svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.ib:active{transform:scale(.94)}.ib[aria-pressed=true]{outline:1px solid var(--ink);outline-offset:-7px}
+.sheet{width:min(32rem,calc(100vw - 16px));max-height:calc(100dvh - 16px);border:1px solid var(--frame);padding:0;background:var(--bg);color:var(--text)}.sheet[open]{display:flex;flex-direction:column}.sheet::backdrop{background:var(--scrim)}.sheet-head{display:flex;justify-content:space-between;align-items:center;padding:0 10px 0 24px;flex:none;border-bottom:1px solid var(--line)}h2{font:500 16px/1 var(--mono)}.sheet-head form{margin:0}.sheet-x{font:28px/1 var(--sans)}.sheet-body{padding:20px 24px;overflow:auto;min-height:0}.sheet-body p:first-child{margin-top:0}.sheet-body p{max-width:60ch}.row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;border-bottom:1px solid var(--line)}.row select{max-width:65%;min-height:44px;background:var(--bg);border:0;padding:4px 8px}.row button{min-height:44px;background:none;border:0;padding:8px}.row button:not(:disabled){text-decoration:underline;text-underline-offset:4px}.quiet{color:var(--sub);font:13px/1.4 var(--mono);overflow-wrap:anywhere;margin-top:8px}.sheet-foot{padding:12px 24px;border-top:1px solid var(--line);flex:none;color:var(--sub);font-size:14px}.sheet-foot a{color:inherit}.practice{--cell:48px;width:max-content;margin:12px auto}.practice-controls{display:flex;justify-content:center}.practice-controls .ib{padding:12px}#practice-feedback{min-height:1.45em}section{border-block:1px solid var(--line);padding-block:16px}
+@keyframes pulse{50%{opacity:.3}}
+@media(orientation:landscape) and (max-height:500px){#board-shell{inset:32px 72px 12px 12px}.toolbar{left:auto;right:8px;top:12px;bottom:12px;flex-direction:column;width:48px}.toolbar>div{flex-direction:column}#feedback{left:12px;right:72px;bottom:4px;background:var(--bg);font-size:12px}.readout{left:calc(50% - 32px)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}:root[data-motion=reduce] *,:root[data-motion=reduce] *::after{animation:none!important;transition:none!important}
+@media(forced-colors:active){.cell{forced-color-adjust:none;background:Canvas;color:CanvasText;border-color:CanvasText}.cell.wall{background:CanvasText;color:Canvas}.cell:not(.wall):not(.lit){background:repeating-linear-gradient(135deg,Canvas 0 5px,GrayText 5px 6px)}.cell.conflict{outline:3px dashed CanvasText;outline-offset:-4px}.cell.lit{background:Canvas}.sheet{border-color:CanvasText}}
+
+/* A completed board settles once; its next arrow appears beneath it. */
+.board-stage{flex:none;margin:auto;display:flex;flex-direction:column;align-items:center;gap:16px}.board-stage .board{margin:0}.completion{display:flex;justify-content:center}.completion[hidden]{display:none}.board.solved{outline:none;animation:solved-settle .65s cubic-bezier(.3,.7,.2,1)}
+@keyframes solved-settle{0%{transform:scale(1)}45%{transform:scale(.985)}100%{transform:scale(1)}}@keyframes next-reveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+.cell.excluded:before{transition:opacity .6s}.board.solved .cell.excluded:before{opacity:0}
+
+/* The outline describes the shape; dots describe its centre. */
+.board{position:relative;background:var(--bg);border:0;outline:1px solid var(--ink)}
+.cell{background:var(--bg);border-color:var(--line);color:var(--ink);transition:background .2s}
+.cell.owned{background:var(--band);border-right-color:var(--ink);border-bottom-color:var(--ink)}
+.cell.edge-l{box-shadow:inset 1px 0 var(--ink)}.cell.edge-t{border-top:1px solid var(--ink)}
+.cell.join-r{border-right-color:transparent}.cell.join-b{border-bottom-color:transparent}
+.cell.selected{background:color-mix(in srgb,var(--ink) 15%,var(--bg))}
+.cell.illegal{background:var(--bg)}
+.cell.conflict{background:var(--band)}.cell.conflict::after{border-radius:0;border:2px dashed var(--ink)}
+.cell.pair-preview::before{content:'';position:absolute;inset:7px;border:1px dotted var(--ink);background:var(--band);pointer-events:none}
+.working{opacity:0;pointer-events:none}.board.solved .cell{border-color:var(--ink)}.board.solved .cell.join-r{border-right-color:transparent}.board.solved .cell.join-b{border-bottom-color:transparent}
+.centre{position:absolute;transform:translate(-50%,-50%);width:var(--centre-target,24px);height:var(--centre-target,24px);min-width:24px;min-height:24px;padding:0;border:0;display:grid;place-items:center;background:none;z-index:4;touch-action:none}
+.centre::before{content:'';position:absolute;width:12px;height:12px;border:2px solid var(--ink);border-radius:50%;background:var(--bg);transition:background .18s,transform .18s}
+.centre span{display:none}.centre[aria-pressed=true]::before{background:var(--ink);transform:scale(1.25)}
+.centre.evidence::before{outline:2px dashed var(--ink);outline-offset:3px}.centre:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+.star-field{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;fill:var(--ink);overflow:hidden}
+.constellation{animation:orbit var(--orbit) linear infinite;transform-box:view-box}
+@keyframes orbit{to{transform:rotate(360deg)}}
+.page-hidden .constellation{animation-play-state:paused}
+.turn-example{width:144px;height:96px;position:relative;margin:22px auto 8px;display:grid;place-items:center}
+.example-shape{display:flex;outline:1px solid var(--ink);animation:half-turn 5s ease-in-out infinite}
+.example-shape i{display:block;width:42px;height:42px;background:var(--band);border-right:1px solid var(--line)}.example-shape i:last-child{border:0}
+.turn-example b{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--ink)}.example-caption{text-align:center;color:var(--sub);font-size:14px}
+@keyframes half-turn{0%,25%{transform:rotate(0)}70%,100%{transform:rotate(180deg)}}
+@media(prefers-reduced-motion:reduce){.constellation,.example-shape,.twinkle,.sky-cloud,.sky-turn,.board.solved .star-field{animation:none}.veil,.meteor{display:none}.sky-full{animation:none;opacity:1}.board.solved .centres,.board.solved .cell{transition:none}}
+:root[data-motion=reduce] .constellation,:root[data-motion=reduce] .example-shape,:root[data-motion=reduce] .twinkle,:root[data-motion=reduce] .sky-cloud,:root[data-motion=reduce] .sky-turn,:root[data-motion=reduce] .board.solved .star-field{animation:none}:root[data-motion=reduce] .veil,:root[data-motion=reduce] .meteor{display:none}:root[data-motion=reduce] .sky-full{animation:none;opacity:1}:root[data-motion=reduce] .board.solved .centres,:root[data-motion=reduce] .board.solved .cell{transition:none}
+.board-stage{display:flex;flex-direction:column;flex:none;margin:auto;align-items:center;gap:8px;padding:5px 5px 69px;position:relative;min-width:max-content}.completion{position:absolute;bottom:5px;height:48px;flex:none}.completion[hidden]{display:none}.completion .ib{animation:next-reveal .65s .25s both}.board.solved{animation:solved-settle .7s cubic-bezier(.3,.7,.2,1);outline:1px solid var(--ink);outline-offset:0}
+#board-shell{align-items:flex-start}.practice{--cell:64px;--centre-target:24px}.practice-controls .ib{padding:10px}.cell.hint-target:after{border-radius:0;pointer-events:none}.cell.evidence{outline-color:var(--ink)}
+#feedback{max-height:40px;overflow:hidden}#notice{font:14px/1.3 var(--sans);color:var(--sub);position:fixed;top:28px;left:12px;right:12px;text-align:center;pointer-events:none;margin:0}
+@media(max-width:350px){.sheet-body{padding:16px}.practice{--cell:60px}.practice-controls{gap:0}.row{gap:4px}.row select{max-width:65%}}
+@media(forced-colors:active){.cell{background:Canvas!important;color:CanvasText!important}.cell.selected{outline:1px dotted CanvasText;outline-offset:-5px}.centre::before{background:Canvas;border-color:CanvasText}.centre span{color:CanvasText}}
+#board-shell{inset:34px 12px 64px}
+@media(orientation:landscape) and (max-height:500px){#board-shell{inset:32px 72px 12px 12px}}
+.row input{width:10.5em;max-width:65%;min-height:44px;background:var(--bg);border:1px solid var(--line);padding:4px 8px}
+.matrix{display:flex;flex-direction:column}.centres{position:absolute;inset:0;pointer-events:none}.centre{pointer-events:auto}
+
+/* Compact lessons follow the same sheet hierarchy as Notan. */
+.sheet-head{padding:8px 16px;gap:12px}.sheet-head h2{margin:0;line-height:1.3}.sheet-x{width:44px;height:44px;min-width:44px;min-height:44px;padding:10px}.sheet-x svg{width:24px;height:24px}
+.sheet-body{overscroll-behavior:contain;scroll-padding:12px}.sheet-body p{margin:0 0 16px}.sheet-foot{font-size:14px}
+.lesson{border:0;padding:0;margin:20px 0}.lesson-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:8px}.lesson-heading h3{margin:0;font:500 16px/1.4 var(--mono)}#lesson-count{color:var(--sub);font-variant-numeric:tabular-nums}
+.practice-stage{display:flex;align-items:center;justify-content:center;min-height:168px;padding:12px 0}.practice-stage .practice{margin:0;filter:none}.practice-controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.text-action{min-height:44px;padding:8px 12px;border:1px solid var(--line);background:none;font:500 14px/1.3 var(--mono);color:var(--text)}.text-action[aria-pressed=true]{background:var(--ink);color:var(--bg)}.text-action:focus-visible,.sheet summary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.sheet-body #practice-feedback{min-height:24px;margin:8px 0;color:var(--sub);font-size:14px}.lesson-nav{display:flex;justify-content:space-between;gap:12px}.controls{border-top:1px solid var(--line);padding-top:16px}.controls p{margin:0 0 6px}.help-more{border-top:1px solid var(--line);margin-top:16px;padding-top:4px}.help-more summary{cursor:pointer;min-height:44px;padding:12px 0;color:var(--sub)}.help-more p{font-size:14px}.sheet-body .help-more p:last-child{margin-bottom:0}
+@media(max-width:480px){.sheet-head{padding:8px 12px}.sheet-body{padding:16px}}
+
+/* Restart occupies the same upper-left position across the puzzle family. */
+#restart-btn{position:fixed;top:max(0px,env(safe-area-inset-top));left:8px;color:var(--sub);z-index:2}#restart-btn:focus-visible{color:var(--ink)}@media (hover:hover) and (pointer:fine){#restart-btn:hover{color:var(--ink)}}
+
+/* Finished shapes uncover one galaxy that spans the board: a black floor and white stars in either theme. */
+.star-field{fill:#fff}
+.cell.balanced{background:#000;border-right-color:#fff;border-bottom-color:#fff}
+.cell.balanced.join-r{border-right-color:transparent}.cell.balanced.join-b{border-bottom-color:transparent}
+.cell.balanced.edge-l{box-shadow:inset 1px 0 #fff}.cell.balanced.edge-t{border-top-color:#fff}
+.centre.balanced::before{border-color:#fff;background:#000}
+.centre.balanced[aria-pressed=true]::before{background:#fff}
+.twinkle{animation:twinkle var(--tw,4s) ease-in-out infinite}
+@keyframes twinkle{50%{opacity:var(--lo,.2)}}
+/* A shape that has just balanced comes out of the dark square by square. */
+.veil{fill:#000;animation:veil .8s ease-out both}
+@keyframes veil{from{opacity:1}to{opacity:0}}
+/* The finished board is handed over as a picture: the diamonds fade, the lines soften, the sky brightens once. */
+.board.solved .centres{opacity:0;transition:opacity 1.1s ease .35s}
+.board.solved .centre{pointer-events:none}
+.board.solved .cell{border-color:rgb(255 255 255/.34);transition:border-color 1.1s ease .35s}
+.board.solved .star-field{animation:sky-open 1.6s ease-out}
+/* Then the frame dissolves: the same sky fades in over the whole screen, and one meteor crosses it. */
+.sky-full{position:fixed;inset:0;z-index:5;pointer-events:none;overflow:hidden;background:#000;opacity:0;animation:sky-rise 2.6s ease .5s forwards}
+.sky-cloud,.sky-turn{position:absolute;background-size:100% 100%;animation:orbit 300s linear infinite}
+.sky-turn{fill:#fff}.sky-turn .field{animation:none}
+.sky-still{position:absolute;inset:0;width:100%;height:100%}
+.page-hidden .sky-cloud,.page-hidden .sky-turn{animation-play-state:paused}
+.sky-full.settled{animation:none;opacity:1}
+@keyframes sky-rise{to{opacity:1}}
+.meteor{fill:none;stroke:#fff;stroke-width:.04;stroke-linecap:round;stroke-dasharray:2.2 20;stroke-dashoffset:2.2;opacity:0;animation:meteor 1.1s ease-in 3.4s both}
+.sky-full.settled .meteor{display:none}
+@keyframes meteor{0%{opacity:0;stroke-dashoffset:2.2}12%{opacity:.95}100%{opacity:0;stroke-dashoffset:-10}}
+.completion,.toolbar,.readout,#restart-btn,#milestone,#feedback,#notice{z-index:6}
+/* Outlines paint above every layer, so the board's own frame has to fade for the sky to take the screen. */
+:root:has(.sky-full) .board.solved{outline-color:transparent;transition:outline-color 1.6s ease .5s}
+@keyframes sky-open{from{filter:brightness(1.8)}to{filter:brightness(1)}}
+.page-hidden .twinkle{animation-play-state:paused}
+@media(forced-colors:active){.cell.balanced{background:Canvas;border-color:CanvasText}.centre.balanced::before{box-shadow:none;border-color:CanvasText;background:Canvas}.star-field{fill:CanvasText}.sky-full,.star-field .cloud{display:none}.star-field .haze{display:none}.star-field circle{fill:CanvasText}.star-field path{stroke:CanvasText}}
+
+/* Diamonds keep the precise rotational center, with a larger touch target. */
+.centre{width:48px;height:48px;min-width:48px;min-height:48px;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.centre::before{width:24px;height:24px;border-radius:0;transform:rotate(45deg);border:2px solid #fff;background:#000;box-shadow:0 0 0 3px #000}
+.centre[aria-pressed=true]::before,.centre.balanced[aria-pressed=true]::before{background:#fff;transform:rotate(45deg);box-shadow:0 0 0 3px #000}
+.centre::after{content:'';position:absolute;width:8px;height:8px;background:#fff;clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%);pointer-events:none}
+.centre[aria-pressed=true]::after{background:#000}
+.centre:focus-visible{outline:0}.centre:focus-visible::before{outline:2px solid #fff;outline-offset:4px}
+@media(forced-colors:active){.centre::before{border-color:CanvasText;background:Canvas;box-shadow:0 0 0 3px Canvas}.centre::after{background:CanvasText}.centre[aria-pressed=true]::before{background:CanvasText}.centre[aria-pressed=true]::after{background:Canvas}}
+
+.milestone{color:var(--sub);font:14px/1.3 var(--sans);text-align:center;margin:0;grid-row:2;grid-column:1/-1;justify-self:center;white-space:nowrap}.milestone:empty{display:none}.completion:not([hidden]):has(.milestone:not(:empty)){display:grid;grid-template-columns:repeat(2,48px);height:auto;row-gap:0}
+.board-stage:has(.board.solved):has(.milestone:not(:empty)){padding-bottom:87.2px}
+
+.completion{gap:12px}.completion .ib[hidden]{display:none}
+
+/* Double-tap zoom: touch-action is intersected across every ancestor, so
+   manipulation on the root stops double-tap zoom page-wide (readouts, gaps
+   between controls, sheet backdrops) while pinch zoom still works. */
+html, body { touch-action: manipulation; }
+/* Every galaxy keeps a drawn edge, above the sky, so two finished neighbours never read as one. The chosen galaxy's edge is heavier. */
+.outlines{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;fill:none;stroke-linecap:square}
+.outlines path{vector-effect:non-scaling-stroke}
+.outlines .under{stroke:#000;stroke-width:5px;opacity:.5}
+.outlines .rim{stroke:#fff;stroke-width:1.5px}
+.outlines .chosen{stroke-width:2.5px}
+.board.solved .outlines{opacity:0;transition:opacity 1.1s ease .35s}
+/* A square not yet joined to its diamond is a note, not a mistake: no dashes. */
+.cell.conflict.loose::after{display:none}
+/* A tap that needs a galaxy chosen makes the diamonds answer once. */
+.centres.nudge .centre:not(:disabled)::before{animation:nudge .45s ease}
+@keyframes nudge{50%{transform:rotate(45deg) scale(1.4)}}
+:root[data-motion=reduce] .centres.nudge .centre::before{animation:none}
+@media(prefers-reduced-motion:reduce){.centres.nudge .centre::before{animation:none}.board.solved .outlines{transition:none}}
+@media(forced-colors:active){.outlines .rim{stroke:CanvasText}.outlines .under{stroke:Canvas}}

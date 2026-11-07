@@ -1,0 +1,26 @@
+{
+  "id": "shoo",
+  "entry": "index.html",
+  "files": [
+    "THIRD_PARTY.md",
+    "boards.js",
+    "engine.js",
+    "favicon.svg",
+    "fonts/IBMPlexMono-500.woff2",
+    "fonts/IBMPlexSans-400.woff2",
+    "fonts/OFL.txt",
+    "gaze.js",
+    "index.html",
+    "payoff.js",
+    "shoo.css",
+    "shoo.js",
+    "track.js",
+    "controls.css",
+    "controls.js",
+    "access.js",
+    "bridge-client.js"
+  ],
+  "embeddedAssets": {
+    "track.js::../glance/vendor/vision_bundle.mjs": "MediaPipe loads from Glance's published folder beside this one (/games/glance/vendor/, the same origin) the first time the camera starts; Shoo ships no copy of it."
+  }
+}

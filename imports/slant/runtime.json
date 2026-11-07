@@ -1,0 +1,24 @@
+{
+  "id": "slant",
+  "entry": "index.html",
+  "files": [
+    "engine.js",
+    "favicon.svg",
+    "fonts/IBMPlexMono-500.woff2",
+    "fonts/IBMPlexSans-400.woff2",
+    "fonts/OFL.txt",
+    "index.html",
+    "levels.js",
+    "og.png",
+    "paint-input.js",
+    "regions.js",
+    "score-clock.js",
+    "scores.js",
+    "slant.css",
+    "slant.js",
+    "controls.css",
+    "controls.js",
+    "access.js",
+    "bridge-client.js"
+  ]
+}

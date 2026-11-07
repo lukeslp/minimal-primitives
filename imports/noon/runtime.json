@@ -1,0 +1,19 @@
+{
+  "id": "noon",
+  "entry": "index.html",
+  "files": [
+    "boards.js",
+    "engine.js",
+    "favicon.svg",
+    "fonts/IBMPlexMono-500.woff2",
+    "fonts/IBMPlexSans-400.woff2",
+    "fonts/OFL.txt",
+    "index.html",
+    "noon.css",
+    "noon.js",
+    "controls.css",
+    "controls.js",
+    "access.js",
+    "bridge-client.js"
+  ]
+}

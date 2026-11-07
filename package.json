@@ -1,0 +1,11 @@
+{
+  "name": "minimal-primitives",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Small browser games by Luke Steuber",
+  "scripts": {
+    "import": "python3 tools/import-games.py",
+    "build": "python3 tools/build.py",
+    "test": "node --test --test-concurrency=1 tests/*.test.cjs tests/parity-state.cjs tests/parity-shell.cjs tests/parity-modes.cjs && node tests/scores-compat.cjs && python3 -m unittest discover -s tests -p test_*.py && node tests/real-score-browser.cjs"
+  }
+}

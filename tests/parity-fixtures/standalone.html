@@ -1,0 +1,5 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Standalone comparison fixture</title>
+<style>:root{color-scheme:dark;background:#111}*{box-sizing:border-box}body{margin:0}#player{position:fixed;inset:0}iframe{width:100%;height:100%;border:0;display:block;background:#000}</style>
+<section id="player"><iframe title="Unmodified standalone game"></iframe></section>
+<script>const params=new URLSearchParams(location.search);document.querySelector('iframe').src=(params.get('kind')==='generated'?'/export/games/':'/games/')+params.get('entry');document.querySelector('iframe').addEventListener('load',()=>document.querySelector('iframe').contentWindow.focus());</script>

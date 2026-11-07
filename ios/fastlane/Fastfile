@@ -1,0 +1,75 @@
+# Minimal Primitives for iPhone and iPad on TestFlight. From ios/: scripts/testflight.sh BUILD_NUMBER
+# Auth: the App Store Connect API key in ~/.appstoreconnect/api_key.json (key_id, issuer_id, key_filepath),
+# the same key LocalType uses. By Luke Steuber.
+default_platform(:ios)
+
+TEAM = "596T7J7FB6"
+BUNDLE = "com.oneimpossiblethingatatime.minimalprimitives"
+PROFILE = "Minimal Primitives App Store"
+
+def connect
+  require "json"
+  cfg = JSON.parse(File.read(File.expand_path("~/.appstoreconnect/api_key.json")))
+  Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.create(
+    key_id: cfg["key_id"], issuer_id: cfg["issuer_id"], filepath: File.expand_path(cfg["key_filepath"]))
+  cfg
+end
+
+platform :ios do
+  desc "Report whether the App ID and the App Store Connect app record exist"
+  lane :status do
+    connect
+    bundle = Spaceship::ConnectAPI::BundleId.find(BUNDLE)
+    app = Spaceship::ConnectAPI::App.find(BUNDLE)
+    UI.message("App ID #{BUNDLE}: #{bundle ? 'exists' : 'missing'}")
+    UI.message("App Store Connect record: #{app ? "#{app.name} (#{app.id})" : 'missing'}")
+  end
+
+  desc "Register the App ID (the API can do this; the App Store Connect record is made on the web)"
+  lane :app_id do
+    connect
+    if Spaceship::ConnectAPI::BundleId.find(BUNDLE)
+      UI.success("App ID #{BUNDLE} already exists")
+    else
+      Spaceship::ConnectAPI::BundleId.create(name: "Minimal Primitives", identifier: BUNDLE, platform: "IOS")
+      UI.success("Registered App ID #{BUNDLE}")
+    end
+  end
+
+  desc "Recreate the App Store profile with every distribution certificate, and install it"
+  lane :profiles do
+    require "base64"
+    require "fileutils"
+    connect
+    certificates = Spaceship::ConnectAPI::Certificate.all(filter: { certificateType: "DISTRIBUTION" })
+    installed = File.expand_path("~/Library/Developer/Xcode/UserData/Provisioning Profiles")
+    FileUtils.mkdir_p(installed)
+    bundle = Spaceship::ConnectAPI::BundleId.find(BUNDLE) || UI.user_error!("Run fastlane app_id first")
+    Spaceship::ConnectAPI::Profile.all(filter: { name: PROFILE }).each(&:delete!)
+    profile = Spaceship::ConnectAPI::Profile.create(name: PROFILE, profile_type: "IOS_APP_STORE",
+                                                    bundle_id_id: bundle.id, certificate_ids: certificates.map(&:id))
+    File.binwrite(File.join(installed, "#{profile.uuid}.mobileprovision"), Base64.decode64(profile.profile_content))
+    UI.success("#{PROFILE}: #{certificates.count} distribution certificates")
+  end
+
+  desc "Archive and sign an App Store build: build:N. Needs the login keychain (the GUI session)"
+  lane :archive do |options|
+    build = options[:build].to_s
+    UI.user_error!("Pass build:N, higher than the last upload") if build.empty?
+    build_app(project: "MinimalPrimitives.xcodeproj", scheme: "MinimalPrimitives", configuration: "Release", clean: true,
+              output_directory: "build", output_name: "MinimalPrimitives.ipa", archive_path: "build/MinimalPrimitives.xcarchive",
+              derived_data_path: "build/DerivedData-release",
+              xcargs: "CURRENT_PROJECT_VERSION=#{build} CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution' PROVISIONING_PROFILE_SPECIFIER='#{PROFILE}'",
+              export_method: "app-store",
+              export_options: { provisioningProfiles: { BUNDLE => PROFILE }, teamID: TEAM, uploadSymbols: true })
+  end
+
+  desc "Upload build/MinimalPrimitives.ipa to TestFlight for internal testers"
+  lane :upload do
+    cfg = connect
+    key = app_store_connect_api_key(key_id: cfg["key_id"], issuer_id: cfg["issuer_id"],
+                                    key_filepath: File.expand_path(cfg["key_filepath"]), in_house: false)
+    upload_to_testflight(api_key: key, ipa: "build/MinimalPrimitives.ipa",
+                         skip_waiting_for_build_processing: true, distribute_external: false)
+  end
+end
