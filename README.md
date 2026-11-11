@@ -77,4 +77,7 @@ Open `http://127.0.0.1:5010/`. Both listeners bind loopback.
 ## License
 
 MIT, see [LICENSE](LICENSE). Third-party parts keep their own terms, listed in
-the `NOTICES.txt` of every build.
+the `NOTICES.txt` of every build (see `tools/build.py`): MediaPipe Face Landmarker
+(Apache License 2.0, full build only), Earth and Moon textures by Solar System
+Scope (CC BY 4.0), IBM Plex fonts (SIL Open Font License 1.1), and Hexsweeper
+Sphere geometry inspired by Rob Scanlon's hexasphere.js (MIT).
