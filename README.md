@@ -5,8 +5,8 @@
 [![F-Droid repository](https://img.shields.io/badge/F--Droid-LocalType_releases_repo-1976D2?style=flat-square)](https://dr.eamer.dev/downloads/fdroid/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
-Small puzzle games by Luke Steuber, collected into one offline package for the
-browser and Android.
+Small puzzle games, collected into one offline package for the browser and
+Android.
 
 ## The games
 

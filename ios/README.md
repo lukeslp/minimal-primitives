@@ -1,6 +1,6 @@
 # Minimal Primitives for iOS
 
-By Luke Steuber. A small native shell that plays the Minimal Primitives
+A small native shell that plays the Minimal Primitives
 collection exactly as the browser build makes it, like the Android app. Not
 published anywhere; the first build goes to TestFlight only, once approved.
 

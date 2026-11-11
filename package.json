@@ -2,7 +2,7 @@
   "name": "minimal-primitives",
   "version": "0.1.0",
   "private": true,
-  "description": "Small browser games by Luke Steuber",
+  "description": "Small offline puzzle games for the browser and Android",
   "scripts": {
     "import": "python3 tools/import-games.py",
     "build": "python3 tools/build.py",
