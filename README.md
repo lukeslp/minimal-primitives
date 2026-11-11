@@ -1,5 +1,6 @@
 # Minimal Primitives
 
+[![itch.io](https://img.shields.io/badge/itch.io-game_page-FA5C5C?style=flat-square)](https://lukesteuber.itch.io/minimal-primitives)
 [![Android download](https://img.shields.io/badge/Android-direct_download-34A853?style=flat-square)](https://dr.eamer.dev/downloads/apps/minimal-primitives/)
 [![F-Droid repository](https://img.shields.io/badge/F--Droid-LocalType_releases_repo-1976D2?style=flat-square)](https://dr.eamer.dev/downloads/fdroid/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
