@@ -1,0 +1,1 @@
+Notan colors its solved picture and lifts it away; Fold turns to colored paper when solved. Still no camera input and no camera permission in this build.

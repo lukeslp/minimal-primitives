@@ -1,0 +1,14 @@
+{
+  "script": "app.js",
+  "engine": "engine.js",
+  "policy": "time-v1",
+  "hooks": [
+    ["function undo(){cancel();", "function undo(){window.MinimalAdapter?.undo();cancel();"],
+    ["render();save();say('Undone.');", "render();save();window.MinimalAdapter?.committed();say('Undone.');"],
+    ["function restart(){cancel();", "function restart(){window.MinimalAdapter?.restart();cancel();"],
+    ["render();save();say('Board restarted.", "render();save();window.MinimalAdapter?.committed();say('Board restarted."],
+    ["function hintPress(){\n  cancel();", "function hintPress(){\n  window.MinimalAdapter?.assist();cancel();"],
+    ["  render();save();\n }\n // A route crossing a thread", "  render();save();window.MinimalAdapter?.committed();\n }\n // A route crossing a thread"]
+  ],
+  "append": false
+}

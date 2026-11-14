@@ -19,7 +19,7 @@
     } catch (error) { bridge.emit('error', { request, message: error.message }); }
   });
   function collectionControls() {
-    const restart = document.querySelector('#qc-reset') || document.querySelector('#restart-btn, #restart, #reset-btn, #control-restart') || document.querySelector('#undo-btn');
+    const restart = document.querySelector('#qc-reset') || document.querySelector('#restart-btn, #restart, #reset-btn, #control-restart') || document.querySelector('#undo-btn') || document.querySelector('#new-btn');
     if (!restart) throw new Error('Collection Home anchor is missing.');
     document.querySelectorAll('.web-games-back[data-minimal-library], .app-back[data-minimal-library]').forEach(node=>node.remove());
     const home = document.createElement('button');

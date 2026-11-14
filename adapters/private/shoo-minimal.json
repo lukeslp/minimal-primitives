@@ -1,0 +1,12 @@
+{
+  "script": "shoo.js",
+  "engine": "engine.js",
+  "policy": "hits-v1",
+  "hooks": [
+    ["    save();\n    const hops =", "    save();\n    window.MinimalAdapter?.committed();\n    const hops ="],
+    ["    } else if (action.type === 'hint') {\n      if (solved()) return;", "    } else if (action.type === 'hint') {\n      if (solved()) return;\n      window.MinimalAdapter?.assist();"],
+    ["    } else if (action.type === 'undo') {\n      const previous = history.pop();\n      if (previous) { reset(previous); rest(); save();", "    } else if (action.type === 'undo') {\n      window.MinimalAdapter?.undo();\n      const previous = history.pop();\n      if (previous) { reset(previous); rest(); save(); window.MinimalAdapter?.committed();"],
+    ["      if (bees === E.start(board) && hits === 0) return;\n      history.push({ bees, homes: homes.slice(), hits });\n      reset({ bees: E.start(board), homes: hivesOf(board).map(() => 0), hits: 0 }); rest(); save();", "      if (bees === E.start(board) && hits === 0) return;\n      window.MinimalAdapter?.restart();\n      history.push({ bees, homes: homes.slice(), hits });\n      reset({ bees: E.start(board), homes: hivesOf(board).map(() => 0), hits: 0 }); rest(); save(); window.MinimalAdapter?.committed();"]
+  ],
+  "append": false
+}

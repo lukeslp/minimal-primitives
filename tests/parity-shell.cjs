@@ -12,7 +12,7 @@ for(const [size,viewport] of Object.entries({narrow:{width:320,height:568},phone
   assert.equal(await page.locator('iframe').count(),1,'only selected game runs');
   await frame.locator('#minimal-home').focus();await page.keyboard.press('Enter');
   await page.waitForFunction(()=>!document.querySelector('iframe'));
-  assert.equal(await page.locator('#tiles .tile').count(),12);
+  assert.equal(await page.locator('#tiles .tile').count(),h.mainTiles);
   assert.equal(await page.locator('#access-tiles .tile').count(),8,'the motor-accessible puzzles wait behind the last tile');
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'library has no horizontal overflow');
   const footer=await page.locator('#library footer').evaluate(el=>{const link=el.querySelector('a').getBoundingClientRect(),button=el.querySelector('button').getBoundingClientRect();return{linkCenter:link.x+link.width/2,width:innerWidth,overlap:link.right>button.left,buttons:el.querySelectorAll('button').length};});

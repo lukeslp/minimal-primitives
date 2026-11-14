@@ -1,0 +1,1 @@
+puzzle,logic,minimalist,offline,nonogram,mines,hexagon,bridges,slant,tents,towers,switch,accessible

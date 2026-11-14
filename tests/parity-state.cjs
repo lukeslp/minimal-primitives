@@ -10,7 +10,9 @@ for(const game of games)test(`${game.id}: other boards and earned access survive
   const ctx=await h.context(await getBrowser(),viewport);t.after(()=>ctx.close());
   const {page,frame}=await h.shell(ctx,game),id=game.id;
   await a.campaign(frame,id);
-  if(['fold','bending','tilt','horologist'].includes(id)) {
+  const own=a.override(id);
+  if(own.nextBoard) await own.nextBoard(frame,{tick:a.tick,keyMove:a.keyMove,solve:a.solve,settings:a.settings});
+  else if(['fold','bending','tilt','horologist'].includes(id)) {
     await a.solve(frame,id);
     await frame.locator(id==='bending'?'#next':'#next-btn').click();await a.tick(page,1200);
   } else if(id==='notan') {
@@ -26,7 +28,8 @@ for(const game of games)test(`${game.id}: other boards and earned access survive
   await a.keyMove(frame,id);await a.hint(frame,id);
   const state=await h.snapshot(frame);
   assert(a.history(state,id).length>0,'second board has real history');
-  if(id==='notan')assert(Object.keys(state.save.boards).length>=2,'two unfinished boards');
+  if(own.otherBoards)own.otherBoards(state,assert);
+  else if(id==='notan')assert(Object.keys(state.save.boards).length>=2,'two unfinished boards');
   else if(['akari','galaxies','bridges','slant','fold'].includes(id))assert(Object.keys(state.store.boards).length>=2,'other board save present');
   else if(id==='bending'){assert(state.record.stages[0].solved);assert(state.record.available>=2);assert.equal(state.record.board,1);}
   else {assert(state.reached>=1);assert((state.done||state.completed).length>=1);}

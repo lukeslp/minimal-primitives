@@ -19,6 +19,7 @@
     "controls.css",
     "controls.js",
     "access.js",
-    "bridge-client.js"
+    "bridge-client.js",
+    "privacy.html"
   ]
 }

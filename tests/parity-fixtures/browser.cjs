@@ -10,6 +10,8 @@ const EVIDENCE = process.env.MINIMAL_PARITY_EVIDENCE || '/Users/luke/craft/repor
 const ORIGIN = 'https://lukesteuber.com';
 // The motor-accessible puzzles have no resume or score adapter; package.test.cjs opens each one.
 const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'sources.json'))).games.filter(g => g.id !== 'hexsweeper' && g.group !== 'accessible');
+// Main-grid tiles: one per game, one per Hexsweeper mode, none for the accessible group.
+const mainTiles = JSON.parse(fs.readFileSync(path.join(ROOT, 'sources.json'))).games.filter(g => g.group !== 'accessible').reduce((n, g) => n + (g.modes ? g.modes.length : 1), 0);
 const mime = {'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.woff2':'font/woff2','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml','.jpg':'image/jpeg'};
 // The same reference change, or the source already carrying it upstream.
 function adopt(source,anchor,next,label){
@@ -101,7 +103,7 @@ async function context(browser, viewport, {scheme='dark', motion='reduce', stora
   return ctx;
 }
 async function ready(frame, generated=false) {
-  await frame.waitForFunction(g=>document.readyState==='complete'&&document.querySelector('#board,#well')&&(!g||window.MinimalAdapter),generated);
+  await frame.waitForFunction(g=>document.readyState==='complete'&&document.querySelector('#board,#well,#scene')&&(!g||window.MinimalAdapter),generated);
   await frame.evaluate(()=>document.fonts.ready);
 }
 async function restored(frame) {
@@ -117,7 +119,7 @@ async function shell(ctx,game) {
   await page.clock.setFixedTime(new Date('2026-10-14T12:00:00Z'));
   await page.goto(ORIGIN+'/export/index.html');
   await page.mouse.move(-1,-1);
-  await page.locator('.tile').filter({hasText:game.title}).focus();
+  await page.locator(`.tile[data-game="${game.id}"]`).focus();
   await page.keyboard.press('Enter');
   await page.waitForSelector('#player iframe');
   const frame=await (await page.locator('#player iframe').elementHandle()).contentFrame();
@@ -164,16 +166,23 @@ async function pixels(pageA,pageB,clipB,label) {
   let maskA=[],maskB=[];
   if(home&&await home.count()){
     const rect=await home.evaluate(el=>{const r=el.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height};});
-    await pageA.evaluate(r=>{const marker=document.createElement('div');marker.id='parity-home-region';Object.assign(marker.style,{position:'fixed',left:r.x+'px',top:r.y+'px',width:r.width+'px',height:r.height+'px',pointerEvents:'none'});document.body.append(marker);},rect);
-    maskA=[pageA.locator('#parity-home-region')];maskB=[home];
+    // The marker sits in the standalone page, over the game frame: an element
+    // added inside the game document would recomposite its layers (Tilt · 3D).
+    await pageA.page().evaluate(r=>{const marker=document.createElement('div');marker.id='parity-home-region';Object.assign(marker.style,{position:'fixed',left:r.x+'px',top:r.y+'px',width:r.width+'px',height:r.height+'px',pointerEvents:'none'});document.body.append(marker);},{...rect,x:rect.x+clipA.x,y:rect.y+clipA.y});
+    maskA=[pageA.page().locator('#parity-home-region')];maskB=[home];
   }
+  // The collection's Home button is not game drawing. Its region is masked, and it is
+  // hidden while the shots are taken: over a full-screen SVG (Tents' solved forest)
+  // its layer shifts anti-aliasing on nearby edges outside the masked box.
+  const hidden=home&&await home.count()?await home.evaluate(el=>{const was=el.style.visibility;el.style.visibility='hidden';return was;}):null;
   const a=await pageA.page().screenshot({clip:clipA,mask:maskA,animations:'disabled',path:path.join(EVIDENCE,label+'-standalone.png')}), b=await pageB.screenshot({clip:clipB,mask:maskB,animations:'disabled',path:path.join(EVIDENCE,label+'-generated.png')});
   const delta=await pageA.evaluate(async ([a,b])=>{
     const read=async s=>{const img=new Image();img.src='data:image/png;base64,'+s;await img.decode();const c=document.createElement('canvas');c.width=img.width;c.height=img.height;const x=c.getContext('2d');x.drawImage(img,0,0);return {w:c.width,h:c.height,data:x.getImageData(0,0,c.width,c.height).data};};
     const x=await read(a),y=await read(b);if(x.w!==y.w||x.h!==y.h)return {dimensions:[[x.w,x.h],[y.w,y.h]]};
     let changed=0,max=0;for(let i=0;i<x.data.length;i+=4){let d=0;for(let j=0;j<4;j++)d=Math.max(d,Math.abs(x.data[i+j]-y.data[i+j]));if(d)changed++;max=Math.max(d,max);}return {changed,max,total:x.w*x.h};
   },[a.toString('base64'),b.toString('base64')]);
-  await pageA.locator('#parity-home-region').evaluateAll(nodes=>nodes.forEach(n=>n.remove()));
+  if(hidden!==null)await home.evaluate((el,was)=>{el.style.visibility=was;},hidden);
+  await pageA.page().locator('#parity-home-region').evaluateAll(nodes=>nodes.forEach(n=>n.remove()));
   fs.writeFileSync(path.join(EVIDENCE,label+'-pixels.json'),JSON.stringify(delta));
   assert.ok(delta.changed===0 || delta.max<=1,`${label}: pixel difference ${JSON.stringify(delta)}`);
 }
@@ -192,4 +201,4 @@ function sameSnapshot(actual,expected,message) {
   }
   assert.deepEqual(actual,expected,message);
 }
-module.exports={sameSnapshot,ROOT,EVIDENCE,ORIGIN,games,launch,context,ready,restored,shell,standalone,snapshot,surface,layout,pixels,verifyImports};
+module.exports={mainTiles,sameSnapshot,ROOT,EVIDENCE,ORIGIN,games,launch,context,ready,restored,shell,standalone,snapshot,surface,layout,pixels,verifyImports};

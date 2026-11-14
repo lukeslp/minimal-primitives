@@ -1,0 +1,114 @@
+/* Constellations. Luke Steuber. White ink on a black night while playing; color and a starfield only at the solve. */
+@font-face{font-family:Plex;src:url(fonts/IBMPlexSans-400.woff2);font-display:swap}
+@font-face{font-family:Mono;src:url(fonts/IBMPlexMono-500.woff2);font-display:swap}
+/* Always night, whatever the system theme. */
+:root{color-scheme:dark;--bg:#000;--ink:#fff;--text:#ededed;--sub:#a6a6a6;--route:#6b6b6b;--line:#2f2f2f;--guide:#8f8f8f;--frame:#ededed;--band:rgba(255,255,255,.06);--scrim:rgba(0,0,0,.8);font-family:Plex,system-ui,sans-serif;background:#000}
+
+*{box-sizing:border-box;border-radius:0}
+html,body{touch-action:manipulation}
+body{margin:0;overflow:hidden;height:100dvh;background:var(--bg);color:var(--text);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation}
+button:disabled{opacity:.35;cursor:default}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+[hidden]{display:none!important}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;padding:0;margin:0}
+
+.icon{display:grid;place-items:center;width:48px;height:48px;min-width:48px;min-height:48px;border:0;padding:12px;background:none;color:var(--ink)}
+.icon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.icon:active:not(:disabled){transform:scale(.94)}
+.restart{position:fixed;top:max(0px,env(safe-area-inset-top));left:max(8px,env(safe-area-inset-left));color:var(--sub);z-index:5}
+@media(hover:hover) and (pointer:fine){.restart:hover{color:var(--ink)}}
+#readout{position:fixed;top:max(2px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);height:44px;padding:0 8px;border:0;background:none;color:var(--sub);font:500 13px/1 Mono,monospace;letter-spacing:.02em;font-variant-numeric:tabular-nums;white-space:nowrap;z-index:5}
+
+/* The constellation's name, only once its figure is complete, under the readout. */
+.sky-name{position:fixed;top:max(40px,calc(env(safe-area-inset-top) + 38px));left:50%;transform:translateX(-50%);margin:0;color:var(--text);font:15px/1.2 Plex,system-ui,sans-serif;letter-spacing:.02em;white-space:nowrap;z-index:5;pointer-events:none}
+#stage{position:fixed;inset:max(64px,env(safe-area-inset-top)) 4px max(116px,env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:center}
+#board{position:relative;flex:none;touch-action:pinch-zoom;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#threads{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:1}
+#stars{position:absolute;inset:0;pointer-events:none}
+
+/* Threads: one ink line per thread, two parallel lines for a double. A group whose every star has its
+   need is drawn in full ink; unfinished groups are gray. */
+.thread{fill:none;stroke:var(--sub);stroke-width:var(--thread,2px);stroke-linecap:round;transition:stroke .3s ease}
+.thread.complete{stroke:var(--ink)}
+.thread.crossing{stroke-dasharray:5 4}
+.thread.pending{stroke:var(--ink);stroke-dasharray:4 4;transition:none}
+.thread.pending.removing{stroke:var(--sub);stroke-dasharray:1 5}
+.thread.hint-line{stroke:var(--ink);stroke-dasharray:7 5;transition:none}
+.lock-mark{fill:none;stroke:var(--sub);stroke-width:var(--thread,2px);stroke-linecap:round;transition:stroke .3s ease}
+.lock-mark.complete{stroke:var(--ink)}
+.cross-mark{fill:none;stroke:var(--ink);stroke-width:2px;stroke-linecap:round}
+
+/* Routes: every route a star can take is a dotted line from the start, with a handle at its middle that shows
+   the count by shape: an open ring for none, one dot, or two dots across the doubled line. A route crossing a
+   thread is blocked: its handle is a small cross and its dots break where the thread passes. */
+.route{fill:none;stroke:var(--route);stroke-width:var(--dot,1.6px);stroke-linecap:round;stroke-dasharray:0 var(--dash,6px)}
+.route.lit{stroke:var(--sub)}
+.route.blocked{opacity:.55}
+.handle{stroke-width:1.5px;stroke-linecap:round}
+.handle.open{fill:var(--bg);stroke:var(--sub)}
+.handle.open.lit{stroke:var(--ink)}
+.handle.one,.handle.two{fill:var(--sub);stroke:none;transition:fill .3s ease}
+.handle.complete{fill:var(--ink)}
+.handle.blocked{fill:none;stroke:var(--route)}
+
+/* A star: a solid disc and one tick for every thread it still needs. Marks around it are shapes:
+   a tight ring for too many threads, a wide ring when chosen, dashed for a hint, a square for keyboard focus. */
+.star{position:absolute;width:var(--target);height:var(--target);margin:calc(var(--target)/-2) 0 0 calc(var(--target)/-2);border:0;padding:0;background:none;pointer-events:auto;z-index:2;touch-action:pinch-zoom;color:var(--ink)}
+.star:focus-visible{outline:none}
+.star svg{width:100%;height:100%;overflow:visible;display:block}
+.star .disc{fill:var(--ink)}
+.star .tick{stroke:var(--ink);stroke-width:var(--tick,1.75px);stroke-linecap:round}
+.star .tick.spent{display:none}
+.star .over-ring,.star .state-ring,.star .focus-mark{fill:none;stroke:var(--ink);display:none}
+.star .over-ring{stroke-width:1.5px}
+.star.overfull .over-ring{display:inline}
+.star .state-ring{stroke-width:2px}
+.star.selected .state-ring{display:inline}
+.star.hint-target .state-ring{display:inline;stroke-dasharray:6 4}
+.star.refused .state-ring{display:inline;stroke-dasharray:2 3}
+.star .focus-mark{stroke-width:2px}
+:root[data-input=keys] .star:focus .focus-mark{display:inline}
+
+/* The solve: each constellation takes one solve color on its stars and threads, in turn. */
+#board.solved .star{pointer-events:none}
+#board.solved .state-ring,#board.solved .over-ring,#board.solved .focus-mark{display:none}
+#board.solved .disc{fill:var(--c,var(--ink));transition:fill .7s ease var(--d,0ms)}
+#board.solved .thread,#board.solved .lock-mark{stroke:var(--c,var(--ink));transition:stroke .7s ease var(--d,0ms)}
+/* The starfield is one canvas behind the board, drawn and revealed by starfield.js. */
+#field{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;display:block}
+
+.toolbar{position:fixed;left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right));bottom:max(6px,env(safe-area-inset-bottom));display:flex;justify-content:space-between;z-index:5;pointer-events:none}
+.toolbar>div{display:flex;pointer-events:auto}
+#completion{position:fixed;left:50%;transform:translateX(-50%);bottom:max(62px,calc(env(safe-area-inset-bottom) + 62px));width:48px;height:48px;z-index:5}
+
+dialog{background:var(--bg);color:var(--text);border:1px solid var(--frame);padding:0;width:min(440px,calc(100vw - 20px));max-height:calc(100dvh - 20px);overflow:auto}
+dialog::backdrop{background:var(--scrim)}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;padding:8px 8px 8px 24px;border-bottom:1px solid var(--line)}
+.sheet-head h2{font:500 16px Mono,monospace;margin:0}.sheet-head form{margin:0}
+.sheet-body{padding:20px 24px}.sheet-body p{font-size:1rem;line-height:1.5}.sheet-body h3{font:500 14px Mono,monospace;margin:0 0 16px}
+.setting{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:56px;border-bottom:1px solid var(--line)}
+.setting select{max-width:60%;min-height:44px;font:inherit;background:var(--bg);color:inherit;border:0;padding:8px}
+dialog footer{padding:14px 24px;border-top:1px solid var(--line);font-size:14px;color:var(--sub)}
+#boards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:20px}
+#boards button{min-height:88px;min-width:44px;position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;border:1px solid var(--line);padding:18px 4px 8px;background:none}
+#boards button[aria-current=true]{border-color:var(--ink);outline:1px solid var(--ink);outline-offset:2px}
+#boards svg{width:100%;height:44px;flex:none;fill:var(--ink)}
+#boards span{font:12px/1.25 Mono,monospace;color:var(--sub);text-align:center}
+/* A solved board's name, in the page's text face so longer names wrap between words inside the tile. */
+#boards span.named{font:12px/1.2 Plex,system-ui,sans-serif;color:var(--text);max-width:100%;overflow-wrap:break-word}
+#boards .check{position:absolute;right:3px;top:2px;width:14px;height:14px;stroke:var(--ink);fill:none;stroke-width:1.5}
+
+:root[data-motion=still] *,:root[data-motion=still] *::before,:root[data-motion=still] *::after,.page-hidden *{animation:none!important;transition:none!important}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+@media(max-height:520px) and (min-width:560px){#stage{inset:58px 132px 8px 8px}.toolbar{left:auto;right:max(8px,env(safe-area-inset-right));top:8px;bottom:max(8px,env(safe-area-inset-bottom));flex-direction:column}.toolbar>div{flex-direction:column}#completion{top:50%;bottom:auto;left:auto;right:76px;transform:translateY(-50%)}}
+@media (pointer:coarse){input,select,textarea{font-size:max(16px,1em)!important}}
+@media(forced-colors:active){
+ :root{--bg:Canvas;--ink:CanvasText;--text:CanvasText;--sub:CanvasText;--line:GrayText;--guide:GrayText;--route:GrayText;--frame:CanvasText}
+ .star svg,#threads{forced-color-adjust:none}
+ #field{display:none}
+ #board.solved .disc{fill:CanvasText}
+ #board.solved .thread,#board.solved .lock-mark{stroke:CanvasText}
+ :root[data-input=keys] .star:focus .focus-mark{stroke:Highlight}
+}

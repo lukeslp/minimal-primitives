@@ -1,0 +1,314 @@
+{
+ "schema": 1,
+ "about": "Interaction primitives per game; see docs/interaction-primitives.md.",
+ "vocabulary": {
+  "groups": {
+   "position": [
+    "push",
+    "pull",
+    "slide",
+    "lift",
+    "lower",
+    "drop",
+    "stack",
+    "step",
+    "repel"
+   ],
+   "orientation": [
+    "tilt",
+    "turn",
+    "spin",
+    "flip"
+   ],
+   "shape": [
+    "fold",
+    "squeeze"
+   ],
+   "relation": [
+    "connect",
+    "separate",
+    "divide",
+    "place"
+   ],
+   "contact": [
+    "grasp",
+    "release",
+    "press",
+    "strike"
+   ],
+   "configuration": [
+    "toggle",
+    "uncover",
+    "mark"
+   ],
+   "targeting": [
+    "point",
+    "follow",
+    "trace",
+    "scan",
+    "select"
+   ],
+   "timing": [
+    "wait",
+    "press on time"
+   ]
+  },
+  "line": [
+   "push",
+   "pull",
+   "lift",
+   "release",
+   "tilt",
+   "turn",
+   "fold",
+   "connect",
+   "toggle",
+   "point"
+  ],
+  "adjacent": [
+   "twist",
+   "pour",
+   "swing",
+   "roll",
+   "pinch",
+   "stretch",
+   "latch",
+   "snap",
+   "throw",
+   "catch",
+   "open",
+   "close",
+   "wind"
+  ]
+ },
+ "games": {
+  "hexsweeper": {
+   "primitives": [
+    "uncover",
+    "mark"
+   ],
+   "exercises": [
+    "target acquisition"
+   ]
+  },
+  "notan": {
+   "primitives": [
+    "toggle"
+   ],
+   "exercises": [
+    "target acquisition"
+   ]
+  },
+  "akari": {
+   "primitives": [
+    "place",
+    "toggle"
+   ],
+   "exercises": [
+    "target acquisition"
+   ]
+  },
+  "galaxies": {
+   "primitives": [
+    "divide"
+   ],
+   "exercises": [
+    "target acquisition"
+   ]
+  },
+  "bridges": {
+   "primitives": [
+    "connect"
+   ],
+   "exercises": [
+    "target acquisition",
+    "directional control"
+   ]
+  },
+  "slant": {
+   "primitives": [
+    "flip"
+   ],
+   "exercises": [
+    "target acquisition"
+   ]
+  },
+  "fold": {
+   "primitives": [
+    "fold"
+   ],
+   "exercises": [
+    "directional control"
+   ]
+  },
+  "bending": {
+   "primitives": [
+    "place",
+    "push"
+   ],
+   "exercises": [
+    "target acquisition"
+   ]
+  },
+  "tilt": {
+   "primitives": [
+    "tilt",
+    "drop"
+   ],
+   "exercises": [
+    "directional control"
+   ]
+  },
+  "horologist": {
+   "primitives": [
+    "place",
+    "spin"
+   ],
+   "exercises": [
+    "target acquisition"
+   ]
+  },
+  "towers": {
+   "primitives": [
+    "lift",
+    "stack"
+   ],
+   "exercises": [
+    "target acquisition"
+   ]
+  },
+  "tents": {
+   "primitives": [
+    "place"
+   ],
+   "exercises": [
+    "target acquisition"
+   ]
+  },
+  "constellations": {
+   "primitives": [
+    "connect"
+   ],
+   "exercises": [
+    "target acquisition",
+    "directional control"
+   ]
+  },
+  "shoo-minimal": {
+   "primitives": [
+    "repel"
+   ],
+   "exercises": [
+    "target acquisition"
+   ]
+  },
+  "balance": {
+   "primitives": [
+    "toggle"
+   ],
+   "exercises": [
+    "target acquisition"
+   ]
+  },
+  "cast": {
+   "primitives": [
+    "lift",
+    "drop",
+    "stack"
+   ],
+   "exercises": [
+    "target acquisition"
+   ]
+  },
+  "tilt-3d": {
+   "primitives": [
+    "tilt",
+    "drop"
+   ],
+   "exercises": [
+    "directional control"
+   ]
+  },
+  "delve": {
+   "primitives": [
+    "step",
+    "strike",
+    "wait"
+   ],
+   "exercises": [
+    "directional control",
+    "inhibition and pacing"
+   ]
+  },
+  "glance": {
+   "primitives": [
+    "flip",
+    "select"
+   ],
+   "exercises": [
+    "target acquisition",
+    "dwell"
+   ]
+  },
+  "glyph": {
+   "primitives": [
+    "trace"
+   ],
+   "exercises": [
+    "path control"
+   ]
+  },
+  "pursuit": {
+   "primitives": [
+    "follow"
+   ],
+   "exercises": [
+    "smooth pursuit"
+   ]
+  },
+  "shoo": {
+   "primitives": [
+    "repel"
+   ],
+   "exercises": [
+    "target acquisition",
+    "dwell"
+   ]
+  },
+  "nod": {
+   "primitives": [
+    "tilt",
+    "drop"
+   ],
+   "exercises": [
+    "directional control"
+   ]
+  },
+  "noon": {
+   "primitives": [
+    "toggle",
+    "press on time"
+   ],
+   "exercises": [
+    "switch timing"
+   ]
+  },
+  "sweep": {
+   "primitives": [
+    "scan",
+    "select"
+   ],
+   "exercises": [
+    "switch scanning"
+   ]
+  },
+  "ticker": {
+   "primitives": [
+    "press on time"
+   ],
+   "exercises": [
+    "switch timing"
+   ]
+  }
+ }
+}

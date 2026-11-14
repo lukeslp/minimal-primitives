@@ -1,0 +1,21 @@
+<!doctype html>
+<!-- Cast. By Luke Steuber. -->
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff"><meta name="description" content="Stack cubes until three shadows match.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src ws://127.0.0.1:47913 'self' https://stats.dr.eamer.dev; img-src 'self' data: https://stats.dr.eamer.dev; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval' https://stats.dr.eamer.dev; font-src 'self'; object-src 'none'; base-uri 'none'">
+<title>Cast</title><link rel="icon" href="./favicon.svg"><link rel="stylesheet" href="./cast.css?v=6b75a5e0">
+<link rel="stylesheet" href="./controls.css?v=4568a846">
+<script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
+</head>
+<body>
+<header><h1 class="sr-only">Cast</h1><button id="restart-btn" class="ib" aria-label="Restart board"></button><div id="readout" class="readout"></div></header>
+<main id="board-shell"><div id="stage"><svg id="board" role="group" tabindex="0" aria-label="Cube stacks"></svg><div id="completion"><button id="next-btn" class="ib" aria-label="Next board" hidden></button></div></div></main>
+<p id="announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+<nav class="toolbar" aria-label="Game controls"><div><button id="undo-btn" class="ib" aria-label="Undo"></button><button id="hint-btn" class="ib" aria-label="Hint"></button></div><div><button id="settings-btn" class="ib" aria-label="Settings"></button><button id="help-btn" class="ib" aria-label="Help"></button></div></nav>
+<dialog id="settings" class="sheet" aria-labelledby="settings-title"><div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body"><label class="row">Board <select id="board-select"></select></label><label class="row">Motion <select id="motion"><option value="system">System</option><option value="reduce">Reduced</option></select></label></div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">Luke Steuber</a></footer></dialog>
+<dialog id="help" class="sheet" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">How to play</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body"><p>Drag cubes from the tray onto the floor until every shadow fills its outline.</p><p>Drag a stacked cube to move it, or off the floor to put it back.</p><p>Tap or Enter adds; wheel up adds and down returns; arrows choose or carry, Space lifts or drops, Escape cancels, Shift–Enter returns, Z/U/Backspace undoes, and H marks then places a hint.</p></div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">Luke Steuber</a></footer></dialog>
+<script src="./engine.js?v=2f384d71"></script><script src="./boards.js?v=7c792835"></script><script src="./cast.js?v=9236c3eb"></script>
+<script defer src="./controls.js?v=6fd9cb07"></script>
+</body></html>

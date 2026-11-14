@@ -1,0 +1,19 @@
+{
+  "id": "cast",
+  "entry": "index.html",
+  "files": [
+    "boards.js",
+    "cast.css",
+    "cast.js",
+    "controls.css",
+    "controls.js",
+    "engine.js",
+    "favicon.svg",
+    "fonts/IBMPlexMono-500.woff2",
+    "fonts/IBMPlexSans-400.woff2",
+    "fonts/OFL.txt",
+    "index.html",
+    "access.js",
+    "bridge-client.js"
+  ]
+}

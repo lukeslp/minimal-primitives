@@ -37,6 +37,8 @@ final class CollectionSchemeHandler: NSObject, WKURLSchemeHandler {
 
 final class CollectionViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
     private var webView: WKWebView!
+    // iPhone Duo: the fold and hinge reach the collection and every game frame (DuoBridge.swift, duo-fold.js).
+    private var duo: DuoBridge!
 
     override var prefersStatusBarHidden: Bool { true }
     override var prefersHomeIndicatorAutoHidden: Bool { true }
@@ -48,6 +50,7 @@ final class CollectionViewController: UIViewController, WKNavigationDelegate, WK
         config.mediaTypesRequiringUserActionForPlayback = .all
         config.websiteDataStore = .default()
         config.preferences.javaScriptCanOpenWindowsAutomatically = false
+        duo = DuoBridge(configuration: config)
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
         webView.uiDelegate = self
@@ -59,7 +62,28 @@ final class CollectionViewController: UIViewController, WKNavigationDelegate, WK
         if #available(iOS 16.4, *) { webView.isInspectable = true }
         #endif
         view = webView
+        duo.attach(to: webView)
     }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        #if DEBUG
+        // Checks only, for a simulator that cannot fold: -MPDuoSimulate book|laptop reports a
+        // made-up fold (a 24 pt band across the middle) so the layouts can be photographed.
+        if let pose = UserDefaults.standard.string(forKey: "MPDuoSimulate") { duo.simulated = Self.simulatedFold(pose, in: view.bounds.size) }
+        #endif
+        duo.refresh()
+    }
+
+    #if DEBUG
+    private static func simulatedFold(_ pose: String, in size: CGSize) -> [String: Any] {
+        let band = 24.0, w = Double(size.width), h = Double(size.height)
+        let fold: [String: Double] = pose == "laptop"
+            ? ["x": 0, "y": (h - band) / 2, "width": w, "height": band]
+            : ["x": (w - band) / 2, "y": 0, "width": band, "height": h]
+        return ["hinge": true, "status": "partially-open", "angle": 110.0, "fold": fold, "reserved": fold]
+    }
+    #endif
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -91,7 +115,28 @@ final class CollectionViewController: UIViewController, WKNavigationDelegate, WK
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        duo.resend()
         #if DEBUG
+        // Checks only: -MPDuoProbe <game id> opens that game and logs the fold state the game frame sees.
+        if let game = UserDefaults.standard.string(forKey: "MPDuoProbe"), webView.url?.path == "/index.html" {
+            let probe = """
+            const wait = ms => new Promise(r => setTimeout(r, ms));
+            for (let i = 0; i < 40 && !document.querySelector('.tile[data-game="' + game + '"]'); i++) await wait(250);
+            document.querySelector('.tile[data-game="' + game + '"]')?.click();
+            await wait(3000);
+            const f = document.querySelector('#player iframe'), w = f?.contentWindow, d = f?.contentDocument;
+            const attrs = el => el ? Object.fromEntries([...el.attributes].filter(a => a.name.startsWith('data-duo') || a.name === 'style').map(a => [a.name, a.value])) : null;
+            return JSON.stringify({ top: attrs(document.documentElement), player: document.getElementById('player').dataset.duo || null,
+              frame: f && f.getBoundingClientRect().toJSON(), child: attrs(d?.documentElement), childShim: !!w?.DuoFold && w.DuoFold.document === d,
+              proxies: [...document.querySelectorAll('#duo-pane .duo-proxy')].map(b => b.getAttribute('aria-label')), size: [innerWidth, innerHeight] });
+            """
+            webView.callAsyncJavaScript(probe, arguments: ["game": game], in: nil, in: .page) { result in
+                let text = (try? result.get() as? String) ?? "nil"
+                let out = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("duo-probe.json")
+                try? text.write(to: out, atomically: true, encoding: .utf8)
+                NSLog("MinimalPrimitives duo probe: %@", text)
+            }
+        }
         // Checks only: run with -MPProbe YES (and -MPProbeCamera YES to try the camera).
         guard UserDefaults.standard.bool(forKey: "MPProbe") else { return }
         let camera = UserDefaults.standard.bool(forKey: "MPProbeCamera")

@@ -1,6 +1,6 @@
 # Native Scores compatibility handoff
 
-Luke Steuber. This fixture uses generated pinned Bridges/Slant pages under
+This fixture uses generated pinned Bridges/Slant pages under
 `/preview/anthology/`, a separate fixture parent, and an in-memory loopback HTTP
 stub. It never contacts the original boards or any external host. Run
 `node tests/scores-compat.cjs`; it uses the supplied Playwright/Chrome paths,

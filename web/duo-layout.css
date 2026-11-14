@@ -1,0 +1,41 @@
+/* iPhone Duo. The app's fold bridge sets data-duo-* and --duo-fold-* on <html>;
+   no other device or browser gets them, so nothing here applies elsewhere.
+   Grids use an even number of columns, nothing you tap sits in the fold, and every
+   pose keeps every feature. By Luke Steuber. */
+
+/* Home: four columns on the open inner display, folded or flat, so the first fold
+   doesn't reflow the grid (the fold is reported before it is active). */
+html[data-duo-axis="vertical"] #tiles{grid-template-columns:repeat(4,minmax(0,1fr))}
+:where(html[data-duo-axis="vertical"] #tiles) .tile:nth-child(n){--invert:0;--paper:#fff;--ink:#111}
+:where(html[data-duo-axis="vertical"] #tiles) .tile:is(:nth-child(8n+2),:nth-child(8n+4),:nth-child(8n+5),:nth-child(8n+7)){--invert:1;--paper:#000;--ink:#fff}
+
+/* Folded like a book: the two middle columns part at the fold. */
+html[data-duo-pose="book"] :is(#tiles,#access-tiles){
+  grid-template-columns:repeat(2,minmax(0,calc(var(--duo-fold-left) / 2))) var(--duo-fold-width) repeat(2,minmax(0,1fr));
+}
+html[data-duo-pose="book"] :is(#tiles,#access-tiles)>.tile:nth-child(4n+3){grid-column-start:4}
+html[data-duo-pose="book"] .access{width:var(--duo-fold-left);height:calc(var(--duo-fold-left) / 2)}
+html[data-duo-pose="book"] #library footer{grid-template-columns:minmax(0,1fr) var(--duo-fold-width) minmax(0,1fr)}
+html[data-duo-pose="book"] #library footer::before{display:none}
+html[data-duo-pose="book"] #library footer a{grid-column:1}
+html[data-duo-pose="book"] #library footer button{grid-column:3;justify-self:end}
+
+/* A game: book pose plays it on the trailing side with its name on the other;
+   laptop pose plays it above the fold with its toolbar below, on the stable half. */
+#duo-pane{display:none}
+#player[data-duo]{background:var(--duo-bg,#111)}
+#player[data-duo]~#duo-pane{display:flex;position:fixed;z-index:1;background:var(--duo-bg,#111);color:var(--duo-ink,#eee)}
+#player[data-duo="book"] iframe{position:absolute;top:0;left:var(--duo-fold-right);width:calc(100% - var(--duo-fold-right));height:100%}
+#player[data-duo="book"]~#duo-pane{top:0;bottom:0;left:0;width:var(--duo-fold-left);align-items:center;justify-content:center;padding:24px}
+#player[data-duo^="laptop"] iframe{height:var(--duo-fold-top)}
+#player[data-duo^="laptop"]~#duo-pane{left:0;right:0;top:var(--duo-fold-bottom);bottom:0;align-items:center;justify-content:center;padding:0 max(8px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(8px,env(safe-area-inset-left))}
+#duo-pane .duo-title{margin:0;font-size:15px;font-weight:400;letter-spacing:.02em;opacity:.7;text-align:center}
+#player[data-duo="laptop-controls"]~#duo-pane .duo-title{display:none}
+#duo-pane [role="toolbar"]{display:flex;justify-content:space-between;align-items:center;width:100%}
+#duo-pane .duo-group{display:flex;align-items:center}
+#duo-pane .duo-proxy{display:inline-grid;place-items:center;width:56px;height:56px;min-height:0;padding:14px;border:0;border-radius:0;background:transparent;color:inherit}
+#duo-pane .duo-proxy svg{width:28px;height:28px;stroke-width:1.6}
+#duo-pane .duo-proxy:active:not(:disabled),#duo-pane .duo-proxy[aria-pressed="true"],#duo-pane .duo-proxy.is-armed{background:color-mix(in srgb,currentColor 14%,transparent)}
+#duo-pane .duo-proxy:disabled{opacity:.35;cursor:default}
+#duo-pane .duo-proxy:focus-visible{outline:2px solid currentColor;outline-offset:-4px}
+@media(hover:hover) and (pointer:fine){#duo-pane .duo-proxy:hover:not(:disabled){background:color-mix(in srgb,currentColor 10%,transparent)}}

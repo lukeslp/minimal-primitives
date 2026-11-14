@@ -29,8 +29,8 @@ try {
   if ([100, 115, 130, 150].includes(appearance.zoom)) document.documentElement.style.setProperty('--zoom', appearance.zoom / 100);
 } catch (_) { /* Defaults also work when storage is unavailable. */ }
 </script>
-<link rel="stylesheet" href="./notan.css?v=5832eaee">
-<link rel="stylesheet" href="./controls.css?v=2e033f1e">
+<link rel="stylesheet" href="./notan.css?v=ee8a9e01">
+<link rel="stylesheet" href="./controls.css?v=4568a846">
 </head>
 <body>
 <main id="app">
@@ -136,15 +136,15 @@ try {
 <section aria-labelledby="reset-title"><h3 id="reset-title">Reset</h3><div class="practice-tools"><button type="button" class="text-action" id="reset-level">Reset puzzle</button><button type="button" class="text-action" id="reset-all" aria-haspopup="dialog">Erase progress…</button></div></section>
 </div></div></dialog>
 
-<dialog class="sheet" id="reset-confirm" aria-labelledby="reset-confirm-title"><div class="sheet-in"><header class="sheet-head"><h2 id="reset-confirm-title">Erase progress?</h2><form method="dialog"><button class="sheet-x" aria-label="Close" autofocus><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></header><div class="sheet-body"><p>Erase this Preview’s saved progress and start at level 1? Production progress is kept.</p><div class="practice-tools"><form method="dialog"><button class="text-action">Cancel</button></form><button type="button" class="text-action" id="confirm-reset">Erase progress</button></div></div></div></dialog>
+<dialog class="sheet" id="reset-confirm" aria-labelledby="reset-confirm-title"><div class="sheet-in"><header class="sheet-head"><h2 id="reset-confirm-title">Erase progress?</h2><form method="dialog"><button class="sheet-x" aria-label="Close" autofocus><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></header><div class="sheet-body"><p>Erase your saved progress and start at level 1?</p><div class="practice-tools"><form method="dialog"><button class="text-action">Cancel</button></form><button type="button" class="text-action" id="confirm-reset">Erase progress</button></div></div></div></dialog>
 
 <script src="./engine.js?v=61f57d3c"></script>
 <script src="./levels.js?v=4e9118b8"></script>
 <script src="./plus-levels.js?v=4f48e40f"></script>
 <script src="./paint-input.js?v=5bb412f7"></script>
-<script src="./notan.js?v=547ddbbc"></script>
+<script src="./notan.js?v=7c04a1c6"></script>
 <script src="./practice.js?v=292120d0"></script>
 <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
-<script defer src="./controls.js?v=b8507b4c"></script>
+<script defer src="./controls.js?v=ad59802b"></script>
 </body>
 </html>

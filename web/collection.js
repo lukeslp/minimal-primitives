@@ -202,7 +202,7 @@
     try {
       const category=$('score-category').value;
       const query = new URLSearchParams({ ...attempt.identity, category });
-      const data=category==='local'?{entries:results.filter(r=>Object.keys(attempt.identity).every(k=>r.identity?.[k]===attempt.identity[k])).reverse().map((r,n)=>({rank:n+1,nickname:r.practice?'Practice':r.assisted?'Assisted':'Unassisted',value:['hits-v1','moves-v1','folds-v1','cleared-v1'].includes(r.identity.scoringPolicy)?r.value:Math.round(r.elapsedMs/1000)+'s'}))}:await api('boards?' + query);
+      const data=category==='local'?{entries:results.filter(r=>Object.keys(attempt.identity).every(k=>r.identity?.[k]===attempt.identity[k])).reverse().map((r,n)=>({rank:n+1,nickname:r.practice?'Practice':r.assisted?'Assisted':'Unassisted',value:['hits-v1','moves-v1','folds-v1','cleared-v1','depth-v1'].includes(r.identity.scoringPolicy)?r.value:Math.round(r.elapsedMs/1000)+'s'}))}:await api('boards?' + query);
       for (const item of data.entries) { const row = document.createElement('div'); row.className = 'score-row'; for (const value of [item.rank, item.nickname, item.value]) { const span = document.createElement('span'); span.textContent = value; row.append(span); } $('score-list').append(row); }
       if (!data.entries.length) $('score-context').textContent += category==='local'?' · No results yet.':' · No shared scores yet.';
     } catch (error) { $('score-context').textContent = error.message; }

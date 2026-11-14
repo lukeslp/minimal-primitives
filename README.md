@@ -13,7 +13,8 @@ Android.
 The library has one artwork tile per game, with a tile for each Hexsweeper mode:
 
 - Hexsweeper (Sphere, Classic, Infinite), Notan, Akari, Spiral Galaxies,
-  Bridges, Slant, Fold, Bending, Tilt and Horologist.
+  Bridges, Slant, Fold, Bending, Tilt, Horologist, Towers, Tents,
+  Constellations, Shoo · Minimal, Balance, Cast, Tilt · 3D and Delve.
 - A motor-accessible set: Glance, Glyph, Pursuit, Shoo and Nod, which can be
   played with head or eye pointing through the front camera, and Noon, Sweep
   and Ticker, which are played with one switch.
@@ -31,21 +32,21 @@ sentence, which `npm test` checks against that list.
 | Full | `python3 tools/build.py` | `build/html`, `build/minimal-primitives-browser.zip` | Browser, desktop, direct-download Android app |
 | Camera-free | `python3 tools/build.py --variant fdroid` (`--no-zip` for Android) | `build/html-fdroid`, `build/minimal-primitives-fdroid.zip` | F-Droid |
 
-The full build adds camera input to the 18 games: head and eye pointing through
+The full build adds camera input to the 26 games: head and eye pointing through
 MediaPipe Face Landmarker, which runs in the page, and frames never leave the
 device. The camera-free build is defined in `variants.json`. It leaves out
 MediaPipe and the camera and eye-tracker inputs and keeps every game and every
 switch, touch, keyboard and pointer mode. `tools/camera_recipe.py` makes those
-changes at build time. The default build is byte-for-byte unchanged by the
-variant.
+changes at build time, and the variant leaves the default build byte-for-byte
+unchanged.
 
 ## Access
 
 Most games' settings include Access (Hexsweeper Sphere has none): one-switch
-scanning, and Look and hold,
-which selects whatever the pointer rests on. With a pointer that can be a finger,
-a mouse or a head mouse. The full build adds head and eye pointing through the
-front camera, and an eye tracker through a local gaze bridge.
+scanning, and Look and hold, which selects whatever the pointer rests on. The
+pointer can be a finger, a mouse or a head mouse. The full build adds head and
+eye pointing through the front camera, and an eye tracker through a local gaze
+bridge.
 
 ## Android
 

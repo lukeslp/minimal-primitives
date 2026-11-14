@@ -8,7 +8,7 @@ async function tapAt(f,selector,index=0) {
   const r=await f.locator(selector).nth(index).boundingBox();assert(r,'touch target has geometry');
   await pageOf(f).touchscreen.tap(r.x+r.width/2,r.y+r.height/2);
 }
-async function settings(f,id,fn) {
+async function base_settings(f,id,fn) {
   await f.locator(id==='bending'?'#settings-button':'#settings-btn').click();
   await fn();
   const dialog=f.locator('#settings');
@@ -17,13 +17,13 @@ async function settings(f,id,fn) {
   // before the next keyboard gesture chooses its own board target.
   await tick(pageOf(f));
 }
-async function campaign(f,id) {
+async function base_campaign(f,id) {
   if(['akari','galaxies','bridges','slant','fold'].includes(id))await settings(f,id,async()=>{
     const first=await f.locator('#campaign option').first().getAttribute('value');
     await f.locator('#campaign').selectOption(first);
   });
 }
-async function preferences(f,id) {
+async function base_preferences(f,id) {
   await settings(f,id,async()=>{
     if(id==='notan')await f.locator('#theme-btn').click();
     else if(id==='bending'){await f.locator('#motion').click();}
@@ -38,7 +38,7 @@ async function preferences(f,id) {
     }
   });
 }
-async function locks(f,id) {
+async function base_locks(f,id) {
   if(id==='notan'){await f.locator('#board .cell').first().focus();await pageOf(f).keyboard.press('l');}
   if(id==='slant'){
     await f.locator('#board .cell').first().focus();await pageOf(f).keyboard.press('l');
@@ -49,7 +49,7 @@ async function locks(f,id) {
     await pageOf(f).keyboard.press('ArrowRight');await pageOf(f).keyboard.press('l');
   }
 }
-async function keyMove(f,id) {
+async function base_keyMove(f,id) {
   if(id==='bending') { await f.locator('.planet-button').first().focus();await pageOf(f).keyboard.press('Enter'); }
   else if(id==='tilt') { await f.locator('#board').focus();await pageOf(f).keyboard.press('ArrowRight'); }
   else if(id==='horologist') { await f.locator('.piece-target[data-hole]').first().focus();await pageOf(f).keyboard.press('Enter'); }
@@ -69,7 +69,7 @@ async function keyMove(f,id) {
   }
   await tick(pageOf(f),800);
 }
-async function touch(f,id) {
+async function base_touch(f,id) {
   if(id==='tilt'||id==='fold') {
     const r=await f.locator('#board').boundingBox(),page=pageOf(f);
     const cdp=await page.context().newCDPSession(page);
@@ -83,11 +83,11 @@ async function touch(f,id) {
   else await tapAt(f,'#board .cell');
   await tick(pageOf(f),800);
 }
-async function hint(f,id) {await f.locator(id==='bending'?'#hint':'#hint-btn').click();await tick(pageOf(f));}
-async function undo(f,id) {await f.locator(id==='bending'?'#undo':'#undo-btn').click();await tick(pageOf(f),800);}
-function history(s,id) {return id==='horologist'?s.model.history:id==='tilt'?s.undoStack:id==='bending'?s.history:s.state.undo;}
-function position(s,id) {return id==='horologist'?s.model.placed:id==='tilt'?s.place:id==='bending'?s.record.stages[s.record.board].planets:id==='fold'?s.state.path:s.state.cells;}
-async function solve(f,id) {
+async function base_hint(f,id) {await f.locator(id==='bending'?'#hint':'#hint-btn').click();await tick(pageOf(f));}
+async function base_undo(f,id) {await f.locator(id==='bending'?'#undo':'#undo-btn').click();await tick(pageOf(f),800);}
+function base_history(s,id) {return id==='horologist'?s.model.history:id==='tilt'?s.undoStack:id==='bending'?s.history:s.state.undo;}
+function base_position(s,id) {return id==='horologist'?s.model.placed:id==='tilt'?s.place:id==='bending'?s.record.stages[s.record.board].planets:id==='fold'?s.state.path:s.state.cells;}
+async function base_solve(f,id) {
   if(id==='notan') {
     // First original board is a solid 2x2. Use real keyboard actions.
     for(let i=0;i<4;i++){await f.locator('#board .cell').nth(i).focus();await pageOf(f).keyboard.press('Enter');}
@@ -124,4 +124,17 @@ async function solve(f,id) {
   const next=f.locator(id==='bending'?'#next':'#next-btn');
   assert(await next.isVisible(),`${id}: original controls did not complete first board`);
 }
-module.exports={tick,settings,campaign,preferences,locks,keyMove,touch,hint,undo,history,position,solve,tapAt};
+// Games added after the first twelve keep their own steps in games/<id>.cjs:
+// any of the names above, each called as fn(frame, helpers) (history and
+// position as fn(state)), plus storageKey, nextBoard, otherBoards and skip.
+const fs=require('node:fs'),path=require('node:path');
+const overrides={};
+for(const file of fs.readdirSync(path.join(__dirname,'games')).filter(f=>f.endsWith('.cjs')))overrides[file.slice(0,-4)]=require('./games/'+file);
+const override=id=>overrides[id]||{};
+const helpers={tick,tapAt,pageOf,get settings(){return settings;},get keyMove(){return keyMove;},get hint(){return hint;},assert};
+const bases={settings:base_settings,campaign:base_campaign,preferences:base_preferences,locks:base_locks,keyMove:base_keyMove,touch:base_touch,hint:base_hint,undo:base_undo,solve:base_solve};
+const dispatch=name=>{const base=bases[name];return(f,id,...rest)=>{const own=override(id)[name];return own?own(f,helpers,...rest):base(f,id,...rest);};};
+const settings=dispatch('settings'),campaign=dispatch('campaign'),preferences=dispatch('preferences'),locks=dispatch('locks'),keyMove=dispatch('keyMove'),touch=dispatch('touch'),hint=dispatch('hint'),undo=dispatch('undo'),solve=dispatch('solve');
+const history=(s,id)=>override(id).history?override(id).history(s):base_history(s,id);
+const position=(s,id)=>override(id).position?override(id).position(s):base_position(s,id);
+module.exports={tick,settings,campaign,preferences,locks,keyMove,touch,hint,undo,history,position,solve,tapAt,override};
