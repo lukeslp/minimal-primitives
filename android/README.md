@@ -70,8 +70,8 @@ set. The id `com.oneimpossiblethingatatime.minimalprimitives` is permanent
 as a different app. The Kotlin namespace (`minimalprimitives.android`) is
 independent of it. `VERSION_NAME`/`VERSION_CODE` are the full flavor's version
 and `FDROID_VERSION_NAME`/`FDROID_VERSION_CODE` the fdroid flavor's (0.4.0, code
-8, the first camera-free release). Every new code must be higher than every code
-already issued to either flavor. Minimum Android 8.0 (API 26), target API 36.
+8, was the first camera-free release; 0.5.0, code 11, added eight games). Every
+new code must be higher than every code already issued to either flavor. Minimum Android 8.0 (API 26), target API 36.
 Version code 1 was the debug-signed test build.
 
 ## Build
@@ -90,8 +90,8 @@ python3 tools/android.py --fdroid --release # camera-free release APK, unsigned
 ```
 
 The APK is copied to `build/android/minimal-primitives-<version>-<code>-debug.apk`
-(or `-release.apk`), and its size and SHA-256 are printed. To build from Android Studio or with Gradle
-directly, run `python3 tools/build.py` (and `--variant fdroid` for the fdroid
+(or `-release.apk`), and its size and SHA-256 are printed. To build from
+Android Studio or with Gradle directly, run `python3 tools/build.py` (and `--variant fdroid` for the fdroid
 flavor) first; the Gradle build stops with a message if its folder is missing.
 
 ## Install
@@ -124,7 +124,7 @@ bytes, SHA-256
   each open and take a move. All twelve tiles open a game that shows its Home
   control.
 - Home and the Back key both return to the library, and the game shows
-  "Resume" on its tile afterwards. Back closes the scores dialog first, and from
+  "Resume" on its tile afterward. Back closes the scores dialog first, and from
   the library it leaves the app.
 - After a force stop and relaunch, Tilt reopens with its move in place and Undo
   takes it back.
@@ -149,8 +149,8 @@ keyboard (sharing is local in this build).
 The release identity belongs to the `minimal-primitives` profile of
 `android-release-toolkit`, created once on October 16, 2026. The private
 keystore stays in the toolkit's user-only folder on the release machine and its
-password in the login Keychain; neither is ever printed or committed. The certificate is RSA 4096,
-SHA-256 fingerprint
+password in the login Keychain; neither is ever printed or committed. The
+certificate is RSA 4096, SHA-256 fingerprint
 `E2:40:10:45:47:E5:C7:71:F6:B1:C8:0E:BC:63:CC:1E:47:2D:A2:40:93:40:7A:1D:44:9B:40:74:D4:D3:E5:F3`.
 Every future update must be signed with this same key.
 

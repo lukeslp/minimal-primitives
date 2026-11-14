@@ -4,6 +4,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = {'akari': 'akari.js', 'galaxies': 'galaxies.js', 'bridges': 'bridges.js', 'slant': 'slant.js', 'fold': 'fold.js', 'horologist': 'plate.js', 'tilt': 'tilt-levels.js', 'notan': 'notan.js', 'bending': 'dark.mjs'}
+# Games added later describe their adapter in adapters/private/<id>.json:
+# {"script": main file, "engine": file whose hash is the rules version,
+#  "policy": scoring policy, "hooks": [[anchor, replacement], ...]}
+# and keep the install call in adapters/private/<id>.js beside it.
+CONFIGS = {path.stem: json.loads(path.read_text()) for path in sorted((ROOT / 'adapters/private').glob('*.json'))}
+SCRIPTS.update({ident: config['script'] for ident, config in CONFIGS.items()})
 FIELDS = {'akari': ['w','h','cells'], 'galaxies': ['w','h','centres'], 'bridges': ['w','h','islands'], 'slant': ['w','h','clues'], 'fold': ['w','h','pairs'], 'horologist': ['W','H','drive','clocks','pillars','tray'], 'tilt': ['levels'], 'bending': ['size','answer','lights','planets','beams','receivers']}
 
 
@@ -23,9 +29,9 @@ def inject(game, path, text):
         text=hook(text,"route:circuitMode?(a,b)=>root._circuits.open(edgeIndex(p(),a,b)):null","get route(){return circuitMode?(a,b)=>root._circuits.open(edgeIndex(p(),a,b)):null;}",path)
         help_anchor=next(line for line in text.splitlines() if line.startswith("if(circuitMode){$('#help .controls').innerHTML="))
         text=hook(text,help_anchor,"const __minimalClassicHelp=$('#help .controls').innerHTML;function __minimalCircuitHelp(){"+help_anchor+"else{$('#help .controls').innerHTML=__minimalClassicHelp;}}__minimalCircuitHelp();",path)
-    engine = 'well.mjs' if ident == 'bending' else 'engine.js'
+    engine = 'well.mjs' if ident == 'bending' else CONFIGS.get(ident, {}).get('engine', 'engine.js')
     rules = next(f['sha256'][:16] for f in game['files'] if f['path'] == ident + '/' + engine)
-    policy = {'horologist':'hits-v1','tilt':'moves-v1','fold':'folds-v1'}.get(ident, 'time-v1')
+    policy = {'horologist':'hits-v1','tilt':'moves-v1','fold':'folds-v1'}.get(ident) or CONFIGS.get(ident, {}).get('policy', 'time-v1')
     layout = 'Object.fromEntries(' + json.dumps(FIELDS.get(ident, [])).replace(' ', '') + '.filter(k=>p[k]!==undefined).map(k=>[k,p[k]]))'
     if ident in {'akari','galaxies','bridges','slant','fold'}:
         mode = "(prefs.mode==='Hard'?'hard':'standard')" if ident == 'slant' else "(circuitMode?'circuits':'classic')" if ident == 'bridges' else "'campaign'"
@@ -65,6 +71,8 @@ def inject(game, path, text):
         addon=f"\n{"let __minimalAkariPractice;" if ident=="akari" and not alternate else ""}\nconst __minimal=MinimalBridge.install({{rulesVersion:'{rules}',scoringPolicy:'{policy}',describe(){{{desc}}},snapshot:()=>{snapshot},restore(d){{{restore}}},settle:{settle},undoDepth:()=>S.undo.length,proof:()=>{proof}}});\nconst __minimalSave=save;save=function(){{const v=__minimalSave.apply(this,arguments);__minimal.changed();return v;}};\n"
     else:
         addon=(ROOT/'adapters/private'/f'{ident}.js').read_text().replace('__RULES__',rules).replace('__POLICY__',policy)
+        for anchor, replacement in CONFIGS.get(ident, {}).get('hooks', []):
+            text=hook(text,anchor,replacement,path)
         if ident=='notan':
             text=hook(text,'  let tick = null;','  let tick = null, __minimalTickAt=0;',path)
             text=hook(text,'    tick = setInterval(() => {','    __minimalTickAt=performance.now();\n    tick = setInterval(() => {\n      __minimalTickAt=performance.now();',path)
@@ -87,7 +95,8 @@ def inject(game, path, text):
             text=hook(text,'function hint() {','function hint() { window.MinimalAdapter?.assist();',path)
             text=hook(text,'function restart() {','function restart() { window.MinimalAdapter?.restart();',path)
             text=hook(text,'function undo() {','function undo() { window.MinimalAdapter?.undo();',path)
-    if ident=='bending': return text+'\n'+addon
+    # A module (or a script without a closing IIFE) takes the adapter at its end.
+    if ident=='bending' or CONFIGS.get(ident, {}).get('append'): return text+'\n'+addon
     end=text.rfind('})();')
     if end<0: raise ValueError('Missing closure: '+path)
     return text[:end]+addon+text[end:]

@@ -295,7 +295,9 @@
     const capH = caption.hidden ? 122 * save.zoom / 100 : Math.max(122, caption.offsetHeight);
     const k = Math.min(1, ((H - capH) * 0.72) / (h * g.cell), (W * 0.8) / (w * g.cell));
     const pw = w * g.cell * k, ph = h * g.cell * k;
-    const tx = (vw - pw) / 2, ty = top + Math.max(0, (H - ph - capH) / 2);
+    // Straight up from where the squares are: keep their center, not the page's (the row numbers
+    // put the grid right of center, and the picture should not slide sideways to undo that).
+    const tx = g.left + g.cw + (w * g.cell - pw) / 2, ty = top + Math.max(0, (H - ph - capH) / 2);
     const dx = Math.round(tx - g.left - k * g.cw), dy = Math.round(ty - g.top - k * g.ch);
     board.style.cssText = `--cell:${g.cell}px;--f:${g.f}px;--cw:${g.cw}px;--ch:${g.ch}px;--dot:${Math.max(3, Math.round(g.cell * 0.16))}px;--solved:translate(${dx}px,${dy}px) scale(${k.toFixed(4)});left:${g.left}px;top:${g.top}px;width:${bw}px;height:${bh}px`;
     caption.style.top = Math.round(ty + ph + 14) + 'px';
@@ -344,8 +346,55 @@
     head.setAttribute('aria-label', name + (ok ? ', done' : bad ? ', cannot fit as marked' : count ? ', ' + count + ' of ' + clue.length + ' numbers done' : ''));
     return ok;
   }
+  /* A solved picture takes Slant's four colors: each connected shape of filled squares gets one,
+   * and shapes that touch, even at a corner, get different ones. Paper stays paper, so holes stay
+   * see-through. The rules and the board never change. */
+  const PAINT = ['#1768ff', '#ffe000', '#ed6500', '#da5cce'];
+  function paint() {
+    const { w, h } = S.puz, n = S.cells.length, comp = new Int32Array(n).fill(-1), sizes = [];
+    if (S.solved) {
+      // Sections: each connected shape of ink. Paper, holes included, stays see-through.
+      for (let i = 0; i < n; i++) {
+        if (S.cells[i] !== INK || comp[i] >= 0) continue;
+        const id = sizes.length, stack = [i];
+        comp[i] = id; let size = 0;
+        while (stack.length) {
+          const j = stack.pop(), x = j % w, y = Math.floor(j / w); size++;
+          for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const nx = x + dx, ny = y + dy, k = ny * w + nx;
+            if (nx < 0 || ny < 0 || nx >= w || ny >= h || S.cells[k] !== INK || comp[k] >= 0) continue;
+            comp[k] = id; stack.push(k);
+          }
+        }
+        sizes.push(size);
+      }
+    }
+    const near = sizes.map(() => new Set());
+    for (let i = 0; i < n; i++) {
+      if (comp[i] < 0) continue;
+      const x = i % w, y = Math.floor(i / w);
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy, k = ny * w + nx;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h || comp[k] < 0 || comp[k] === comp[i]) continue;
+        near[comp[i]].add(comp[k]);
+      }
+    }
+    // Largest shapes choose first; the first color turns with the level, so pictures differ.
+    const color = new Array(sizes.length).fill(-1), start = (S.puz.index || 0) % PAINT.length;
+    sizes.map((s, id) => [s, id]).sort((a, b) => b[0] - a[0]).forEach(([, id], order) => {
+      const used = new Set([...near[id]].map((k) => color[k]));
+      let c = -1;
+      for (let t = 0; t < PAINT.length; t++) { const o = (start + order + t) % PAINT.length; if (!used.has(o)) { c = o; break; } }
+      color[id] = c < 0 ? (start + order) % PAINT.length : c;
+    });
+    for (let i = 0; i < n; i++) {
+      if (comp[i] >= 0) cellEls[i].style.setProperty('--paint', PAINT[color[comp[i]]]);
+      else cellEls[i].style.removeProperty('--paint');
+    }
+  }
   function renderAll() {
     for (let i = 0; i < S.cells.length; i++) renderCell(i);
+    paint();
     for (let r = 0; r < S.puz.h; r++) lineStatus('row', r);
     for (let c = 0; c < S.puz.w; c++) lineStatus('col', c);
     hud();

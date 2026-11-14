@@ -1,0 +1,12 @@
+{
+  "script": "balance.js",
+  "engine": "engine.js",
+  "policy": "time-v1",
+  "hooks": [
+    ["    judge(true);", "    judge(true);\n    window.MinimalAdapter?.committed();"],
+    ["  function hint() {", "  function hint() { window.MinimalAdapter?.assist();"],
+    ["  function restart() {", "  function restart() { window.MinimalAdapter?.restart();"],
+    ["  function undo() {", "  function undo() { window.MinimalAdapter?.undo();"]
+  ],
+  "append": false
+}

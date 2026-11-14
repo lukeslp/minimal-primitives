@@ -1,0 +1,13 @@
+{
+  "script": "tilt-3d.js",
+  "engine": "engine.js",
+  "policy": "moves-v1",
+  "append": true,
+  "hooks": [
+    ["  save(); announceTip(d, r); updateUI();\n", "  window.MinimalAdapter?.committed();\n  save(); announceTip(d, r); updateUI();\n"],
+    ["function undo() {\n  settleAll();", "function undo() { window.MinimalAdapter?.undo();\n  settleAll();"],
+    ["function restart() {\n  settleAll();", "function restart() { window.MinimalAdapter?.restart();\n  settleAll();"],
+    ["  if (busy()) return;\n  if (hint) { const d = hint;", "  if (busy()) return;\n  window.MinimalAdapter?.assist();\n  if (hint) { const d = hint;"],
+    ["  say(NAMES[hint] + '. Press Hint again to play it.'); updateHintButton(); kick();", "  say(NAMES[hint] + '. Press Hint again to play it.'); updateHintButton(); kick(); window.MinimalAdapter?.changed();"]
+  ]
+}

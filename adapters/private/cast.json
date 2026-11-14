@@ -1,0 +1,12 @@
+{
+  "script": "cast.js",
+  "engine": "engine.js",
+  "policy": "hits-v1",
+  "hooks": [
+    ["    if(solved)finished.add(puzzle.id);", "    if(solved)finished.add(puzzle.id);\n    window.MinimalAdapter?.committed();"],
+    ["    if(action.type==='hint') {", "    if(action.type==='hint') { window.MinimalAdapter?.assist();"],
+    ["function restart() {", "function restart() {window.MinimalAdapter?.restart();"],
+    ["function undo() {", "function undo() {window.MinimalAdapter?.undo();"]
+  ],
+  "append": false
+}

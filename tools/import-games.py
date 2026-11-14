@@ -18,6 +18,26 @@ TITLES = [
     ('tilt', 'Tilt', 'tilt-levels', 'tilt.png'),
     ('horologist', 'Horologist', 'horologist', 'horologist-fe2978354a7d.png'),
 ]
+# Promoted onto the Minimal index on 2026-11-12, in its order; imported from --new-ref.
+NEW = [
+    ('towers', 'Towers', 'towers', 'towers-01d20ccee430.png'),
+    ('tents', 'Tents', 'tents', 'tents-108a67125937.png'),
+    ('constellations', 'Constellations', 'constellations', 'constellations-145ef64e0338.png'),
+    ('shoo-minimal', 'Shoo · Minimal', 'shoo-minimal', 'shoo-c844a0f0b474.png'),
+    ('balance', 'Balance', 'balance', 'balance-6958e7c50e8f.png'),
+    ('cast', 'Cast', 'cast', 'cast-31d77ed950de.png'),
+    ('tilt-3d', 'Tilt · 3D', 'tilt-3d', 'tilt-3d-727159b74a00.png'),
+    ('delve', 'Delve', 'delve', 'delve-b3b6542cb8bc.png'),
+]
+# Games moved past --games-ref one at a time, each to a commit whose page the
+# build's transforms and adapters were checked against.
+REPIN = {
+    'notan': 'd6db95d06c931fb79d4e9876ce47795f611a044a',  # Slant's colors on the solved picture, plainer Erase progress
+    'fold': 'e62277a06b51e96a67249fc453d83d35171ad879',   # colored paper at the solve
+}
+# Web-only files a newer runtime.json lists: home-screen installs and the site's privacy page.
+WEB_ONLY = ('manifest.webmanifest', 'sw.js', 'pwa.js', 'privacy.html')
+WEB_ONLY_DIRS = ('icons/',)
 # The motor-accessible puzzles open from the last tile, not from the main grid.
 ACCESSIBLE = [
     ('glance', 'Glance', 'glance', 'glance-74c875a48ff7.png'),
@@ -46,7 +66,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--games', type=Path, default=ROOT.parent / 'game-riffs')
     parser.add_argument('--hex', type=Path, default=ROOT.parent / 'hexsweeper')
-    parser.add_argument('--games-ref', default='master')
+    parser.add_argument('--games-ref', default='1e8d92ea1b43fbaad45e0517b91a395c77365d11')
+    parser.add_argument('--new-ref', default='9d92c042683b400c36fdfe415f4e1ee80ec0ed67')
     parser.add_argument('--hex-ref', default='aa4a93d69ce5e8a82a594748a4616f2d3c91e935')
     parser.add_argument('--art', type=Path, default=ROOT.parent / 'minimal-social-20261013/minimal/art')
     parser.add_argument('--accessible-art', type=Path, default=None, help="defaults to the games checkout's accessible/art")
@@ -55,6 +76,7 @@ def main():
     target = ROOT / 'imports'
     target.mkdir(exist_ok=True)
     games_sha = git(args.games, 'rev-parse', args.games_ref + '^{commit}').decode().strip()
+    new_sha = git(args.games, 'rev-parse', args.new_ref + '^{commit}').decode().strip()
     hex_sha = git(args.hex, 'rev-parse', args.hex_ref + '^{commit}').decode().strip()
     records = []
 
@@ -68,10 +90,12 @@ def main():
         out.write_bytes(data)
         return {'path': dest, 'source': source, 'sha256': hashlib.sha256(data).hexdigest(), 'bytes': len(data)}
 
-    for ident, title, folder, art in TITLES + ACCESSIBLE:
-        manifest = json.loads(git(args.games, 'show', f'{games_sha}:{folder}/runtime.json'))
+    for ident, title, folder, art in TITLES + NEW + ACCESSIBLE:
+        sha = new_sha if (ident, title, folder, art) in NEW else REPIN.get(ident, games_sha)
+        manifest = json.loads(git(args.games, 'show', f'{sha}:{folder}/runtime.json'))
+        manifest['files'] = [f for f in manifest['files'] if f not in WEB_ONLY and not f.startswith(WEB_ONLY_DIRS)]
         paths = sorted(set(manifest['files'] + ['runtime.json']))
-        files = [capture(args.games, games_sha, f'{folder}/{safe(p)}', f'{ident}/{p}') for p in paths]
+        files = [capture(args.games, sha, f'{folder}/{safe(p)}', f'{ident}/{p}') for p in paths]
         variants = []
         if ident == 'akari':
             # Akari's Theme setting navigates between two authored looks.
@@ -79,7 +103,7 @@ def main():
             alternate = [p for p in paths if 'akari-classic/' + p in available]
             files += [capture(args.games, games_sha, 'akari-classic/' + p, 'akari-light/' + p) for p in alternate]
             variants = [{'id': 'light', 'entry': 'akari-light/index.html', 'files': alternate}]
-        record = {'id': ident, 'title': title, 'repository': 'lukeslp/game-riffs', 'commit': games_sha,
+        record = {'id': ident, 'title': title, 'repository': 'lukeslp/game-riffs', 'commit': sha,
                   'entry': f'{ident}/{manifest["entry"]}', 'runtime': manifest, 'variants': variants, 'files': files, 'art': art}
         if (ident, title, folder, art) in ACCESSIBLE:
             record['group'] = 'accessible'

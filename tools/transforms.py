@@ -61,6 +61,11 @@ def transform(game, path, text):
         text = re.sub(r'<script\b[^>]*(?:data-goatcounter|src=["\'][^"\']*(?:goatcounter|stats\.dr\.eamer))[^>]*>[\s\S]*?</script>', '', text, flags=re.I)
         text = re.sub(r'<meta\b[^>]*(?:property=["\'](?:og:|twitter:)|name=["\'](?:twitter:|robots))[^>]*>', '', text, flags=re.I)
         text = re.sub(r'<link\b[^>]*rel=["\']canonical["\'][^>]*>', '', text, flags=re.I)
+        # Home-screen installs belong to the web pages: no manifest, service worker or install tags in the package.
+        text = re.sub(r'<link\b[^>]*rel=["\']manifest["\'][^>]*>\n?', '', text, flags=re.I)
+        text = re.sub(r'<meta\b[^>]*name=["\']apple-mobile-web-app-[^"\']*["\'][^>]*>\n?', '', text, flags=re.I)
+        text = re.sub(r'<link\b(?=[^>]*rel=["\']apple-touch-icon["\'])(?=[^>]*href=["\']\./icons/)[^>]*>\n?', '', text, flags=re.I)
+        text = re.sub(r'<script\b[^>]*src=["\']\./pwa\.js[^"\']*["\'][^>]*>\s*</script>', '', text, flags=re.I)
         # Site-wide icons point outside the export (Bending's /games/light/favicon/); the itch frame shows none.
         text = re.sub(r'<link\b(?=[^>]*\brel=["\'](?:icon|shortcut icon|apple-touch-icon)["\'])(?=[^>]*\bhref=["\']/(?!/))[^>]*>', '', text, flags=re.I)
         root = posixpath.relpath('.', posixpath.dirname('games/' + path))

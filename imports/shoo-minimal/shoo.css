@@ -1,0 +1,129 @@
+@font-face{font-family:"Plex Mono";src:url("fonts/IBMPlexMono-500.woff2") format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"Plex Sans";src:url("fonts/IBMPlexSans-400.woff2") format("woff2");font-weight:400;font-display:swap}
+
+/* Paper and ink. Bees are solid ink, flowers gray outlines, the hive a solid
+   ink cell: what must be told apart differs in lightness and shape. */
+:root{color-scheme:light;--bg:#fff;--ink:#000;--text:#111;--sub:#5e5e5e;--line:#d4d4d4;--grid:#a8a8a8;--petal:#7a7a7a;--frame:#1c1c1c;--scrim:rgba(255,255,255,.84);--mono:"Plex Mono",monospace;--sans:"Plex Sans",sans-serif}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--bg:#000;--ink:#fff;--text:#ededed;--sub:#a6a6a6;--line:#2f2f2f;--grid:#626262;--petal:#9a9a9a;--frame:#ededed;--scrim:rgba(0,0,0,.8)}}
+:root[data-theme=dark]{color-scheme:dark;--bg:#000;--ink:#fff;--text:#ededed;--sub:#a6a6a6;--line:#2f2f2f;--grid:#626262;--petal:#9a9a9a;--frame:#ededed;--scrim:rgba(0,0,0,.8)}
+
+*{box-sizing:border-box;border-radius:0}
+html,body{touch-action:manipulation}
+body{margin:0;height:100dvh;overflow:hidden;background:var(--bg);color:var(--text);font:16px/1.45 var(--sans);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+button,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.35;cursor:default}
+button:focus-visible,select:focus-visible,.sheet summary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+.readout{position:fixed;top:calc(max(0px,env(safe-area-inset-top)) + 18px);left:50%;transform:translateX(-50%);font:500 13px/1 var(--mono);letter-spacing:.02em;color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap}
+#restart-btn{position:fixed;top:max(0px,env(safe-area-inset-top));left:8px;z-index:2}
+
+/* The board: one SVG in board units; each cell is also a hexagonal button above it. */
+#board-shell{position:absolute;inset:56px 0 116px;display:flex;overflow:hidden}
+.board-stage{flex:none;margin:auto}
+.board{position:relative;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.board .art{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.cell{position:absolute;cursor:pointer;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.cell:focus{outline:none}
+.board[data-solved=true] .cell{cursor:default}
+.hex{fill:var(--bg);stroke:var(--grid);stroke-width:1;vector-effect:non-scaling-stroke;stroke-linejoin:round;transition:stroke .5s ease}
+.board[data-solved=true] .hex{stroke:var(--line)}
+.wall{stroke:var(--ink);stroke-width:4;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.petal{fill:var(--bg);stroke:var(--petal);stroke-width:1.2;vector-effect:non-scaling-stroke}.pistil{fill:var(--petal)}
+.hive-body{fill:var(--ink);stroke:none}.hive-door{fill:var(--bg)}.hive-bee{fill:var(--bg)}
+/* A bee: an ink body with two paper bands, two hairline wings. */
+.bee-body{fill:var(--ink)}.bee-band{stroke:var(--bg);stroke-width:.028;fill:none}.bee-wing{fill:var(--bg);stroke:var(--ink);stroke-width:1;vector-effect:non-scaling-stroke}
+/* The idle buzz: a small, slow drift, off under reduced motion. */
+.buzz{animation:shoo-buzz var(--buzz-time,2.2s) ease-in-out var(--buzz-delay,0s) infinite alternate}
+@keyframes shoo-buzz{0%{transform:translate(0,0)}25%{transform:translate(.028px,-.02px)}50%{transform:translate(-.012px,-.034px)}75%{transform:translate(-.03px,.01px)}100%{transform:translate(.012px,.026px)}}
+/* Where a tap landed: the cell's brief shade and an ink ring opening from it;
+   on the hive the ring rides a paper halo so it shows there too. */
+.tap-shade{fill:var(--ink);opacity:.16;stroke:none}
+.tap-ring,.tap-halo{fill:none;vector-effect:non-scaling-stroke}
+.tap-ring{stroke:var(--ink);stroke-width:3}
+.tap-halo{stroke:var(--bg);stroke-width:7;display:none}.tap.on-hive .tap-halo{display:inline}
+/* A tap on a bee is dodged: the bee loops (drawn in shoo.js); under reduced motion, a still arc beside it. */
+.tap-arc{fill:none;stroke:var(--ink);stroke-width:1.5;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.focus-ring,.hint-ring,.hover-ring{fill:none;stroke:var(--ink);stroke-width:2;vector-effect:non-scaling-stroke}.ring-halo{fill:none;stroke:var(--bg);stroke-width:5;vector-effect:non-scaling-stroke}
+.hint-ring{stroke-dasharray:5 4;animation:pulse 650ms 2}.hover-ring{stroke-width:1;opacity:.7}.on-hive.focus-ring,.on-hive.hint-ring,.on-hive.hover-ring{stroke:var(--bg)}.on-hive.ring-halo{stroke:var(--ink)}
+/* The finish, at the solve only: the board becomes honeycomb. Three comb tones by distance from the hive
+   (deep amber, honey, pale honey; each a clear step in lightness), a dark brown hive with a lit door and
+   honey bees, pink flowers outlined in the hive's brown so they hold their shape on any tone. Color only
+   decorates; it sits under the hive, flowers and walls. */
+.wash-cell{stroke:var(--bg);stroke-width:1.5;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+.wash-ring circle{fill:none;stroke-width:3;vector-effect:non-scaling-stroke;transform-box:fill-box;transform-origin:center}
+:root{--comb-0:#e88a00;--comb-1:#ffb51f;--comb-2:#ffda5e;--comb-hive:#3d2306;--comb-lit:#ffcc2e;--comb-flower:#da5cce}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--comb-0:#b86a00;--comb-1:#e09a12;--comb-2:#ffc93d}}
+:root[data-theme=dark]{--comb-0:#b86a00;--comb-1:#e09a12;--comb-2:#ffc93d}
+.board[data-finish] .wash-0{fill:var(--comb-0)}.board[data-finish] .wash-1{fill:var(--comb-1)}.board[data-finish] .wash-2{fill:var(--comb-2)}
+.board[data-finish] .hive-body{fill:var(--comb-hive)}.board[data-finish] .hive-door,.board[data-finish] .hive-bee{fill:var(--comb-lit)}
+.board[data-finish] .petal{fill:var(--comb-flower);stroke:var(--comb-hive)}.board[data-finish] .pistil{fill:var(--comb-hive)}
+.board[data-finish] .wash-ring circle{stroke:var(--comb-0)}
+/* The page takes color with the finish: the comb sits in its hive, so the page takes the hive's own dark
+   brown and the comb lights up against it, the hive itself a door into it. shoo.js sets it with the comb;
+   it reaches the page as the wave reaches the comb's far edge, and at once when the comb is drawn at
+   once. What is written on the page goes to white; the board keeps its own ink, and Settings and Help
+   keep their own paper. Finish: Plain keeps the page plain. */
+html[data-field] body{background-color:var(--comb-hive);transition:background-color .3s ease-out .9s}
+html[data-field] body>:not(dialog):not(main){--ink:#fff;--sub:#fff;--text:#fff}
+#undo-btn[data-hint=true]{outline:2px dashed var(--ink);outline-offset:-6px}
+@keyframes pulse{50%{opacity:.3}}
+
+.completion{position:fixed;left:50%;bottom:max(64px,calc(env(safe-area-inset-bottom) + 64px));transform:translateX(-50%);display:flex;justify-content:center;animation:next-reveal .45s .15s both}
+.completion[hidden]{display:none}
+/* The shared frame clears borders on its icons, so the box is an outline. */
+#next-btn{outline:1px solid var(--ink);outline-offset:-1px}
+@keyframes next-reveal{from{opacity:0;translate:0 4px}to{opacity:1;translate:0 0}}
+
+#feedback{position:fixed;bottom:62px;left:16px;right:16px;min-height:36px;margin:0;display:grid;place-items:center;text-align:center;color:var(--sub);font:14px/1.3 var(--sans);pointer-events:none}
+.toolbar{position:fixed;bottom:max(6px,env(safe-area-inset-bottom));left:8px;right:8px;display:flex;justify-content:space-between}
+.toolbar>div{display:flex}
+.ib{display:inline-grid;place-items:center;width:48px;height:48px;min-width:48px;min-height:48px;border:0;background:none;padding:12px;color:var(--ink);transition:opacity .15s,transform .1s}
+.ib svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.ib:active{transform:scale(.94)}
+/* Nothing on the board can move: Undo asks to be pressed. */
+#undo-btn.wanted svg{animation:pulse 900ms 3}
+.board,.board *,header,.toolbar,.toolbar *,button,button *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+
+/* Sheets */
+.sheet{width:min(32rem,calc(100vw - 16px));max-height:calc(100dvh - 16px);border:1px solid var(--frame);padding:0;background:var(--bg);color:var(--text)}
+.sheet[open]{display:flex;flex-direction:column}
+.sheet::backdrop{background:var(--scrim)}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 16px;flex:none;border-bottom:1px solid var(--line)}
+.sheet-head h2{margin:0;font:500 16px/1.3 var(--mono)}
+.sheet-head form{margin:0}
+.sheet-x{width:44px;height:44px;min-width:44px;min-height:44px;padding:10px}
+.sheet-body{padding:20px 24px;overflow:auto;min-height:0;overscroll-behavior:contain}
+.sheet-body p{max-width:60ch;margin:0 0 16px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;border-bottom:1px solid var(--line)}
+.row[hidden]{display:none}
+.row select{max-width:65%;min-height:44px;background:var(--bg);border:0;padding:4px 8px}
+.row button{min-height:44px;background:none;border:0;padding:8px}
+.row button:not(:disabled){text-decoration:underline;text-underline-offset:4px}
+.sheet-foot{padding:12px 24px;border-top:1px solid var(--line);flex:none;color:var(--sub);font-size:14px}
+.sheet-foot a{color:inherit}
+.controls{border-top:1px solid var(--line);padding-top:16px}
+.controls p{margin:0 0 6px}
+.help-more{border-top:1px solid var(--line);margin-top:16px;padding-top:4px}
+.help-more summary{cursor:pointer;min-height:44px;padding:12px 0;color:var(--sub)}
+.help-more p{font-size:14px}
+.sheet-body .help-more p:last-child{margin-bottom:0}
+kbd{font:500 14px/1 var(--mono)}
+@media(max-width:480px){.sheet-head{padding:8px 12px}.sheet-body{padding:16px}}
+
+@media(orientation:landscape) and (max-height:500px){
+  #board-shell{inset:44px 72px 64px}
+  .toolbar{left:auto;right:8px;top:12px;bottom:12px;flex-direction:column;width:48px}
+  .toolbar>div{flex-direction:column}
+  #feedback{left:64px;right:136px;bottom:14px;font-size:13px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+:root[data-motion=reduce] *,:root[data-motion=reduce] *::before,:root[data-motion=reduce] *::after{animation:none!important;transition:none!important}
+@media(forced-colors:active){
+  :root{--bg:Canvas;--ink:CanvasText;--text:CanvasText;--sub:CanvasText;--line:GrayText;--grid:GrayText;--petal:GrayText}
+  .focus-ring,.hint-ring,.tap-ring,.tap-arc{stroke:Highlight!important}
+  .sheet{border-color:CanvasText}
+  html[data-field] body{background-color:Canvas}
+  html[data-field] body>:not(dialog):not(main){--ink:CanvasText;--sub:CanvasText;--text:CanvasText}
+}

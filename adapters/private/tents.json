@@ -1,0 +1,6 @@
+{"script": "tents.js", "engine": "engine.js", "policy": "time-v1", "append": false, "hooks": [
+  ["    S.solved = E.inspect(puzzle, S.cells).solved;\n", "    S.solved = E.inspect(puzzle, S.cells).solved;\n    window.MinimalAdapter?.committed();\n"],
+  ["  function hint() {", "  function hint() { window.MinimalAdapter?.assist();"],
+  ["  function restart() {", "  function restart() { window.MinimalAdapter?.restart();"],
+  ["  function undo() {", "  function undo() { window.MinimalAdapter?.undo();"]
+]}

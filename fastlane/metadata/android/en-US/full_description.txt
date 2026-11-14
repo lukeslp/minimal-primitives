@@ -1,6 +1,8 @@
-Eighteen small puzzle games in one app that runs offline.
+Twenty-six small puzzle games in one app that runs offline.
 
-* Hexsweeper: Minesweeper on hex tiles, on a sphere, a fixed board or an endless one (Sphere, Classic, Infinite)
+Interaction primitives are to doing what simple machines are to building: push, pull, lift, release, tilt, turn, fold, connect, toggle, point. Each game here is built on one or two of them.
+
+* Hexsweeper: find the mines on hex tiles, on a sphere, a fixed board or an endless one (Sphere, Classic, Infinite)
 * Notan: a black-and-white nonogram that reveals a small picture
 * Akari: light every open square; bulbs must never shine on each other
 * Spiral Galaxies: build shapes that match after a half-turn
@@ -9,7 +11,15 @@ Eighteen small puzzle games in one app that runs offline.
 * Fold: fold the paper until a dot shows through every hole
 * Bending: move planets so their pull bends each beam into its light
 * Tilt: tip stacked trays to drop the marble through the holes
-* Horologist: place wheels so every clock runs forwards
+* Horologist: place wheels so every clock runs forward
+* Towers: raise towers so each row and column holds every height once and the edge numbers count the towers seen
+* Tents: a tent for every tree, kept apart, matching the numbers on each row and column
+* Constellations: join the stars of twelve real constellations until every star has its threads
+* Shoo · Minimal: bees flee from wherever you tap; herd them home
+* Balance: fill the grid with black and white, never three alike in a row
+* Cast: stack cubes until three shadows match
+* Tilt · 3D: tip a stack of glass trays so the marble drops through the right holes
+* Delve: descend a dungeon of squares, dodge attacks, fight and find the stairs
 
 Motor-accessible puzzles, in their own grid:
 
@@ -20,7 +30,7 @@ Motor-accessible puzzles, in their own grid:
 * Nod: tip stacked trays with a drag, a swipe or the arrow keys
 * Noon: a nonogram played with one switch, pressing as a cell's clock reaches noon
 * Sweep: one switch and a highlight that sweeps the rows to turn tiles dark
-* Ticker: one button, played by ear, pressing as each note of the tune comes round
+* Ticker: one button, played by ear, pressing as each note of the tune comes around
 
 Most games have an Access setting. One switch steps a highlight through the game's keys, in groups or one at a time; any key, tap or click is a press, and speed and timing can be changed. Look and hold puts the keys beside the board; rest a finger, mouse or head mouse on one until its ring fills. Glance, Glyph and Shoo also take a tap or a resting pointer on the board, Pursuit follows the pointer, Nod tips with a drag, a swipe or the arrow keys, and Noon, Sweep and Ticker take any key or a tap anywhere as their one switch.
 

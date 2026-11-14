@@ -1,7 +1,7 @@
 # Real score verification
 
-Luke Steuber. Private disposable acceptance audit, October 14, 2026.
-This file is the report file for integration failures and main-owned fixes.
+Disposable acceptance audit, October 14, 2026.
+This file reports integration failures and main-owned fixes.
 
 The target is selected by `MINIMAL_ROOT`, otherwise this worktree. No service,
 runtime, adapter, imported snapshot or deployment file is changed by these tests.
@@ -48,7 +48,7 @@ Python's unittest discovery also picks up the real-service API suite. Browser
 acceptance is explicit through the audit runner or browser script. The supplied
 Playwright and Chrome locations are defaults; `MINIMAL_PLAYWRIGHT` and
 `MINIMAL_CHROME` can override them. Node, Python, OpenSSL and the installed
-browser are used without installing packages. Allow approximately 30 seconds
+browser are used without installing packages. Allow about 30 seconds
 for the combined audit; missing approved ports or a missing build fails closed.
 
 ## Runs and findings
@@ -104,8 +104,8 @@ and the parent's saved score list. Each has exactly one start and one finish;
 opening Scores creates neither.
 
 Bridges Circuits has real pinned proof/API acceptance (as does Slant Hard), but
-the current collection catalogue exposes no Circuits entry. Its full browser
-launch is outside this audit; no altered catalogue or replacement parent was
+the current collection catalog exposes no Circuits entry. Its full browser
+launch is outside this audit; no altered catalog or replacement parent was
 introduced. All other finite games and all three Hex modes have actual proof/
 API checks, not full browser gameplay coverage. Hex terminal fixtures are
 synthetic, not gameplay recordings. The Slant slash/backslash shortcut timeout

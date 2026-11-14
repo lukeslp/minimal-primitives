@@ -1,0 +1,31 @@
+These games started as UX experiments. I wanted to see whether a simple, iconic surface could drop you straight into a puzzle and teach the interaction through the design, with almost no text.
+
+Interaction primitives are to doing what simple machines are to building: push, pull, lift, release, tilt, turn, fold, connect, toggle, point. Each game here is built on one or two of them.
+
+Twenty-six small puzzle games in black and white, in one app that plays offline. Most also play with one switch or by looking. No account, no ads, no tracking. Unfinished boards, Undo and settings are kept when you go Home, so you can move between games and pick up where you left off.
+
+Eighteen games on the main board:
+• Hexsweeper: find the mines on hex tiles, on a sphere, a classic board or a board with no end
+• Notan: fill the squares each row and column asks for, and a small picture appears
+• Akari: light every open square; lamps must never shine on each other
+• Spiral Galaxies: build shapes that match after a half turn
+• Bridges: join the islands and match each number
+• Slant: a diagonal in every square, matching the numbers with no loops
+• Fold: fold the paper until a dot shows through every hole
+• Bending: move planets so their pull bends each beam into its light
+• Tilt: tip the tray to roll the marble into the hole
+• Horologist: put wheels in the holes so every clock runs forward
+• Towers: raise towers so each row and column holds every height once and the edge numbers count the towers seen
+• Tents: a tent for every tree, kept apart, matching the numbers on each row and column
+• Constellations: join the stars of twelve real constellations until every star has its threads
+• Shoo · Minimal: bees flee from wherever you tap; herd them home
+• Balance: fill the grid with black and white, never three alike in a row
+• Cast: stack cubes until three shadows match
+• Tilt · 3D: tip a stack of glass trays so the marble drops through the right holes
+• Delve: descend a dungeon of squares, dodge attacks, fight and find the stairs
+
+Behind the last tile, eight Motor Accessibility Puzzles, made for one switch, your eyes or a tilt of the head: Glance, Glyph, Pursuit, Shoo, Nod, Noon, Sweep and Ticker.
+
+Most games have an Access setting. One switch steps a highlight through the game's keys, in groups or one at a time; any key or tap is a press, and speed and timing can be changed. Look and hold puts the keys beside the board: rest a finger, a pointer or your gaze on one until its ring fills. Looking by head or eyes uses the front camera only if you turn it on, and the picture never leaves your device.
+
+Scores stay on your device. Nothing you play is sent anywhere.

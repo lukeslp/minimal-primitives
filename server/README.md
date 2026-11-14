@@ -1,6 +1,6 @@
 # Minimal Primitives score service
 
-Luke Steuber. Python standard library and Node; no packages to install. The
+Python standard library and Node; no packages to install. The
 service serves API responses only. It never serves files or changes the original
 games' score services.
 

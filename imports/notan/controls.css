@@ -89,3 +89,5 @@ body[data-control-frame][data-completion-root="board-stage"] .control-completion
    access.js the first time a player turns it on. */
 body[data-control-frame] .access-row[hidden] {display:none!important;}
 body[data-control-frame] .access-action {min-height:44px;padding:8px;border:0;background:none;color:inherit;font:inherit;text-decoration:underline;text-underline-offset:4px;cursor:pointer;}
+body[data-control-frame] p.access-note,body[data-control-frame] p.access-error,body[data-control-frame] p.access-locked {margin:0;padding:4px 0;font-size:.875em;line-height:1.35;opacity:.8;}
+body[data-control-frame] p.access-error {opacity:1;font-weight:600;}

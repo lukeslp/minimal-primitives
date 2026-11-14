@@ -1,8 +1,7 @@
 # Minimal Primitives for iOS
 
-A small native shell that plays the Minimal Primitives
-collection exactly as the browser build makes it, like the Android app. Not
-published anywhere; the first build goes to TestFlight only, once approved.
+A small native shell that plays the Minimal Primitives collection exactly as the
+browser build makes it, like the Android app. Builds go out through TestFlight and App Store Connect.
 
 - `CollectionSchemeHandler` serves the app's bundled `www` folder (a copy of
   `build/html`) on its own origin, `minimal://collection/`. WebKit treats it as a
@@ -13,7 +12,7 @@ published anywhere; the first build goes to TestFlight only, once approved.
   refused.
 - The camera, for Look and hold by head or eyes, is offered only to the bundled
   collection, and iOS asks the player first (`NSCameraUsageDescription`).
-- Identity: `com.oneimpossiblethingatatime.minimalprimitives`, version 0.3.0 (5), matching Android,
+- Identity: `com.oneimpossiblethingatatime.minimalprimitives`, version 0.5.2, matching Android,
   team 596T7J7FB6, iPhone and iPad.
 
 ## Build
@@ -29,6 +28,9 @@ xcodebuild -project MinimalPrimitives.xcodeproj -scheme MinimalPrimitives \
 The app icon and launch image come from the Hexsweeper Sphere tile, as on
 Android: `swift ios/tools/draw-icons.swift` from the repository root redraws
 them into `Assets.xcassets`.
+
+iPhone Duo: `DuoBridge.swift` and `duo-fold.js` tell the collection where the
+fold is; the layouts and checks are in `docs/iphone-duo.md`.
 
 Still to do: a real phone with its camera, VoiceOver and a hardware keyboard,
 and a TestFlight archive.

@@ -1,0 +1,120 @@
+@font-face{font-family:"Plex Mono";src:url("fonts/IBMPlexMono-500.woff2") format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"Plex Sans";src:url("fonts/IBMPlexSans-400.woff2") format("woff2");font-weight:400;font-display:swap}
+:root{color-scheme:light;--bg:#ffffff;--ink:#000000;--text:#111111;--sub:#5e5e5e;--line:#d4d4d4;--guide:#8f8f8f;--frame:#1c1c1c;--band:rgba(0,0,0,.05);--scrim:rgba(255,255,255,.84);--empty:#cdcdcd;--grid:#8f8f8f;--mono:"Plex Mono",ui-monospace,Menlo,Consolas,monospace;--sans:"Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#000000;--ink:#ffffff;--text:#ededed;--sub:#a6a6a6;--line:#2f2f2f;--frame:#ededed;--band:rgba(255,255,255,.06);--scrim:rgba(0,0,0,.8);--empty:#484848;--grid:#8f8f8f}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#000000;--ink:#ffffff;--text:#ededed;--sub:#a6a6a6;--line:#2f2f2f;--frame:#ededed;--band:rgba(255,255,255,.06);--scrim:rgba(0,0,0,.8);--empty:#484848;--grid:#8f8f8f}
+
+*,*::before,*::after{box-sizing:border-box;border-radius:0}
+html,body{touch-action:manipulation}
+body{margin:0;height:100dvh;overflow:hidden;background:var(--bg);color:var(--text);font:16px/1.45 var(--sans);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+button,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.35;cursor:default}
+button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.sr-only{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+kbd{font:500 14px/1 var(--mono)}
+
+.readout{position:fixed;top:calc(max(0px,env(safe-area-inset-top)) + 18px);left:50%;transform:translateX(-50%);font:500 13px/1 var(--mono);letter-spacing:.02em;color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap}
+#restart-btn{position:fixed;top:max(0px,env(safe-area-inset-top));left:8px;z-index:2}
+
+/* The board. Cells are literally black or white in both themes; an empty cell is a mid grey ground.
+   Every filled square fills its cell, yours and the board's alike. A given, which cannot be changed,
+   is a plain sharp square with nothing drawn on it; a square you placed has well-rounded corners
+   (about a third of the cell), where the ground shows through. Nothing is marked on the givens, so a board that is mostly given stays
+   quiet, and black-against-white stays the loudest thing on it. */
+#board-shell{position:absolute;inset:58px 6px 120px;display:flex}
+.board-stage{flex:none;margin:auto;position:relative}
+.board{display:flex;flex-direction:column;border:1px solid var(--frame);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.grid-row{display:flex;flex:none}
+.cell{flex:none;position:relative;display:grid;place-items:center;width:var(--cell);height:var(--cell);--on:var(--ink);--r:clamp(10px,calc(var(--cell) * .32),30px);--rl:var(--grid);--bl:var(--grid);background-color:var(--empty);box-shadow:inset -1px 0 var(--rl),inset 0 -1px var(--bl);cursor:pointer;transition:background-color .12s ease-out}
+.cell:last-child{--rl:transparent}
+.grid-row:last-child .cell{--bl:transparent}
+.cell.b{background-color:#000;--on:#fff}
+.cell.w{background-color:#fff;--on:#000}
+.cell.given{cursor:default}
+/* Yours: the square keeps its own background color (so the tap fade and the solve colors still work)
+   and each corner is cut back to the ground by a quarter-circle. */
+.cell:is(.b,.w):not(.given){--k:transparent calc(var(--r) - .5px),var(--empty) calc(var(--r) + .5px);
+  background-image:radial-gradient(circle at 100% 100%,var(--k)),radial-gradient(circle at 0 100%,var(--k)),radial-gradient(circle at 100% 0,var(--k)),radial-gradient(circle at 0 0,var(--k));
+  background-repeat:no-repeat;background-size:var(--r) var(--r);background-position:left top,right top,left bottom,right bottom}
+.cell:focus{outline:none}
+.cell:focus-visible{outline:2px solid var(--on);outline-offset:-4px;z-index:2}
+.cell.evidence::after,.cell.hint-target::after{content:"";position:absolute;inset:6px;pointer-events:none}
+.cell.evidence::after{border:2px dashed var(--on)}
+.cell.hint-target::after{border:3px solid var(--on);animation:pulse 650ms 2}
+@keyframes pulse{50%{opacity:.3}}
+/* A row or column that breaks a rule (three alike in it, or it cannot balance): one small x past
+   its end, outside the board. Nothing is drawn over the squares themselves. */
+.marks{position:absolute;inset:0;pointer-events:none}
+.marks i{position:absolute;width:10px;height:10px;--x:transparent calc(50% - 1px),var(--ink) calc(50% - .9px),var(--ink) calc(50% + .9px),transparent calc(50% + 1px);background:linear-gradient(45deg,var(--x)),linear-gradient(-45deg,var(--x))}
+.marks .end-row{left:calc(100% + 5px)}
+.marks .end-column{top:calc(100% + 5px)}
+/* Solved: the grid lines and the rounded corners go; the finished pattern stands alone. */
+.board.solved .cell:is(.b,.w,.e){box-shadow:none;background-image:none;cursor:default;transition:background-color .7s var(--d,0ms) ease-out,box-shadow .6s ease-out}
+/* And the black squares take color, group by group, in the four colors Slant uses. Color arrives only
+   here; which squares are which is still black against white underneath it. */
+.board.solved .cell.b[data-k="0"]{background-color:#1768ff}
+.board.solved .cell.b[data-k="1"]{background-color:#ffe000}
+.board.solved .cell.b[data-k="2"]{background-color:#ed6500}
+.board.solved .cell.b[data-k="3"]{background-color:#da5cce}
+/* The page takes color with it: the one of the four the board has least of (balance.js picks it).
+   What is written on the page goes to whichever of black and white reads on that color. Sheets keep
+   their own paper: only the page's direct children other than dialogs take the new ink. */
+html[data-field="0"]{--field:#1768ff;--field-ink:#fff}
+html[data-field="1"]{--field:#ffe000;--field-ink:#000}
+html[data-field="2"]{--field:#ed6500;--field-ink:#000}
+html[data-field="3"]{--field:#da5cce;--field-ink:#000}
+html[data-field] body{background-color:var(--field);transition:background-color .7s ease-out}
+html[data-field] body>:not(dialog){--ink:var(--field-ink);--sub:var(--field-ink);--text:var(--field-ink)}
+
+.completion{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);display:flex;justify-content:center}
+.completion[hidden]{display:none}
+.completion .ib{outline:1px solid var(--ink);outline-offset:-1px;animation:next-reveal .45s .15s both}
+.completion .ib:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+@keyframes next-reveal{from{opacity:0;translate:0 4px}to{opacity:1;translate:0 0}}
+
+#feedback{position:fixed;bottom:62px;left:16px;right:16px;margin:0;text-align:center;color:var(--sub);font:14px/1.3 var(--sans);pointer-events:none;min-height:1.3em}
+.toolbar{position:fixed;bottom:max(6px,env(safe-area-inset-bottom));left:8px;right:8px;display:flex;justify-content:space-between}
+.toolbar>div{display:flex}
+.ib{display:inline-grid;place-items:center;width:48px;height:48px;min-width:48px;min-height:48px;border:0;background:none;padding:12px;color:var(--ink);transition:opacity .15s,transform .1s}
+.ib svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.ib:active{transform:scale(.94)}
+header,.toolbar,button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+
+.sheet{width:min(32rem,calc(100vw - 16px));max-height:calc(100dvh - 16px);border:1px solid var(--frame);padding:0;background:var(--bg);color:var(--text)}
+.sheet[open]{display:flex;flex-direction:column}
+.sheet::backdrop{background:var(--scrim)}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 16px;flex:none;border-bottom:1px solid var(--line)}
+.sheet-head h2{margin:0;font:500 16px/1.3 var(--mono)}
+.sheet-head form{margin:0}
+.sheet-x{width:44px;height:44px;min-width:44px;min-height:44px;padding:10px}
+.sheet-body{padding:20px 24px;overflow:auto;min-height:0;overscroll-behavior:contain}
+.sheet-body p{margin:0 0 16px;max-width:60ch}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;border-bottom:1px solid var(--line)}
+.row select{max-width:65%;min-height:44px;background:var(--bg);border:0;padding:4px 8px}
+.row button{min-height:44px;background:none;border:0;padding:8px}
+.row button:not(:disabled){text-decoration:underline;text-underline-offset:4px}
+.sheet-foot{padding:12px 24px;border-top:1px solid var(--line);flex:none;color:var(--sub);font-size:14px}
+.sheet-foot a{color:inherit}
+.text-action{min-height:44px;padding:8px 12px;border:1px solid var(--line);background:none;font:500 14px/1.3 var(--mono);color:var(--text)}
+.controls{border-top:1px solid var(--line);padding-top:16px}
+.controls p{margin:0 0 6px}
+.sheet-body .controls p:last-child{margin-bottom:0}
+@media(max-width:480px){.sheet-head{padding:8px 12px}.sheet-body{padding:16px}}
+
+@media(max-height:520px) and (min-width:560px){
+  #board-shell{inset:50px 72px 64px 12px}
+  .toolbar{left:auto;right:8px;top:12px;bottom:12px;flex-direction:column;width:48px}
+  .toolbar>div{flex-direction:column}
+  .completion{bottom:12px}
+  #feedback{left:12px;right:72px;bottom:6px;font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+:root[data-motion="reduce"] *,:root[data-motion="reduce"] *::before,:root[data-motion="reduce"] *::after{animation:none!important;transition:none!important}
+@media(forced-colors:active){
+  .cell{forced-color-adjust:none}
+  .board.solved .cell.b[data-k]{background-color:#000}
+  html[data-field] body{background-color:Canvas}
+  html[data-field] body>:not(dialog){--ink:CanvasText;--sub:CanvasText;--text:CanvasText}
+  .sheet{border-color:CanvasText}
+}

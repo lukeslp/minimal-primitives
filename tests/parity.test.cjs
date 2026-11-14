@@ -58,7 +58,7 @@ for(const game of selected) {
     const before=await h.surface(frame);
     await page.screenshot({clip:await page.locator('iframe').boundingBox(),path:path.join(h.EVIDENCE,game.id+'-before-switch.png')});
     // Library destroys the iframe. Relaunch must use the snapshot, not upstream disk save.
-    await frame.locator('#minimal-home').click();await page.mouse.move(-1,-1);await page.locator('.tile').filter({hasText:game.title}).focus();await page.keyboard.press('Enter');
+    await frame.locator('#minimal-home').click();await page.mouse.move(-1,-1);await page.locator(`.tile[data-game="${game.id}"]`).focus();await page.keyboard.press('Enter');
     frame=await (await page.locator('iframe').elementHandle()).contentFrame();await h.ready(frame,true);await h.restored(frame);await a.tick(page);
     await page.screenshot({clip:await page.locator('iframe').boundingBox(),path:path.join(h.EVIDENCE,game.id+'-after-switch.png')});
     await t.test('fresh iframe snapshot equality',async()=>h.sameSnapshot(await h.snapshot(frame),state));
@@ -80,7 +80,7 @@ for(const game of selected) {
       await resumedSurface(restored.frame);
     });
     await t.test('namespaced session survives iframe replacement',async()=>assert.equal(await frame.evaluate(()=>sessionStorage.getItem('parity.session')),'own session sentinel'));
-    await t.test('Undo operates on restored history',async()=>{
+    await t.test('Undo operates on restored history',{skip:a.override(game.id).skip?.undo},async()=>{
       const saved=await h.snapshot(frame);await a.undo(frame,game.id);const undone=await h.snapshot(frame);
       assert.equal(a.history(undone,game.id).length,a.history(saved,game.id).length-1);
       // Undo may undo a lock change while leaving marks in place.
@@ -91,7 +91,7 @@ for(const game of selected) {
       await frame.evaluate(s=>MinimalAdapter.restore(s),state);await frame.locator('#minimal-home').click();
       // Home waits for an asynchronous snapshot before selecting the library.
       await page.locator('#library:visible').waitFor();
-      await page.reload();await page.mouse.move(-1,-1);await page.locator('.tile').filter({hasText:game.title}).focus();await page.keyboard.press('Enter');
+      await page.reload();await page.mouse.move(-1,-1);await page.locator(`.tile[data-game="${game.id}"]`).focus();await page.keyboard.press('Enter');
       frame=await (await page.locator('iframe').elementHandle()).contentFrame();await h.ready(frame,true);await h.restored(frame);await a.tick(page);
       h.sameSnapshot(await h.snapshot(frame),state,game.id+' stored snapshot after Home and reload');
       assert.equal(await frame.evaluate(()=>sessionStorage.getItem('parity.session')),'own session sentinel');
@@ -116,6 +116,8 @@ for(const game of selected) {
     t.after(async()=>{await gen.close();await base.close();});
     const {page,frame}=await h.shell(gen,game),original=await h.standalone(base,game),rect=await page.locator('iframe').boundingBox();
     await t.test('system appearance with normal motion',async()=>{
+      // A game whose opening animation runs on the performance clock says how long it lasts.
+      const opening=a.override(game.id).openingMs;if(opening){await a.tick(original.page(),opening);await a.tick(page,opening);}
       assert.deepEqual(await h.surface(frame),await h.surface(original));await h.pixels(original,page,rect,`${game.id}-${scheme}-motion-system`);
     });
     await t.test('explicit appearance and reduced-motion preferences',async()=>{
@@ -137,11 +139,11 @@ for(const game of selected) {
       await h.pixels(original,page,await page.locator('iframe').boundingBox(),game.id+'-completion');
     });
     await t.test('single proof-bearing completion event',()=>{assert.equal(events.length,1,'one completion event from real input');assert(events[0].payload.proof,'completion proof present');});
-    if(['notan','horologist','tilt','bending'].includes(game.id))await t.test('completed board credited in collection',()=>assert.equal(events[0].payload.progress.completed,1));
+    if(['notan','horologist','tilt','bending'].includes(game.id)||a.override(game.id).creditsBoard)await t.test('completed board credited in collection',()=>assert.equal(events[0].payload.progress.completed,1));
     assert.equal(ctx.parity.requests.filter(r=>r.kind!=='analytics').length,0,'no original score API attempts');
   });
   for(const storage of ['unavailable','corrupt'])test(`${game.id}: ${storage} storage keeps actual entry playable`,async t=>{
-    const current={notan:'ink.v1',akari:'akari.current.v1',galaxies:'galaxies.current.v1',bridges:'bridges.current.v1',slant:'slant.current.v1',fold:'fold.current.v1',bending:'rimlight.dark.v2',tilt:'tilt-levels-grok.v1',horologist:'horologist-plate.v1'}[game.id];
+    const current=a.override(game.id).storageKey||{notan:'ink.v1',akari:'akari.current.v1',galaxies:'galaxies.current.v1',bridges:'bridges.current.v1',slant:'slant.current.v1',fold:'fold.current.v1',bending:'rimlight.dark.v2',tilt:'tilt-levels-grok.v1',horologist:'horologist-plate.v1'}[game.id];
     const ctx=await h.context(await getBrowser(),sizes.phone,{storage,seed:storage==='corrupt'?{localStorage:{['lukesteuber.minimal.'+game.id+':'+current]:'{damaged'}}:{}});t.after(()=>ctx.close());
     const {page,frame}=await h.shell(ctx,game);const before=await h.snapshot(frame);await a.keyMove(frame,game.id);
     assert.notDeepEqual(a.position(await h.snapshot(frame),game.id),a.position(before,game.id),'actual move despite storage failure');

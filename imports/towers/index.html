@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="color-scheme" content="light dark"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Towers · Luke Steuber</title><link rel="icon" href="./favicon.svg"><link rel="stylesheet" href="./towers.css?v=86ad7120">
+<link rel="stylesheet" href="./controls.css?v=4568a846">
+<script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
+<meta name="description" content="Raise a block of towers so every row and column holds each height once and each edge number counts the towers seen from there.">
+<meta property="og:title" content="Towers">
+<meta property="og:description" content="Raise a block of towers so every row and column holds each height once and each edge number counts the towers seen from there.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://lukesteuber.com/games/towers/">
+<meta property="og:image" content="https://lukesteuber.com/games/towers/og.png?v=8e5c4fa05a05">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="Numbered blocks of different heights on a diamond-shaped grid with several squares still empty, and a number standing off the end of some rows and columns.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Towers">
+<meta name="twitter:description" content="Raise a block of towers so every row and column holds each height once and each edge number counts the towers seen from there.">
+<meta name="twitter:image" content="https://lukesteuber.com/games/towers/og.png?v=8e5c4fa05a05">
+<meta name="twitter:image:alt" content="Numbered blocks of different heights on a diamond-shaped grid with several squares still empty, and a number standing off the end of some rows and columns.">
+</head>
+<body><header><button id="restart-btn" class="ib" aria-label="Restart puzzle"></button><h1 class="sr-only">Towers</h1><div id="readout" class="readout"></div></header><main id="board-shell" aria-label="Towers puzzle"><div class="board-stage"><div id="board" class="board"></div><div id="completion" class="completion" hidden><button id="next-btn" class="ib" aria-label="Next puzzle"></button></div></div></main><p id="feedback" role="status" aria-live="polite"></p><p id="announce" class="sr-only" role="status"></p>
+<nav class="toolbar" aria-label="Game controls"><div><button id="undo-btn" class="ib" aria-label="Undo"></button><button id="hint-btn" class="ib" aria-label="Hint"></button><button id="turn-btn" class="ib" aria-label="Turn the board a quarter"></button></div><div><button id="settings-btn" class="ib" aria-label="Settings"></button><button id="help-btn" class="ib" aria-label="Help"></button></div></nav>
+<dialog id="settings" class="sheet" aria-labelledby="settings-title"><div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
+<label class="row">Campaign <select id="campaign"></select></label><div class="row"><button id="previous">Previous</button><button id="following">Next</button></div>
+<label class="row">View <select id="view"><option value="iso">Isometric</option><option value="flat">Flat</option></select></label><label class="row">Theme <select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label class="row">Motion <select id="motion"><option value="system">System</option><option value="reduce">Reduced</option></select></label><div class="row"><span>Current board</span><button id="reset">Clear</button></div></div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
+<dialog id="help" class="sheet" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">How to play</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
+<p>Raise a tower on every square. Each row and each column holds every height once.</p>
+<p>A number at the edge counts the towers seen from there. A taller tower hides the shorter ones behind it.</p>
+<p><button id="replay-opening" class="text-action">Play the opening boards again</button></p>
+<div class="controls"><p>Tap — raises a tower by one. After the tallest, the square is empty again.</p><p>Hint — shows the next step and why. Press it again to fill it.</p><p>Drag sideways — turns the board, so any side can face you. The turn button does a quarter.</p><p>Black-topped towers are fixed. A dashed mark means a repeat or a miscount.</p></div>
+<details class="help-more"><summary>More controls</summary><p>On a solved board, tap a number to see from there: the towers it counts stay lit and the ones behind a taller tower fall into shadow. <kbd>V</kbd> walks round the numbers; Escape rests.</p><p><kbd>[</kbd> and <kbd>]</kbd> turn the board. Arrows move as it now faces. Enter or Space raises a tower. A digit sets a height; 0 or Delete clears. Z or Backspace undoes. H hints.</p><p>Restart clears this puzzle; Undo restores it.</p><p>Settings has a flat view: the same board as a plain grid of numbers.</p></details>
+</div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
+<script src="./engine.js?v=099f7b9c"></script><script src="./levels.js?v=ef1cadfa"></script><script src="./towers.js?v=32ef6bb2"></script>
+<script defer src="./controls.js?v=b23f979c"></script>
+</body></html>

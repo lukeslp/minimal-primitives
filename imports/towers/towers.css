@@ -1,0 +1,157 @@
+/* Towers. Monochrome; the board is an isometric block drawn in SVG. Luke Steuber. */
+@font-face{font-family:"Plex Mono";src:url("fonts/IBMPlexMono-500.woff2") format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"Plex Sans";src:url("fonts/IBMPlexSans-400.woff2") format("woff2");font-weight:400;font-display:swap}
+:root{color-scheme:light;--bg:#ffffff;--ink:#000000;--text:#111111;--sub:#5e5e5e;--line:#d4d4d4;--guide:#8f8f8f;--frame:#1c1c1c;--band:rgba(0,0,0,.05);--scrim:rgba(255,255,255,.84);--mono:"Plex Mono",monospace;--sans:"Plex Sans",sans-serif;
+  /* The three faces of a tower: top, left, right. */
+  --face-top:var(--bg);--face-left:var(--line);--face-right:var(--guide)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--bg:#000000;--ink:#ffffff;--text:#ededed;--sub:#a6a6a6;--line:#2f2f2f;--guide:#8f8f8f;--frame:#ededed;--band:rgba(255,255,255,.06);--scrim:rgba(0,0,0,.8)}}
+:root[data-theme=dark]{color-scheme:dark;--bg:#000000;--ink:#ffffff;--text:#ededed;--sub:#a6a6a6;--line:#2f2f2f;--guide:#8f8f8f;--frame:#ededed;--band:rgba(255,255,255,.06);--scrim:rgba(0,0,0,.8)}
+
+*{box-sizing:border-box;border-radius:0}
+html,body{touch-action:manipulation}
+body{margin:0;height:100dvh;overflow:hidden;background:var(--bg);color:var(--text);font:16px/1.45 var(--sans);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+button,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.35;cursor:default}
+button:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.readout{position:fixed;top:calc(max(0px,env(safe-area-inset-top)) + 18px);left:50%;transform:translateX(-50%);font:500 13px/1 var(--mono);letter-spacing:.02em;color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap}
+#restart-btn{position:fixed;top:max(0px,env(safe-area-inset-top));left:8px;z-index:2}
+
+#board-shell{position:absolute;inset:52px 12px 120px;display:flex;overflow:hidden;touch-action:none}
+.board-stage{flex:none;margin:auto;display:flex;flex-direction:column;align-items:center}
+.board{flex:none;line-height:0;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.board svg{display:block;overflow:visible}
+
+/* Ground, numbers at the edge, towers, then the labels above everything. */
+.ground path{fill:var(--bg);stroke:var(--guide);stroke-width:1}
+.cell{cursor:pointer;outline:none}
+.cell path{stroke:var(--ink);stroke-width:1.25;stroke-linejoin:round}
+.cell .tile{fill:transparent;stroke:none}
+.cell .top{fill:var(--face-top)}
+.cell .left{fill:var(--face-left)}
+.cell .right{fill:var(--face-right)}
+.cell.given .top{fill:var(--ink)}
+.board.flat .cell .top{stroke:none;fill:transparent}
+.board.flat .cell.given .top{fill:var(--ink)}
+.labels,.clues,.ground,.focus-ring{pointer-events:none}
+.labels text,.clues text{font-family:var(--mono);font-weight:500;text-anchor:middle;dominant-baseline:central}
+.labels text{fill:var(--ink);stroke:var(--face-top);stroke-width:3px;paint-order:stroke;stroke-linejoin:round}
+.labels .given text{fill:var(--bg);stroke:var(--ink)}
+.board.flat .labels text{stroke:none}
+.mark{fill:none;stroke:var(--ink)}
+.given .mark{stroke:var(--bg)}
+.mark.repeat{stroke-width:2;stroke-dasharray:5 4}
+.mark.evidence{stroke-width:1.25;stroke:var(--guide)}
+.mark.target{stroke-width:3;animation:pulse 650ms 2}
+.clue text{fill:var(--ink)}
+.clue.met text{fill:var(--sub)}
+.clue circle{fill:none;stroke:var(--ink);stroke-width:1.5;display:none}
+.clue.broken circle{display:inline;stroke-dasharray:4 3}
+.clue.evidence circle{display:inline;stroke-dasharray:none;stroke-width:2;animation:pulse 650ms 2}
+.focus-ring{display:none;fill:none;stroke:var(--ink);stroke-width:3.5;stroke-linejoin:round}
+.focus-ring.on-given{stroke:var(--bg);stroke-width:3}
+.board:has(.cell:focus-visible) .focus-ring{display:inline}
+/* At the solve the edge numbers and the ground lines let go; the skyline stands alone. */
+.clues,.ground path{transition:opacity .6s}
+/* The numbers stay, quieter, and can be tapped: light falls from that point along its line. The towers
+   it reaches keep their color, the ones behind a taller tower fall into shadow, the rest stand back. */
+.clue .hit{display:none}
+.board.solved .clues{pointer-events:auto}
+.board.solved .clue{cursor:pointer}
+.board.solved .clue .hit{display:inline;stroke:none;fill:transparent;pointer-events:all}
+.board.solved .clue text{fill:var(--sub)}
+.board.solved .clue.viewing text{fill:var(--ink)}
+.board.solved .clue.viewing circle:not(.hit){display:inline;stroke-dasharray:none;stroke-width:1.5}
+.cell{transition:opacity .35s}
+.board.solved .cell.aside{opacity:.22}
+.board.solved .cell.shaded .top,.board.solved .cell.shaded.given .top,.board.solved.flat .cell.shaded .tile{fill:color-mix(in srgb,var(--c,transparent) 34%,#000)}
+.board.solved .cell.shaded .left{fill:color-mix(in srgb,var(--c,var(--face-left)) 26%,#000)}
+.board.solved .cell.shaded .right{fill:color-mix(in srgb,var(--c,var(--face-right)) 18%,#000)}
+.board.solved .labels g.shaded text,.board.solved .labels g.shaded.given text{fill:#fff;fill-opacity:.75}
+.board.solved .ground path{stroke-opacity:0}
+.board.solved .cell{cursor:default}
+/* And it takes color, one per height, cool and low to warm and tall, each tower shaded on its two
+   sides. Color arrives only here; the heights are still read from the shapes and the numbers. */
+.cell path{transition:fill .7s,stroke .7s}
+.labels text{transition:fill .7s,stroke .7s}
+.board.solved .cell[data-v="1"]{--c:#8ecae6}
+.board.solved .cell[data-v="2"]{--c:#9ad0c2}
+.board.solved .cell[data-v="3"]{--c:#f4d58d}
+.board.solved .cell[data-v="4"]{--c:#f2a65a}
+.board.solved .cell[data-v="5"]{--c:#ee7b5f}
+.board.solved .cell[data-v="6"]{--c:#d98fb3}
+.board.solved .cell .top,.board.solved .cell.given .top,.board.solved.flat .cell .tile,.board.solved.flat .cell.given .top{fill:var(--c,transparent)}
+.board.solved .cell .left{fill:color-mix(in srgb,var(--c,var(--face-left)) 80%,#000)}
+.board.solved .cell .right{fill:color-mix(in srgb,var(--c,var(--face-right)) 60%,#000)}
+.board.solved .labels text,.board.solved .labels .given text{fill:#111;stroke:transparent}
+/* The page takes color with the board: the height one taller than the board's tallest tower, the next
+   step of the same climb from cool to warm (towers.js sets it). In a Latin square every height stands
+   once in each row and column, so no height shows least; the one color the board lacks is the next one
+   up, and no tower sinks into the page. Black reads on all five, in both themes, so what is written on
+   the page and the towers' edges go to black. The ground lets go of its own fill, so towers that stand
+   back in a view stand back into the page, and the Next box is open. The numbers that are not in use
+   stay a step quieter, in a dark shade of the page. Settings and Help keep their own paper. */
+html[data-field="2"]{--field:#9ad0c2}html[data-field="3"]{--field:#f4d58d}html[data-field="4"]{--field:#f2a65a}html[data-field="5"]{--field:#ee7b5f}html[data-field="6"]{--field:#d98fb3}
+html[data-field] body{background-color:var(--field);transition:background-color .7s}
+html[data-field] body>:not(dialog){--ink:#000;--sub:#000;--text:#000}
+html[data-field] .ground path{fill:transparent}
+html[data-field] .board.solved .clue text{fill:color-mix(in srgb,var(--field) 30%,#000)}
+html[data-field] .board.solved .clue.viewing text{fill:#000}
+html[data-field] #completion #next-btn{background:transparent}
+
+.completion{display:flex;justify-content:center;height:48px;animation:next-reveal .45s .15s both}
+.completion[hidden]{display:none}
+#completion #next-btn{border:1px solid var(--ink)!important;background:var(--bg)}
+@keyframes next-reveal{from{opacity:0;translate:0 4px}to{opacity:1;translate:0 0}}
+@keyframes pulse{50%{opacity:.3}}
+
+#feedback{position:fixed;bottom:60px;left:16px;right:16px;margin:0;min-height:0;text-align:center;color:var(--sub);font:14px/1.3 var(--sans);pointer-events:none}
+.toolbar{position:fixed;bottom:max(6px,env(safe-area-inset-bottom));left:8px;right:8px;display:flex;justify-content:space-between}
+.toolbar>div{display:flex}
+.ib{display:inline-grid;place-items:center;width:48px;height:48px;min-width:48px;min-height:48px;border:0;background:none;padding:12px;color:var(--ink);transition:opacity .15s,transform .1s}
+.ib svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.ib:active{transform:scale(.94)}
+
+.sheet{width:min(32rem,calc(100vw - 16px));max-height:calc(100dvh - 16px);border:1px solid var(--frame);padding:0;background:var(--bg);color:var(--text)}
+.sheet[open]{display:flex;flex-direction:column}
+.sheet::backdrop{background:var(--scrim)}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;padding:8px 16px;gap:12px;flex:none;border-bottom:1px solid var(--line)}
+.sheet-head h2{margin:0;font:500 16px/1.3 var(--mono)}
+.sheet-head form{margin:0}
+.sheet-x{width:44px;height:44px;min-width:44px;min-height:44px;padding:10px}
+.sheet-body{padding:20px 24px;overflow:auto;min-height:0;overscroll-behavior:contain}
+.sheet-body p{margin:0 0 16px;max-width:60ch}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;border-bottom:1px solid var(--line)}
+.row select{max-width:65%;min-height:44px;background:var(--bg);border:0;padding:4px 8px}
+.row button{min-height:44px;background:none;border:0;padding:8px}
+.row button:not(:disabled){text-decoration:underline;text-underline-offset:4px}
+.sheet-foot{padding:12px 24px;border-top:1px solid var(--line);flex:none;color:var(--sub);font-size:14px}
+.sheet-foot a{color:inherit}
+.text-action{min-height:44px;padding:8px 12px;border:1px solid var(--line);background:none;font:500 14px/1.3 var(--mono);color:var(--text)}
+.controls{border-top:1px solid var(--line);padding-top:16px}
+.controls p{margin:0 0 6px}
+.help-more{border-top:1px solid var(--line);margin-top:16px;padding-top:4px}
+.help-more summary{cursor:pointer;min-height:44px;padding:12px 0;color:var(--sub)}
+.help-more p{font-size:14px}
+.sheet-body .help-more p:last-child{margin-bottom:0}
+kbd{font-family:var(--mono)}
+@media(max-width:480px){.sheet-head{padding:8px 12px}.sheet-body{padding:16px}}
+
+@media(orientation:landscape) and (max-height:520px){
+  #board-shell{inset:40px 72px 66px 12px}
+  .toolbar{left:auto;right:8px;top:12px;bottom:12px;flex-direction:column;width:48px}
+  .toolbar>div{flex-direction:column}
+  #feedback{left:64px;right:72px;bottom:4px;font-size:12px}
+  .readout{left:calc(50% - 32px)}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+:root[data-motion=reduce] *,:root[data-motion=reduce] *::before,:root[data-motion=reduce] *::after{animation:none!important;transition:none!important}
+@media(forced-colors:active){
+  .cell path,.mark,.focus-ring,.clue circle{stroke:CanvasText}
+  .cell .top{fill:Canvas}.cell .left,.cell .right{fill:GrayText}.cell.given .top{fill:CanvasText}
+  .labels text,.clue text{fill:CanvasText;stroke:Canvas}.labels .given text{fill:Canvas;stroke:CanvasText}.given .mark{stroke:Canvas}
+  .ground path{fill:Canvas;stroke:GrayText}.sheet{border-color:CanvasText}
+}
+@media(forced-colors:active){.board.solved .cell .top,.board.solved .cell.given .top,.board.solved.flat .cell .tile{fill:Canvas}.board.solved .cell .left,.board.solved .cell .right{fill:GrayText}.board.solved .labels text,.board.solved .labels .given text{fill:CanvasText;stroke:Canvas}}
+@media(forced-colors:active){html[data-field] body{background-color:Canvas}html[data-field] body>:not(dialog){--ink:CanvasText;--sub:CanvasText;--text:CanvasText}html[data-field] .ground path{fill:Canvas}html[data-field] .board.solved .clue text{fill:CanvasText}html[data-field] #completion #next-btn{background:Canvas}}

@@ -9,7 +9,10 @@ const manifest=JSON.parse(readFileSync(new URL('sources.json',root),'utf8'));
 const canonical=value=>JSON.stringify(value,(_,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v);
 const digest=value=>createHash('sha256').update(canonical(value)).digest('hex');
 const same=(a,b)=>canonical(a)===canonical(b);
-const fields={akari:['w','h','cells'],galaxies:['w','h','centres'],bridges:['w','h','islands'],slant:['w','h','clues'],fold:['w','h','pairs'],horologist:['W','H','drive','clocks','pillars','tray'],tilt:['levels']};
+const fields={akari:['w','h','cells'],galaxies:['w','h','centres'],bridges:['w','h','islands'],slant:['w','h','clues'],fold:['w','h','pairs'],horologist:['W','H','drive','clocks','pillars','tray'],tilt:['levels'],cast:['n','maxH','left','right','plan','cubes'],'shoo-minimal':['cells','walls'],'tilt-3d':['levels']};
+// Games scored by a count, and the file that holds each game's boards.
+const POLICY={horologist:'hits-v1',tilt:'moves-v1',fold:'folds-v1',cast:'hits-v1','shoo-minimal':'hits-v1','tilt-3d':'moves-v1'};
+const BOARDS={horologist:'boards.js',cast:'boards.js','shoo-minimal':'boards.js'};
 const cache=new Map();
 function load(game,path){
   const key=game+'/'+path;
@@ -20,7 +23,8 @@ function load(game,path){
   if(createHash('sha256').update(data).digest('hex')!==source.sha256)throw Error('Rule source mismatch');
   const result=require(fileURLToPath(file));cache.set(key,result);return result;
 }
-const layout=(game,p)=>Object.fromEntries(fields[game].filter(k=>p[k]!==undefined).map(k=>[k,p[k]]));
+// Shoo · Minimal describes a board with no walls as walls: [].
+const layout=(game,p)=>Object.fromEntries(fields[game].filter(k=>p[k]!==undefined||game==='shoo-minimal'&&k==='walls').map(k=>[k,k==='walls'&&game==='shoo-minimal'?p[k]||[]:p[k]]));
 const bounded=(a,max)=>Array.isArray(a)&&a.length<=max;
 const point=p=>({level:p.level,row:p.row,col:p.col});
 function tiltValue(E,p,proof){
@@ -49,6 +53,53 @@ function horologistValue(E,p,proof){
   }
   return proof.hits;
 }
+// Cast: every hit sets one column or carries one cube; the value is the hit count.
+function castValue(E,p,proof){
+  const states=Array.isArray(proof.history)?[...proof.history,proof.heights]:null;
+  if(!states||!bounded(states,1024)||states.length<2||!Number.isSafeInteger(proof.hits)||proof.hits!==states.length-1)return null;
+  const grid=h=>Array.isArray(h)&&h.length===p.n&&h.every(row=>Array.isArray(row)&&row.length===p.n&&row.every(v=>Number.isInteger(v)&&v>=0&&v<=p.maxH));
+  if(!states.every(grid)||!same(states[0],E.start(p)))return null;
+  for(let n=1;n<states.length;n++){
+    const a=states[n-1],b=states[n],changed=[];
+    for(let r=0;r<p.n;r++)for(let c=0;c<p.n;c++)if(a[r][c]!==b[r][c])changed.push([r,c]);
+    if(changed.length===1){const [r,c]=changed[0];if(!same(E.set(p,a,r,c,b[r][c]),b))return null;}
+    else if(changed.length===2){
+      const [[r1,c1],[r2,c2]]=changed,from=a[r1][c1]>b[r1][c1]?[r1,c1]:[r2,c2],to=from===changed[0]?[r2,c2]:[r1,c1];
+      const lifted=E.set(p,a,from[0],from[1],a[from[0]][from[1]]-1);
+      if(!lifted||!same(E.set(p,lifted,to[0],to[1],a[to[0]][to[1]]+1),b))return null;
+    }else return null;
+  }
+  return E.solved(p,proof.heights)?proof.hits:null;
+}
+// Shoo · Minimal: every tap moves at least one bee; Restart is undoable. The value is the tap count.
+function shooValue(E,p,proof){
+  const states=proof.states;
+  if(!bounded(states,1024)||states.length<2)return null;
+  const start=E.start(p),ok=s=>s&&Number.isSafeInteger(s.bees)&&s.bees>=0&&Number.isSafeInteger(s.hits)&&s.hits>=0;
+  if(!states.every(ok)||states[0].bees!==start||states[0].hits!==0)return null;
+  const n=E.layout(p).n;
+  for(let k=1;k<states.length;k++){
+    const a=states[k-1],b=states[k];
+    if(b.hits===0&&b.bees===start)continue;
+    if(b.hits!==a.hits+1||b.bees===a.bees)return null;
+    let found=false;for(let i=0;i<n&&!found;i++)found=E.shoo(p,a.bees,i).mask===b.bees;
+    if(!found)return null;
+  }
+  const last=states.at(-1);
+  return E.solved(last.bees)?last.hits:null;
+}
+// Tilt · 3D: every move slides the marble; the value is the move count.
+function tilt3dValue(E,p,proof){
+  const moves=proof.moves;
+  if(!bounded(moves,512)||!moves.length)return null;
+  let state=E.start(p),solved=false;
+  for(const dir of moves){
+    if(solved||typeof dir!=='string'||!Object.prototype.hasOwnProperty.call(E.DIRS,dir))return null;
+    const r=E.slide(p,state,dir);if(!r.moved)return null;
+    state={level:r.level,row:r.row,col:r.col};solved=r.solved;
+  }
+  return solved?moves.length:null;
+}
 function generated(E,game,g,levels){
   if(!g||!Number.isInteger(g.seed)||g.seed<0||g.seed>4294967295||!['Easy','Normal','Hard'].includes(g.difficulty)||g.version!==E.VERSION)return null;
   if(game==='akari'||game==='galaxies')return E.generate(g.seed,g.difficulty,{pool:levels});
@@ -66,7 +117,7 @@ export async function validateProof(request){
       return {valid:true,...await validateHexProof(request)};
     }
     const pin=manifest.games.find(g=>g.id===i.game);if(!pin)return{valid:false};
-    const policy={horologist:'hits-v1',tilt:'moves-v1',fold:'folds-v1'}[i.game]||'time-v1';
+    const policy=POLICY[i.game]||'time-v1';
     const rulePath=i.game==='bending'?'well.mjs':'engine.js';
     const rules=pin.files.find(f=>f.path===i.game+'/'+rulePath)?.sha256.slice(0,16);
     if(i.rulesVersion!==rules||i.scoringPolicy!==policy)return{valid:false};
@@ -81,7 +132,7 @@ export async function validateProof(request){
       puzzleLayout=p;
     }else{
       E=load(i.game,'engine.js');
-      const L=load(i.game,i.game==='horologist'?'boards.js':'levels.js');
+      const L=load(i.game,BOARDS[i.game]||'levels.js');
       if(i.game==='notan'){
         const lists=i.mode==='plus'?load('notan','plus-levels.js'):L;
         const entry=lists.find(p=>p.id===i.puzzleId);
@@ -99,6 +150,9 @@ export async function validateProof(request){
           if(!E.inspect(p,state).solved)return{valid:false};value=state.folds;
         }else if(i.game==='horologist')value=horologistValue(E,p,proof);
         else if(i.game==='tilt')value=tiltValue(E,p,proof);
+        else if(i.game==='cast')value=castValue(E,p,proof);
+        else if(i.game==='shoo-minimal')value=shooValue(E,p,proof);
+        else if(i.game==='tilt-3d')value=tilt3dValue(E,p,proof);
         else if(!E.stateValid(p,proof.cells)||!E.inspect(p,proof.cells).solved)return{valid:false};
       }
     }
@@ -107,4 +161,4 @@ export async function validateProof(request){
   }catch{return{valid:false};}
 }
 
-export const validatorInternals={canonical,digest,layout,load,horologistValue,tiltValue};
+export const validatorInternals={canonical,digest,layout,load,horologistValue,tiltValue,castValue,shooValue,tilt3dValue,POLICY};

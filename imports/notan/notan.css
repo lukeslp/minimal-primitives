@@ -277,7 +277,13 @@ button { font: inherit; color: inherit; }
 /* Solved: the lines, marks and clues go; the picture stays and moves to center. */
 .board { transform-origin: 0 0; }
 .board.solved { --line: transparent; --guide: transparent; --frame: transparent; transform: var(--solved); }
+/* The lift: the numbers fade first, then the picture eases straight up with no sudden start. */
+.board.solved { transition: transform 0.85s cubic-bezier(0.45, 0, 0.25, 1) 0.12s; }
+.board.solved .clue, .board.solved .band, .board.solved .hint { transition: opacity 0.25s ease-out; }
 .board.solved .cell { cursor: default; }
+/* A solved picture takes its colors (notan.js paint()); forced colors keep the ink. */
+.cell::before { transition: transform 0.12s ease-out, right 0.6s, bottom 0.6s, top 0.6s, left 0.6s, background-color 0.9s ease-out 0.2s; }
+.board.solved .cell.ink::before { background: var(--paint, var(--ink)); }
 /* Fills overlap by a pixel so the scaled picture shows no seams. */
 .board.solved .cell::before { top: 0; left: 0; right: -1px; bottom: -1px; }
 .board.solved .cell::after,
@@ -427,6 +433,7 @@ dialog.sheet::backdrop { background:var(--scrim); }
 /* A locked line's numbers turn red. The lock used to be a short bar beside the
  * clue, in the same spot as the cannot-fit tick. */
 .clue.locked, .clue.locked span, .clue.locked span.n-done { color: #d93036; }
+@media(forced-colors:active) { .board.solved .cell.ink::before { background: CanvasText; } }
 @media(forced-colors:active) { .clue.locked { outline: 1px solid CanvasText; outline-offset: -2px; } }
 /* The hint shows its answer inside the ring: a faint fill, or the empty dot. */
 .hint.fill::after, .hint.empty::after { content: ""; position: absolute; background: var(--ink); opacity: 0.38; }

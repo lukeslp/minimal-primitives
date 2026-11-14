@@ -11,23 +11,25 @@ AutoName: Minimal Primitives
 
 RepoType: git
 Repo: https://github.com/lukeslp/minimal-primitives.git
-Binaries: https://github.com/lukeslp/minimal-primitives/releases/download/v%v/minimal-primitives-%v.apk
+Binaries: 
+  https://github.com/lukeslp/minimal-primitives/releases/download/v%v/minimal-primitives-%v.apk
 
 Builds:
   - versionName: 0.4.0
     versionCode: 8
-    commit: EXPORT_COMMIT
+    commit: ffe908f91ff98b0521d256450336b48df372156f
     subdir: android/app
     gradle:
       - fdroid
+    prebuild: python3 ../../tools/build.py --variant fdroid --no-zip
     scandelete:
       - imports/glance/vendor
-    prebuild: python3 ../../tools/build.py --variant fdroid --no-zip
 
 AllowedAPKSigningKeys: e240104547e5c771f6b1c80ebc63cc1e472da24093407a1d449b4074d4d3e5f3
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9.]+$
-UpdateCheckData: android/app.properties|FDROID_VERSION_CODE=(\d+)|android/app.properties|FDROID_VERSION_NAME=(.+)
+UpdateCheckData: 
+  android/app.properties|FDROID_VERSION_CODE=(\d+)|android/app.properties|FDROID_VERSION_NAME=(.+)
 CurrentVersion: 0.4.0
 CurrentVersionCode: 8

@@ -1,0 +1,13 @@
+{
+ "script": "delve.js",
+ "engine": "engine.js",
+ "policy": "depth-v1",
+ "hooks": [
+  ["  let run = null;\n", "  let run = null, __minimalLog = [], __minimalEnded = [];\n"],
+  ["  function startRun(mode) {\n    stopTravel();", "  function startRun(mode) {\n    window.MinimalAdapter?.restart();\n    stopTravel();"],
+  ["    fell = []; struckMe = false; found = '';\n    jump();", "    fell = []; struckMe = false; found = ''; __minimalLog = [];\n    jump();"],
+  ["    if (!ev.length || (ev.length === 1 && ev[0].t === 'blocked')) return ev;\n", "    if (!ev.length || (ev.length === 1 && ev[0].t === 'blocked')) return ev;\n    __minimalLog.push(action.type === 'move' ? ['move', Math.sign(action.dx), Math.sign(action.dy)] : [action.type]);\n"],
+  ["    teach(ev);\n    render();", "    teach(ev);\n    if (run.over) __minimalEnded.push({ seed: run.seed, mode: run.mode, depth: run.depth, turn: run.turn });\n    window.MinimalAdapter?.committed();\n    render();"]
+ ],
+ "append": false
+}

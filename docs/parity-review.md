@@ -1,6 +1,6 @@
 # Minimal Primitives parity verification
 
-Luke Steuber, October 14, 2026.
+October 14, 2026.
 
 The initial audit at `8a990bb` identified missing restore presentation, original
 score transports, incomplete Slant free-draw state, Bridges circuit mode,
@@ -79,12 +79,12 @@ location. Requests outside the fixture origin, original score APIs and non-GET
 requests are blocked before network access. No public scores are posted.
 The Escape-only Rift restore probe freezes its browser clock: its native debug
 helper deliberately leaves only 80ms before a loss, which must not elapse during
-host-side iframe recreation. Live timer advancement is tested separately. Hex board raster comparisons use
-a controlled clock and software Canvas 2D; accelerated edge rasterization was
+host-side iframe recreation. Live timer advancement is tested separately. Hex
+board raster comparisons use a controlled clock and software Canvas 2D; accelerated edge rasterization was
 not repeatable even with identical native poses. All other Hex input, material
 and lifecycle checks still exercise the actual pinned browser runtime.
 
 Full acceptance also runs the real isolated HTTP/SQLite service and actual-ZIP
 embed tests through `npm test`. See `release/verification.json` for the accepted
-artifact and final counts. Initial failures and intermediate evidence remain
-outside Git under `~/craft/reports/by-date/2026-10-14/minimal-build/`.
+artifact and final counts. Initial failures and intermediate evidence were kept
+outside Git.

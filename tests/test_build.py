@@ -50,7 +50,7 @@ class ExportTests(unittest.TestCase):
         with zipfile.ZipFile(ROOT / 'build/minimal-primitives-browser.zip') as archive:
             self.assertIn('index.html', archive.namelist())
             catalog = json.loads(archive.read('catalog.json'))
-            self.assertEqual(len(catalog), 18)
+            self.assertEqual(len(catalog), len(json.loads((ROOT / 'sources.json').read_text())['games']))
             self.assertEqual(sum(1 for game in catalog if game.get('group') == 'accessible'), 8)
             for game in catalog:
                 for entry in [game['entry']] + [m['entry'] for m in game['modes']]:
@@ -79,7 +79,8 @@ class CameraFreeVariantTests(unittest.TestCase):
         self.assertEqual(self.first, self.second)
 
     def test_no_mediapipe_and_every_game_kept(self):
-        self.assertFalse([n for n in self.names if n.endswith(('.wasm', '.task')) or '/vendor/' in n])
+        # MediaPipe's folder; Tilt · 3D's three.js vendor folder is ordinary game code.
+        self.assertFalse([n for n in self.names if n.endswith(('.wasm', '.task')) or 'glance/vendor/' in n])
         catalog = json.loads(self.texts['catalog.json'])
         full = json.loads((ROOT / 'sources.json').read_text())['games']
         self.assertEqual([g['id'] for g in catalog], [g['id'] for g in full])
@@ -139,9 +140,20 @@ class ShippedPageTests(unittest.TestCase):
                     bad.append((name, tag))
         self.assertEqual(bad, [])
         self.assertIn('index.html', seen)
-        # Every game's Settings/Help credit is part of the scan.
+        # Every game's Settings/Help credit is part of the scan. A game whose only
+        # outside link was the Minimal board (now the library link) has none left.
+        credit = re.compile(r'<a\b[^>]*\bhref\s*=\s*["\']?https?://(?!lukesteuber\.com/(?:games|minimal)/?["\'])', re.I)
         for game in self.catalog:
+            if not any(credit.search(path.read_text()) for path in (ROOT / 'imports' / game['id']).rglob('*.html')):
+                continue
             self.assertTrue(any(name.startswith('games/' + game['id'] + '/') for name in seen), game['id'])
+
+    def test_no_home_screen_install_in_the_package(self):
+        # The web pages install to a home screen; the package ships none of that.
+        bad = [name for name, text in self.files.items() if name.endswith('.html') and
+               re.search(r'rel=["\']manifest|pwa\.js|apple-mobile-web-app|serviceWorker\.register', text, re.I)]
+        self.assertEqual(bad, [])
+        self.assertFalse([n for n in self.files if n.endswith(('manifest.webmanifest', '/sw.js', '/pwa.js'))])
 
     def test_no_shipped_page_references_a_root_absolute_path(self):
         pattern = re.compile(r'''\b(?:href|src|action|poster|data-other)\s*=\s*["']?/(?!/)|url\(\s*["']?/(?!/)''', re.I)
@@ -155,12 +167,28 @@ class ShippedPageTests(unittest.TestCase):
 
 
 
+class PrimitivesTests(unittest.TestCase):
+    """Every game names its interaction primitives from the shared vocabulary (docs/interaction-primitives.md)."""
+
+    def test_every_game_has_primitives_from_the_vocabulary(self):
+        data = json.loads((ROOT / 'primitives.json').read_text())
+        allowed = {verb for verbs in data['vocabulary']['groups'].values() for verb in verbs}
+        self.assertLessEqual(set(data['vocabulary']['line']), allowed, 'the public line uses grouped verbs')
+        games = [g['id'] for g in json.loads((ROOT / 'sources.json').read_text())['games']]
+        self.assertEqual(sorted(data['games']), sorted(games), 'Add the new game to primitives.json')
+        for game, entry in data['games'].items():
+            self.assertTrue(1 <= len(entry['primitives']) <= 3, game)
+            self.assertLessEqual(set(entry['primitives']), allowed, game)
+            self.assertTrue(entry['exercises'], game)
+
+
 class ReleaseCopyTests(unittest.TestCase):
     """The release page names every game in one sentence; a new game needs only that edit."""
 
     def test_every_game_has_its_line_and_the_count_matches(self):
         games = json.loads((ROOT / 'sources.json').read_text())['games']
         words = 'zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty'.split()
+        words += ['twenty-' + w for w in words[1:10]]
         page = (ROOT / 'release/itch-page.md').read_text().split('\n---\n')[0]
         self.assertIn(words[len(games)].capitalize() + ' small puzzle games', page)
         for game in games:

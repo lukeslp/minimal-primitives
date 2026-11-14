@@ -41,3 +41,33 @@ test('replay move counts cannot be supplied independently of the moves',async()=
  const T=require('../imports/tilt/engine.js'),b=require('../imports/tilt/levels.js')[0];
  assert.equal(tiltValue(T,b,{states:[{...T.start(b),moves:0,solved:false},{level:1,row:1,col:1,moves:1,solved:true}]}),null);
 });
+
+test('Cast, Shoo · Minimal and Tilt · 3D are scored by their counts from replayed proofs',async()=>{
+ const {validateProof,validatorInternals:{digest,layout}}=await import('../adapters/validators.mjs');
+ const rules=game=>sources.games.find(g=>g.id===game).files.find(f=>f.path===game+'/engine.js').sha256.slice(0,16);
+ const identity=(game,p,policy)=>({game,mode:'campaign',puzzleId:p.id,layoutHash:digest(layout(game,p)),rulesVersion:rules(game),scoringPolicy:policy});
+ const C=require('../imports/cast/engine.js');let count=0;
+ for(const p of require('../imports/cast/boards.js')){
+  const answer=C.solve(p).solution,history=[];let h=C.start(p);
+  for(let r=0;r<p.n;r++)for(let c=0;c<p.n;c++)while(h[r][c]<answer[r][c]){history.push(h);h=C.set(p,h,r,c,h[r][c]+1);}
+  const proof={board:p.id,heights:h,hits:history.length,history};
+  assert.deepEqual(await validateProof({identity:identity('cast',p,'hits-v1'),proof,elapsedMs:5000}),{valid:true,value:history.length},'cast '+p.id);
+  assert.equal((await validateProof({identity:identity('cast',p,'hits-v1'),proof:{...proof,hits:history.length+1},elapsedMs:5000})).valid,false,'cast hits must match the replay');
+  assert.equal((await validateProof({identity:identity('cast',p,'time-v1'),proof,elapsedMs:5000})).valid,false);count++;
+ }
+ const S=require('../imports/shoo-minimal/engine.js');
+ for(const p of require('../imports/shoo-minimal/boards.js').slice(0,20)){
+  let bees=S.start(p);const states=[{bees,hits:0}];
+  // The game's own hint gives the next look; solve() returns sorted sets, not tap order.
+  for(let guard=0;!S.solved(bees)&&guard<64;guard++){const i=S.hint(p,bees).look;bees=S.shoo(p,bees,i).mask;states.push({bees,hits:states.length});}
+  assert.deepEqual(await validateProof({identity:identity('shoo-minimal',p,'hits-v1'),proof:{states},elapsedMs:5000}),{valid:true,value:states.length-1},'shoo '+p.id);
+  assert.equal((await validateProof({identity:identity('shoo-minimal',p,'hits-v1'),proof:{states:[states[0],{...states.at(-1),hits:1}].concat(states.length>2?[]:[{...states.at(-1),hits:2}])},elapsedMs:5000})).valid,false,'a skipped tap is refused');count++;
+ }
+ const T=require('../imports/tilt-3d/engine.js');
+ for(const p of require('../imports/tilt-3d/levels.js')){
+  const moves=T.solve(p);
+  assert.deepEqual(await validateProof({identity:identity('tilt-3d',p,'moves-v1'),proof:{board:p.id,moves},elapsedMs:5000}),{valid:true,value:moves.length},'tilt-3d '+p.id);
+  assert.equal((await validateProof({identity:identity('tilt-3d',p,'moves-v1'),proof:{board:p.id,moves:moves.slice(0,-1)},elapsedMs:5000})).valid,false,'an unfinished replay is refused');count++;
+ }
+ assert.ok(count>=80);
+});

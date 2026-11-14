@@ -3,6 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const {chromium}=require(process.env.MINIMAL_PLAYWRIGHT||'/Users/luke/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright-core');
 const chrome=process.env.MINIMAL_CHROME||'/Users/luke/Library/Caches/ms-playwright/chromium-1228/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
 const root=path.resolve(__dirname,'..'),prefix='/html/4815162/';
+const mainTiles=JSON.parse(fs.readFileSync(path.join(root,'sources.json'))).games.filter(g=>g.group!=='accessible').reduce((n,g)=>n+(g.modes?g.modes.length:1),0);
 const types={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.woff2':'font/woff2','.png':'image/png','.svg':'image/svg+xml','.webp':'image/webp','.jpg':'image/jpeg'};
 
 test('archive runs every title inside an itch-style embed without outside requests', {timeout:180000},async()=>{
@@ -23,7 +24,7 @@ test('archive runs every title inside an itch-style embed without outside reques
   res.setHeader('Content-Type',types[path.extname(target)]||'application/octet-stream');fs.createReadStream(target).pipe(res);
  });
  for(let candidate=5011;candidate<=5019;candidate++){
-  try{await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(candidate,resolve);});port=candidate;break;}catch(error){if(error.code!=='EADDRINUSE')throw error;server.removeAllListeners('error');}
+  try{await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(candidate,'127.0.0.1',resolve);});port=candidate;break;}catch(error){if(error.code!=='EADDRINUSE')throw error;server.removeAllListeners('error');}
  }
  assert.ok(port,'available permitted test port');
  const browser=await chromium.launch({executablePath:chrome,headless:true});
@@ -34,7 +35,7 @@ test('archive runs every title inside an itch-style embed without outside reques
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400&&!r.url().endsWith('favicon.ico'))failures.push(r.status()+' '+r.url());});
   await page.goto(`http://localhost:${port}/`);
   let collection=await (await page.locator('#collection').elementHandle()).contentFrame();await collection.waitForSelector('.tile');
-  assert.equal(await collection.locator('#tiles .tile').count(),12);assert.equal(await collection.locator('#access-tiles .tile').count(),8);
+  assert.equal(await collection.locator('#tiles .tile').count(),mainTiles);assert.equal(await collection.locator('#access-tiles .tile').count(),8);
   assert.equal(await collection.locator('.collection-bar,#modes').count(),0);
   assert.equal(await collection.locator('#library header,.tile-title,.tile-resume').count(),0);
   const assertTileArtwork=async collection=>{
@@ -48,7 +49,7 @@ test('archive runs every title inside an itch-style embed without outside reques
    await collection.evaluate(()=>new Promise(requestAnimationFrame));
    await collection.waitForFunction(()=>[...document.querySelectorAll('#tiles .tile img')].every(i=>i.complete&&i.naturalWidth>0),{},{timeout:4000}).catch(async()=>{throw new Error('Tile images failed: '+JSON.stringify(await collection.locator('#tiles .tile img').evaluateAll(imgs=>imgs.map(i=>({src:i.src,complete:i.complete,width:i.naturalWidth})))));});
    const images=await collection.locator('#tiles .tile img').evaluateAll(imgs=>imgs.map(i=>i.currentSrc));
-   assert.equal(images.length,12,'every title/mode has artwork');
+   assert.equal(images.length,mainTiles,'every title/mode has artwork');
    for(const src of images){
     const url=new URL(src),file=decodeURIComponent(url.pathname.slice(prefix.length));
     assert.equal(url.searchParams.get('v'),manifest[file].slice(0,12),'artwork URL carries its content hash');
@@ -62,7 +63,7 @@ test('archive runs every title inside an itch-style embed without outside reques
    if(touch){
     const input=await page.context().newCDPSession(page),x=frame.x+frame.width/2,y=frame.y+frame.height*.8;
     try{
-     for(let swipe=0;swipe<6;swipe++){
+     for(let swipe=0;swipe<16;swipe++){
       if(await collection.locator('#library footer').evaluate(e=>e.getBoundingClientRect().bottom<=innerHeight+1))break;
       await input.send('Input.synthesizeScrollGesture',{x,y,yDistance:-frame.height*.65,gestureSourceType:'touch',speed:600});
      }
@@ -152,7 +153,7 @@ test('archive runs every title inside an itch-style embed without outside reques
     await phone.locator('.tile[data-game="'+game.id+'"]'+(mode?'[data-mode="'+mode.id+'"]':'')).click();
     const child=phone.frames()[1];await child.locator('#minimal-home').waitFor();
     const geometry=await child.evaluate(()=>{
-     const home=document.querySelector('#minimal-home').getBoundingClientRect(),reset=(document.querySelector('#qc-reset')||document.querySelector('#restart-btn,#restart,#reset-btn,#control-restart')).getBoundingClientRect();
+     const home=document.querySelector('#minimal-home').getBoundingClientRect(),reset=(document.querySelector('#qc-reset')||document.querySelector('#restart-btn,#restart,#reset-btn,#control-restart')||document.querySelector('#undo-btn')||document.querySelector('#new-btn')).getBoundingClientRect();
      return {home:[home.x,home.y,home.width,home.height],reset:[reset.x,reset.y,reset.width,reset.height]};
     });
     assert.ok(Math.abs(geometry.home[0]-(geometry.reset[0]+geometry.reset[2]))<1,game.id+' Home beside Restart');
@@ -163,7 +164,7 @@ test('archive runs every title inside an itch-style embed without outside reques
    }
    await phone.close();
   }
-  const direct=await context.newPage();await direct.goto(`http://127.0.0.1:${port}${prefix}games/horologist/index.html`);await direct.locator('#minimal-home').click();await direct.waitForURL(`http://127.0.0.1:${port}${prefix}index.html`);await direct.waitForSelector('.tile');assert.equal(await direct.locator('#tiles .tile').count(),12,'Home also works from a directly opened local share link');await direct.close();
+  const direct=await context.newPage();await direct.goto(`http://127.0.0.1:${port}${prefix}games/horologist/index.html`);await direct.locator('#minimal-home').click();await direct.waitForURL(`http://127.0.0.1:${port}${prefix}index.html`);await direct.waitForSelector('.tile');assert.equal(await direct.locator('#tiles .tile').count(),mainTiles,'Home also works from a directly opened local share link');await direct.close();
   await context.close();
  }finally{await browser.close();await new Promise(r=>server.close(r));fs.rmSync(dir,{recursive:true,force:true});}
 });
