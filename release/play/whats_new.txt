@@ -1,3 +1,3 @@
-The library has a new look. It opens with the name and eight words, follows your phone's light or dark setting, and has Settings at the top for Look, Motion and Access. Finish every board of a game and its tile takes a color. Leave the library still and a little color passes across it.
+The library has a new look. It opens with the name and eight words, follows your phone's light or dark setting, and has Settings at the top. Finish every board of a game and its tile takes a color. Leave the library still and a little color passes across it.
 
-Three more games: Cube Maze, on the Tilt card beside Tilt · 3D, and Tangles and Weaves on tiles of their own. Settings is laid out the same way in every game. An update now keeps your unfinished boards and progress.
+Three more games: Cube Maze, Tangles and Weaves. Settings is laid out the same way in every game. Updates now keep your unfinished boards and progress.

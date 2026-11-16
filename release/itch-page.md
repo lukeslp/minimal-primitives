@@ -4,7 +4,7 @@ These games started as UX experiments. I wanted to see whether a simple, iconic 
 
 I think the purpose of technology is to reduce the latency between intent and outcome. Each of these is a small test of that idea.
 
-Interaction primitives are to doing what [simple machines](https://en.wikipedia.org/wiki/Simple_machine) are to building: push, pull, lift, release, tilt, turn, fold, connect, toggle, point. Each game here is built on one or two of them.
+Interaction primitives are to doing what [simple machines](https://en.wikipedia.org/wiki/Simple_machine) are to building: get, put, push, turn, join, split, bend, switch. Each game here is built on one or two of them.
 
 Twenty-nine small puzzle games in black and white.
 

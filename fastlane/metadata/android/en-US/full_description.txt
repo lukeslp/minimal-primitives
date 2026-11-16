@@ -1,6 +1,6 @@
 Twenty-nine small puzzle games in one app that runs offline.
 
-Interaction primitives are to doing what simple machines are to building: push, pull, lift, release, tilt, turn, fold, connect, toggle, point. Each game here is built on one or two of them.
+Interaction primitives are to doing what simple machines are to building: get, put, push, turn, join, split, bend, switch. Each game here is built on one or two of them.
 
 * Hexsweeper: find the mines on hex tiles, on a sphere, a fixed board or an endless one (Sphere, Classic, Infinite)
 * Notan: a black-and-white nonogram that reveals a small picture

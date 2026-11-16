@@ -9,10 +9,10 @@ My informal theory behind the collection's name, written down on
 
 Interaction primitives are to doing what
 [simple machines](https://en.wikipedia.org/wiki/Simple_machine) are to building:
-the few basic ways a person acts on the world around them. Push, pull, lift,
-release, tilt, turn, fold, connect, toggle, point. A lever or a wheel is not a
-machine on its own, but nearly every machine is made of them; a push or a tilt is not a task on its own,
-but nearly every task is made of them.
+the few basic ways a person acts on the world around them. Get, put, push,
+turn, join, split, bend, switch. A lever or a wheel is not a machine on its
+own, but nearly every machine is made of them; a push or a turn is not a task
+on its own, but nearly every task is made of them.
 
 Each game in the collection is built on one or two primitives. The surface is
 simple and iconic, the action has one physical consequence, and the game
@@ -30,6 +30,32 @@ under way). The games in this package are the play side of the same idea.
 
 ## The vocabulary
 
+There are eight words, and every public surface uses these eight and no
+others: the index's opening and its About text, the store and itch
+descriptions, the download page and this document.
+
+| Word | What it covers | Games |
+| --- | --- | --- |
+| get | take, lift, uncover, pick out, follow | Hexsweeper, Pursuit, Sweep |
+| put | place, drop, stack, mark | Hexsweeper, Akari, Bending, Horologist, Towers, Tents, Cast |
+| push | push, repel, strike, step | Shoo · Minimal, Shoo, Delve |
+| turn | turn, spin, tilt, flip | Slant, Tilt, Tilt · 3D, Cube Maze, Horologist, Tangles, Glance, Nod |
+| join | connect, trace from point to point | Bridges, Constellations, Tangles, Glyph |
+| split | divide, separate | Spiral Galaxies |
+| bend | fold, bend, squeeze | Fold, Bending |
+| switch | change between two states, press on time, wait | Notan, Akari, Balance, Weaves, Noon, Ticker |
+
+Get and put are a pair, and so are join and split. The eight were settled on
+2026-11-15, after the longer lists below proved too many to say. `switch`
+won over `toggle` as the plainer word, even though it also names the
+assistive device.
+
+`primitives.json` gives each game its words from the eight (`words`) and,
+under them, the finer verbs below (`primitives`), which are still useful for
+describing a game and for assessment.
+
+### The finer verbs
+
 My first set was push, pull, tilt, spin, lift, drop, on, off. A round of
 review on 2026-11-13 (one outside model and this repository's own read)
 sharpened it:
@@ -43,7 +69,7 @@ sharpened it:
   (partial, controlled rotation, unlike continuous spin), **separate** (the
   inverse of connect), **slide**, and **grasp**.
 
-The list is organized by what the action changes. Directions live inside each
+The finer list is organized by what the action changes. Directions live inside each
 family, not as axes of their own.
 
 | What changes | Primitives |
@@ -57,8 +83,8 @@ family, not as axes of their own.
 | Targeting | point, follow, trace, scan, select |
 | Timing | wait, press on time |
 
-The public line names ten: push, pull, lift, release, tilt, turn, fold,
-connect, toggle, point.
+An earlier public line named ten of these (push, pull, lift, release, tilt,
+turn, fold, connect, toggle, point). The eight words above replaced it.
 
 Adjacent, not yet used: twist (the screw's echo), pour (a compound of tilt and
 hold), swing, roll, pinch, stretch, latch, snap, throw, catch, open, close,
@@ -83,7 +109,7 @@ metaphorical.
 
 ## Rules drawn from the games
 
-1. One or two primitives per game. A third usually means two games.
+1. One or two of the eight words per game. A third usually means two games.
 2. One input, one visible physical consequence: the marble rolls, the gear
    turns, the bees flee.
 3. Teach through the action. If the first board needs a sentence, the
