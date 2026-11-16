@@ -1,0 +1,1 @@
+Most games now have an ending: finish the last board and free play, a new board or Replay opens, and Next always leads to your first unfinished board. Cast drops cubes where you aim and colors its finish. The one-switch scan now reaches Next on every board. Still no camera input and no camera permission in this build.

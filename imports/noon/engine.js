@@ -157,9 +157,10 @@
   // row, then undo once there is a choice to take back. Choosing by line: on
   // the board, a clock for each row with a choosable clock in it; zoomed into
   // a row, that row's choosable clocks, a clock to zoom out, and undo. A
-  // finished board offers next and undo, the last board nothing.
-  function contention(board, state, mode = 'cell', lastBoard = false) {
-    if (solved(board, state)) return lastBoard ? [] : ['next', 'undo'];
+  // finished board offers next and undo, the last board too, so one switch
+  // always has a way on (there next is the first unfinished board, or Replay).
+  function contention(board, state, mode = 'cell') {
+    if (solved(board, state)) return ['next', 'undo'];
     const g = info(board), ok = live(board, state.filled), undo = state.history.length ? ['undo'] : [];
     if (mode !== 'line') return g.sweep.filter(i => ok[i]).concat(undo);
     if (state.view < 0) return g.rowCells.map((l, r) => l.some(i => ok[i]) ? 'r' + r : null).filter(Boolean).concat(undo);

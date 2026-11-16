@@ -331,7 +331,22 @@
     return { n, clues: p.clues, given: p.given, seed: seed >>> 0, level: g.level, version: VERSION };
   }
 
-  const api = { VERSION, SIDES, LEVELS, mulberry32, lineCells, visible, cluesOf, emptyClues, allLines, startCells, stateValid, inspect, solve, next, grade, generate, countClues, countGivens };
+  // Free play once all thirty are solved: a 5 x 5 like the campaign's last boards (no fixed towers,
+  // ten numbers, a line count or a count carried across needed). Seeds are walked from `seed` until a
+  // board meets that slot, as build-levels.cjs walks them. generate() has proved one answer already;
+  // the solver is asked again here, and Hint must finish it.
+  const FREE = { n: 5, givens: 0, clues: 10, maxLevel: LEVELS.crossCount, minLevel: LEVELS.lineCount };
+  function freePlay(seed) {
+    for (let k = 0; k < 400; k++) {
+      const p = generate((seed + k) >>> 0, FREE);
+      if (countClues(p) > FREE.clues || countGivens(p) > FREE.givens || p.level < FREE.minLevel || p.level > FREE.maxLevel) continue;
+      if (solve(p, p.given, 2).count !== 1 || !grade(p).solved) continue;
+      return p;
+    }
+    return null;
+  }
+
+  const api = { VERSION, SIDES, LEVELS, FREE, mulberry32, lineCells, visible, cluesOf, emptyClues, allLines, startCells, stateValid, inspect, solve, next, grade, generate, freePlay, countClues, countGivens };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.Towers = api;
 })(typeof self !== 'undefined' ? self : this);

@@ -19,7 +19,9 @@
   write('profile', profile);
   const saves = read('saves', {}), progress = read('progress', {}), results = read('results', []);
   const ledger=read('attempts',{});
-  let catalog = [], active = null, frame = null, nonce = null, sequence = 0, busy = false, attempt = null;
+  // The library's own settings: Look (the phone's, Dark, Light, Checkerboard) and Motion. library-theme.js applied them before the first paint.
+  const settings=read('library',{});
+  let catalog = [], tiles = [], active = null, frame = null, nonce = null, sequence = 0, busy = false, attempt = null;
   let apiBase = '', noticeTimer;
   const pending = new Map();
   let currentDocument=null; const seenDocuments=new Set();
@@ -37,23 +39,170 @@
     history.replaceState(null,'',url);
     try { if(key)sessionStorage.setItem(PREFIX+'selected',key);else sessionStorage.removeItem(PREFIX+'selected'); } catch(_) {}
   }
+  // The library is the Minimal index (lukesteuber.com/minimal/) as imported into tiles.json: the same tiles,
+  // names, lines and pictures, in the index's own markup, so its stylesheet draws them. A tile's links open
+  // bundled games instead of web pages. `data-open` names what each link opens.
+  let shown = null;
+  const hideCard = () => { if (shown) { shown.classList.remove('show'); shown = null; } };
+  const el = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
+  const opener = (key, label, run) => {
+    const link = el('a'); link.href = '#' + new URLSearchParams({game: key}); link.dataset.open = key; link.setAttribute('aria-label', label);
+    link.addEventListener('click', event => { event.preventDefault(); run(event); });
+    return link;
+  };
+  function tileFor({classes, name, label, line, image, imageWide, drawing, svg, also = []}, key, run, id) {
+    const tile = el('div', ['tile', ...classes].join(' '));
+    const art = el('span', 'art');
+    if (svg) art.innerHTML = svg;
+    else if (drawing && document.documentElement.hasAttribute('data-look')) {
+      // Dark and Light: the index's line drawing replaces the picture (and Cast's wide-screen <source>), as on the web.
+      const img = el('img'); img.src = drawing; img.alt = ''; img.loading = 'lazy'; img.decoding = 'async';
+      art.append(img); tile.classList.add('lines');
+    } else {
+      const img = el('img'); img.src = image; img.alt = ''; img.loading = 'lazy'; img.decoding = 'async';
+      if (imageWide) { const picture = el('picture'), source = el('source'); source.media = '(min-width: 720px)'; source.srcset = imageWide; picture.append(source, img); art.append(picture); }
+      else art.append(img);
+    }
+    const touch = !matchMedia('(hover: hover)').matches;
+    // Touch: the first tap shows the tile's card, the second opens it. Keys, switches and scripts open it at once.
+    const go = opener(key, label, event => {
+      if (touch && line && event.detail !== 0 && shown !== tile) { hideCard(); shown = tile; tile.classList.add('show'); return; }
+      hideCard(); run();
+    });
+    go.classList.add('go'); if (id) go.id = id;
+    const cap = el('span', 'cap', name); cap.setAttribute('aria-hidden', 'true');
+    tile.append(art, go, cap);
+    if (line) {
+      const more = el('span', 'more'), heading = el('span', 'name', name), text = el('span', 'line', line);
+      heading.setAttribute('aria-hidden', 'true'); text.id = 'line-' + key.replace(/\W/g, '-'); go.setAttribute('aria-describedby', text.id);
+      more.append(heading, text);
+      if (also.length) {
+        const row = el('span', 'also', 'Also ');
+        also.forEach((link, n) => { if (n) row.append(' · '); const a = opener(link.key, link.aria, () => { hideCard(); link.run(); }); a.textContent = link.label; row.append(a); });
+        more.append(row);
+      }
+      tile.append(more);
+    }
+    // A scripted click on the tile itself (the app shells and capture tools) opens it.
+    tile.addEventListener('click', event => { if (event.target === tile) go.click(); });
+    return tile;
+  }
   function renderLibrary() {
-    $('tiles').replaceChildren(); $('access-tiles').replaceChildren();
-    const variants = catalog.flatMap(game => game.modes.length ? game.modes.map(mode => ({game, mode})) : [{game}]);
-    for (const {game, mode} of variants) {
-      const tile = document.createElement('button'); tile.className = 'tile ' + (mode?.id || game.id);
+    $('tiles').replaceChildren(); $('access-tiles').replaceChildren(); shown = null;
+    const find = (id, mode) => { const game = catalog.find(g => g.id === id); return {game, mode: game?.modes.find(m => m.id === mode)}; };
+    const resume = (label, game, mode) => label + (saves[keyFor(game, mode?.id)] ? ' · Resume' : '');
+    for (const spec of tiles) {
+      // An index tile the package does not carry keeps its place, unseen, so the tiles after it sit on the same ground as on the index.
+      if (spec.skip) { const gap = el('span'); gap.hidden = true; gap.dataset.notBundled = spec.skip; $('tiles').append(gap); continue; }
+      if (spec.game === 'accessible') {
+        $('tiles').append(tileFor(spec, 'accessible', () => { showList('accessible'); $('access-tiles').querySelector('.go')?.focus({preventScroll: true}); }, 'access-open'));
+        continue;
+      }
+      const {game, mode} = find(spec.game, spec.mode);
+      const also = spec.also.map(link => { const other = find(link.game, link.mode); return {label: link.label, aria: resume(link.aria, other.game, other.mode), key: keyFor(other.game, other.mode?.id), run: () => launch(other.game, other.mode)}; });
+      const tile = tileFor({...spec, label: resume(spec.label, game, mode), also}, keyFor(game, mode?.id), () => launch(game, mode));
       tile.dataset.game = game.id; if (mode) tile.dataset.mode = mode.id;
-      const title = mode ? game.title + ' ' + mode.title : game.title;
-      const saved = saves[keyFor(game, mode?.id)];
-      tile.setAttribute('aria-label', title + (saved ? ' · Resume' : ''));
-      const image = document.createElement('img'); image.src = mode?.image || game.image; image.alt = ''; image.loading = 'lazy';
-      const art = document.createElement('span'); art.className = 'art'; art.append(image);
-      const name = document.createElement('span'); name.className = 'sr-only'; name.textContent = title;
-      tile.append(art, name);
-      tile.addEventListener('click', () => launch(game, mode));
-      $(accessible(game) ? 'access-tiles' : 'tiles').append(tile);
+      $('tiles').append(tile);
+    }
+    for (const game of catalog.filter(accessible)) {
+      const tile = tileFor({classes: [game.id], name: game.title, label: resume(game.title, game), image: game.image}, keyFor(game), () => launch(game));
+      tile.dataset.game = game.id;
+      $('access-tiles').append(tile);
     }
   }
+  document.addEventListener('click', event => { if (!event.target.closest?.('.tile')) hideCard(); });
+  // The opening, the Minimal index's own (its markup, styles and timings): the name, then the eight primitives one at a
+  // time in two rows of four, then the name moves up to become the title. It plays the first time the app is opened,
+  // at the library, in any theme; Play in Settings shows it again. Never with reduced motion (the system's or the
+  // library's Motion setting). Any key, tap, click or switch press skips it, and that press does nothing else. A
+  // scripted click (the app shells, the capture tools) ends it at once and goes on. It holds no focus: the tiles stay
+  // in the tab order beneath it.
+  const opening = {skip: () => false, end: () => {}};
+  window.MinimalOpening = opening;
+  const OPENING = PREFIX + 'opening', introMarkup = $('intro')?.cloneNode(true);
+  function playOpening(again = false) {
+    let intro = $('intro');
+    let seen = false;
+    try { seen = localStorage.getItem(OPENING) === '1'; } catch (_) {}
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches || settings.motion === 'reduce';
+    if (active) { intro?.remove(); document.documentElement.classList.remove('opening'); return; } // opened straight into a game: it waits for a launch that opens at the library
+    try { localStorage.setItem(OPENING, '1'); } catch (_) {}
+    if ((seen && !again) || still) { intro?.remove(); document.documentElement.classList.remove('opening'); return; }
+    if (!intro) { if (!introMarkup) { document.documentElement.classList.remove('opening'); return; } intro = introMarkup.cloneNode(true); document.body.prepend(intro); }
+    intro.hidden = false;
+    document.documentElement.classList.add('opening'); $('library').scrollTop = 0;
+    const name = intro.querySelector('p'), words = [...intro.querySelectorAll('li')], timers = [];
+    let done = false, clickUntil = 0, heldKey = null;
+    const at = (ms, fn) => timers.push(setTimeout(fn, ms));
+    const types = ['keydown', 'keyup', 'pointerdown', 'mousedown', 'touchstart', 'click', 'focusin'];
+    const remove = () => { types.forEach(type => removeEventListener(type, guard, true)); document.documentElement.classList.remove('opening'); intro.remove(); opening.skip = () => false; };
+    // At the end the name moves up into the title's place while the ground and the words fade, then the title
+    // takes over (the index's own ending). A press that skips the opening puts it there quickly.
+    const finish = (fast = true) => {
+      if (done) return false;
+      done = true; timers.forEach(clearTimeout);
+      const ms = fast === false ? 800 : 220, a = name.getBoundingClientRect(), b = $('masthead-text').getBoundingClientRect();
+      const size = element => parseFloat(getComputedStyle(element).fontSize);
+      name.style.transformOrigin = '0 0';
+      intro.style.setProperty('--land', ms + 'ms');
+      intro.classList.add('landing');
+      name.style.transform = `translate(${b.left - a.left}px,${b.top - a.top}px) scale(${size($('masthead')) / size(name)})`;
+      setTimeout(remove, ms + 40);
+      return true;
+    };
+    const swallow = event => { event.preventDefault(); event.stopImmediatePropagation(); };
+    function guard(event) {
+      // Automation is not a press: end the opening outright and let the event through.
+      if (!event.isTrusted) { done = true; timers.forEach(clearTimeout); remove(); return; }
+      if (event.type === 'focusin') { finish(); return; }
+      if (event.type === 'keyup') { if (event.code === heldKey) { heldKey = null; swallow(event); } return; }
+      if (event.type === 'click') { if (!done || event.timeStamp < clickUntil) { swallow(event); finish(); } return; }
+      if (done) return;
+      swallow(event);
+      if (event.type === 'keydown') heldKey = event.code;
+      else clickUntil = event.timeStamp + 800; // the click that follows this press is part of it
+      finish();
+    }
+    types.forEach(type => addEventListener(type, guard, {capture: true, passive: false}));
+    opening.skip = finish;
+    opening.end = () => { if (!intro.isConnected) return; done = true; timers.forEach(clearTimeout); remove(); };
+    // The name arrives and stays; then a word every 500 ms beneath it; the full list rests for 1.8 s, then the tiles.
+    requestAnimationFrame(() => name.classList.add('on'));
+    words.forEach((li, i) => at(1800 + i * 500, () => li.classList.add('on')));
+    at(1800 + words.length * 500 + 1800, () => finish(false));
+  }
+  // Settings (the gear at the top right): the index's own sheet. Look and Motion are the library's, kept with the
+  // collection's preferences; a Look redraws the tiles in it at once. Access writes the collection's shared starting
+  // choice, which each game reads until it has a setting of its own. Play shows the opening again.
+  const sheet = $('settings'), gear = $('gear'), ACCESS = 'lukesteuber.minimal.shared:minimal-access.v1:default';
+  const sharedAccess = () => { try { const value = JSON.parse(localStorage.getItem(ACCESS)); return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; } catch (_) { return {}; } };
+  function showSettings() {
+    MinimalLibraryTheme.apply(settings);
+    $('set-look').value = MinimalLibraryTheme.setting(settings); $('set-motion').value = settings.motion === 'reduce' ? 'reduce' : 'system';
+    const mode = sharedAccess().mode; $('set-access').value = ['off', 'switch', 'look'].includes(mode) ? mode : 'off';
+  }
+  showSettings();
+  gear.onclick = () => { showSettings(); sheet.showModal(); };
+  sheet.addEventListener('close', () => gear.focus({preventScroll: true}));
+  sheet.addEventListener('click', event => { if (event.target === sheet) sheet.close(); });
+  $('set-look').onchange = () => {
+    // A change of look redraws the tiles in it (pictures differ between looks); the opening does not replay.
+    if ($('set-look').value === 'system') delete settings.theme; else settings.theme = $('set-look').value;
+    write('library', settings); MinimalLibraryTheme.apply(settings);
+    if (!active) renderLibrary();
+  };
+  // While Look follows the phone, a change of the phone's appearance redraws the library in the new look.
+  if (window.matchMedia) {
+    const scheme = matchMedia('(prefers-color-scheme: dark)');
+    const follow = () => { if (MinimalLibraryTheme.setting(settings) !== 'system') return; MinimalLibraryTheme.apply(settings); if (!active) renderLibrary(); };
+    if (scheme.addEventListener) scheme.addEventListener('change', follow); else if (scheme.addListener) scheme.addListener(follow);
+  }
+  $('set-motion').onchange = () => {
+    if ($('set-motion').value === 'reduce') settings.motion = 'reduce'; else delete settings.motion;
+    write('library', settings); MinimalLibraryTheme.apply(settings); if (settings.motion === 'reduce') opening.end();
+  };
+  $('set-access').onchange = () => { try { localStorage.setItem(ACCESS, JSON.stringify({...sharedAccess(), mode: $('set-access').value})); } catch (_) {} };
+  $('set-opening').onclick = () => { sheet.close(); gear.blur(); playOpening(true); };
   function request(type, payload) {
     return new Promise((resolve, reject) => {
       const request = uuid();
@@ -84,6 +233,7 @@
   async function launch(game, mode) {
     if (busy) return;
     busy = true;
+    opening.end();
     try {
       if (frame) await stash();
       frame?.remove();
@@ -208,9 +358,8 @@
     } catch (error) { $('score-context').textContent = error.message; }
   }
   $('scores-button').onclick=openScores;$('score-category').onchange=showScores;
-  $('access-open').onclick=()=>{showList('accessible');$('access-tiles').querySelector('.tile')?.focus({preventScroll:true});};
-  $('access-back').onclick=()=>{showList('library');$('access-open').focus({preventScroll:true});};
-  Promise.all([fetch('catalog.json').then(r => r.json()), fetch('settings.json').then(r => r.ok ? r.json() : {}).catch(() => ({}))]).then(([games, settings]) => { catalog = games;if(typeof settings.apiBase==='string'&&settings.apiBase){const url=new URL(settings.apiBase,location.href);if(url.protocol==='https:'||url.protocol==='http:'&&['127.0.0.1','localhost','[::1]'].includes(url.hostname))apiBase=url.href.replace(/\/?$/,'/');} renderLibrary();
+  $('access-back').onclick=()=>{showList('library');$('access-open')?.focus({preventScroll:true});};
+  Promise.all([fetch('catalog.json').then(r => r.json()), fetch('settings.json').then(r => r.ok ? r.json() : {}).catch(() => ({})), fetch('tiles.json').then(r => r.json())]).then(([games, settings, index]) => { catalog = games; tiles = index;if(typeof settings.apiBase==='string'&&settings.apiBase){const url=new URL(settings.apiBase,location.href);if(url.protocol==='https:'||url.protocol==='http:'&&['127.0.0.1','localhost','[::1]'].includes(url.hostname))apiBase=url.href.replace(/\/?$/,'/');} renderLibrary();
     const hash=new URLSearchParams(location.hash.slice(1));
     if(hash.get('view')==='accessible')showList('accessible');
     let selected=hash.get('game');
@@ -220,5 +369,6 @@
       if(game)launch(game,game.modes.find(m=>keyFor(game,m.id)===selected));
       else selectView(null);
     }
+    if(!active&&!$('library').hidden)playOpening();else{$('intro')?.remove();document.documentElement.classList.remove('opening');}
   }).catch(() => notice('The library could not load. Please reload.'));
 })();

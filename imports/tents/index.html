@@ -1,5 +1,12 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme:light)"><meta name="theme-color" content="#000000" media="(prefers-color-scheme:dark)"><title>Tents · Luke Steuber</title><link rel="icon" href="./favicon.svg"><link rel="stylesheet" href="./tents.css?v=08592000">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme:light)"><meta name="theme-color" content="#000000" media="(prefers-color-scheme:dark)"><title>Tents · Luke Steuber</title><link rel="icon" href="./favicon.svg">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/icon-180.png">
+<meta name="apple-mobile-web-app-title" content="Tents">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<script src="./pwa.js?v=74f99d61" defer></script><link rel="stylesheet" href="./tents.css?v=216391a7">
 <link rel="stylesheet" href="./controls.css?v=4568a846">
 <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
 <meta name="description" content="Give every tree its own tent, keep the tents apart, and match the numbers on each row and column.">
@@ -19,12 +26,13 @@
 <meta name="twitter:image:alt" content="A grid of trees with tents pitched beside some of them, dots on the squares ruled out, and a number at the end of each row and column.">
 </head>
 <body><header><button id="restart-btn" class="ib" aria-label="Restart puzzle"></button><h1 class="sr-only">Tents</h1><div id="readout" class="readout"></div></header>
-<main id="board-shell" aria-label="Tents puzzle"><div class="board-stage"><div id="board" class="board" role="grid" aria-label="Tents board"></div><div id="completion" class="completion" hidden><button id="next-btn" class="ib" aria-label="Next puzzle"></button></div></div></main>
+<main id="board-shell" aria-label="Tents puzzle"><div class="board-stage"><div id="board" class="board" role="grid" aria-label="Tents board"></div><div id="completion" class="completion" hidden><p id="ending" class="ending" aria-hidden="true" hidden></p><button id="next-btn" class="ib" aria-label="Next puzzle"></button></div></div></main>
 <p id="feedback" role="status" aria-live="polite"></p>
 <nav class="toolbar" aria-label="Game controls"><div><button id="undo-btn" class="ib" aria-label="Undo"></button><button id="hint-btn" class="ib" aria-label="Hint"></button></div><div><button id="settings-btn" class="ib" aria-label="Settings"></button><button id="help-btn" class="ib" aria-label="Help"></button></div></nav>
 <dialog id="settings" class="sheet" aria-labelledby="settings-title"><div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
 <label class="row">Campaign <select id="campaign"></select></label>
 <div class="row"><button id="previous">Previous</button><button id="following">Next</button></div>
+<div id="free-row" class="row" hidden><span>Generated boards</span><button id="new-game">New board</button></div>
 <label class="row">Theme <select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
 <label class="row">Motion <select id="motion"><option value="system">System</option><option value="reduce">Reduced</option></select></label>
 <div class="row"><span>Current board</span><button id="reset">Clear</button></div>
@@ -36,6 +44,6 @@
 <div class="controls"><p>Tap: tent, then a dot, then blank. A dot is your note that a cell stays empty. Drag across cells to dot them; start the drag on a dot to clear dots.</p><p>A short line ties each tent to a tree beside it. A number turns gray when its line is exact and is boxed when it has too many. Tents that break a rule are hatched.</p></div>
 <details class="help-more"><summary>More controls</summary><p>Hint shows the next cell that can be worked out and says why. Tap it again to apply.</p><p>Arrows move. Enter or Space cycles a cell. <kbd>Z</kbd> or Backspace undoes. <kbd>H</kbd> hints. Restart clears the board; Undo brings it back.</p></details>
 </div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
-<script src="./engine.js?v=dcd7f4f2"></script><script src="./levels.js?v=982a37f7"></script><script src="./tents.js?v=e3bf429d"></script>
+<script src="./engine.js?v=bb17cc8c"></script><script src="./levels.js?v=982a37f7"></script><script src="./tents.js?v=f69f0b50"></script>
 <script defer src="./controls.js?v=e634f076"></script>
 </body></html>

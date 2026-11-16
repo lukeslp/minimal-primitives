@@ -1,4 +1,4 @@
-/** Independent final-state validation for the accepted Hexsweeper pin.
+/** Independent final-state validation for the accepted Hexsweeper pin (e61a79f since 0.5.3).
  * Returns { value }; throws on unknown/inconsistent proofs. elapsedMs must be
  * supplied by the service's run clock. This is casual validation, not replay
  * attestation: random mine layouts are bound to identity, not server-seeded.
@@ -9,8 +9,8 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const root = new URL('../imports/hexsweeper/', import.meta.url);
 const pins = {
-  sphere: ['sphere/sphere.js', '6792801b5a4430ef1f2d7b19f8fbd32f4705bf6d11e3121aa7bd5e3591c2016b'],
-  classic: ['bounded.html', 'a53584846d25b349954cf60d5f1df847e3497c05a85a3dd38f6b4f9b9c56103a'],
+  sphere: ['sphere/sphere.js', '02c18ab71892ebb681e25e1672624febfeadd86ca177ffe511cdbc8d14957fea'],
+  classic: ['bounded.html', '7f6983bb7c1a356cccbec8dea1909e24c910c0acca7d30698115a3d2a851be25'],
   infinite: ['infinite.html', '91ec62a9f19c9e280ba858ed69884f930b73795a454bead8848ff3aeaf4c8700']
 };
 const graphPath = new URL('sphere/hexasphere.js', root);
@@ -18,7 +18,7 @@ const hash = value => createHash('sha256').update(value).digest('hex');
 for (const [path, sha] of Object.values(pins)) {
   if (hash(readFileSync(new URL(path, root))) !== sha) throw Error(`Hex engine pin mismatch: ${path}`);
 }
-if (hash(readFileSync(graphPath)) !== 'bc2f0a104d495a060c68634579bab57b4ebcf2d4e3cdb8876ccc9a95f3a96787') throw Error('Hex graph pin mismatch');
+if (hash(readFileSync(graphPath)) !== 'ec157a6b97a48b7ec99ece8a423fe81243ebb91aa65e99673797c558f14029d2') throw Error('Hex graph pin mismatch');
 const { generateHexasphere } = require(graphPath.pathname);
 const canonical = value => JSON.stringify(value, (_, v) => v && !Array.isArray(v) && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map(k => [k, v[k]])) : v);
 const demand = (condition, message) => { if (!condition) throw Error(`Invalid Hex proof: ${message}`); };

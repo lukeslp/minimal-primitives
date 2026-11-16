@@ -55,7 +55,9 @@ final class CollectionViewController: UIViewController, WKNavigationDelegate, WK
         webView.navigationDelegate = self
         webView.uiDelegate = self
         webView.isOpaque = false
-        webView.backgroundColor = .systemBackground
+        // The library follows the phone's appearance, and its opening is the app's loader: the frame before the
+        // first paint is the launch screen's ground (white or black), so nothing jumps between them.
+        webView.backgroundColor = UIColor(named: "LaunchBackground") ?? .black
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.scrollView.bounces = false
         #if DEBUG
@@ -121,8 +123,8 @@ final class CollectionViewController: UIViewController, WKNavigationDelegate, WK
         if let game = UserDefaults.standard.string(forKey: "MPDuoProbe"), webView.url?.path == "/index.html" {
             let probe = """
             const wait = ms => new Promise(r => setTimeout(r, ms));
-            for (let i = 0; i < 40 && !document.querySelector('.tile[data-game="' + game + '"]'); i++) await wait(250);
-            document.querySelector('.tile[data-game="' + game + '"]')?.click();
+            for (let i = 0; i < 40 && !document.querySelector('#tiles [data-open="' + game + '"]'); i++) await wait(250);
+            document.querySelector('#tiles [data-open="' + game + '"]')?.click();
             await wait(3000);
             const f = document.querySelector('#player iframe'), w = f?.contentWindow, d = f?.contentDocument;
             const attrs = el => el ? Object.fromEntries([...el.attributes].filter(a => a.name.startsWith('data-duo') || a.name === 'style').map(a => [a.name, a.value])) : null;

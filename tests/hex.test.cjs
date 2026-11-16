@@ -369,7 +369,8 @@ test('native keyboard, touch dig and all registered Sphere material assets work'
   } finally { await touch.close(); }
   const sphere = await surface('sphere/index.html');
   try {
-    for (let i = 0; i < 9; i++) {
+    // Eight themes since Hexsweeper PR 13 dropped the unsourced reflection materials (Gilded Ribbon among them).
+    for (let i = 0; i < 8; i++) {
       await sphere.frame.evaluate(i => __hexGame.setThemeIndex(i), i);
       await sphere.frame.waitForTimeout(120);
       assert.equal(await sphere.frame.evaluate(() => __hexGame.getThemeIndex()), i);

@@ -22,12 +22,57 @@ Hexsweeper Sphere geometry (games/hexsweeper/sphere/hexasphere.js): Luke Steuber
 Earth/Moon textures: Solar System Scope / INOVE, CC BY 4.0. Attribution and modification history: games/hexsweeper/sphere/assets/textures/README.md and sources.json.
 IBM Plex fonts: SIL Open Font License, retained beside each font set.
 MediaPipe Face Landmarker (games/glance/vendor/, used only when a player turns on Look and hold by head or eyes): Google, Apache License 2.0, retained in games/glance/vendor/LICENSE-MEDIAPIPE.txt.
+Three.js (games/cast/vendor/, games/tilt-3d/vendor/ and games/cube-maze/vendor/, unmodified): three.js authors, MIT License, retained in each game's vendor/LICENSE-THREE.txt.
 
 Source revisions and individual file hashes: SOURCE_MANIFEST.json.
 """
 
 
 MEDIAPIPE_NOTICE = NOTICES.splitlines(keepends=True)[7]
+
+# The library is drawn from index.json, the live Minimal index as imported by
+# tools/import-index.py: its tiles, order, names, lines, pictures, line drawings,
+# opening and stylesheet.
+
+
+def library_tiles(index, games, output):
+    """The index's tiles for this build, checked against the games it carries."""
+    ids = {g['id'] for g in games if not g.get('group')}
+    modes = {(g['id'], m['id']) for g in games for m in g.get('modes', [])}
+    style = (ROOT / 'web/index-tiles.css').read_text().split('*/\n', 1)[1]
+    if hashlib.sha256(style.encode()).hexdigest() != index['styleSha256']:
+        raise ValueError('web/index-tiles.css was edited by hand: change the index and re-import')
+    def versioned(art):
+        data = (output / art['file']).read_bytes()
+        if hashlib.sha256(data).hexdigest() != art['sha256']:
+            raise ValueError('Tile picture differs from the index: ' + art['file'])
+        return art['file'] + '?v=' + art['sha256'][:12]
+    def opens(game, mode, where):
+        if game == 'accessible':
+            return
+        if game not in ids or (mode and (game, mode) not in modes):
+            raise ValueError(f'The index tile {where} opens {game} {mode or ""}, which this build does not carry')
+        reached.add(game)
+    tiles, reached = [], set()
+    for tile in index['tiles']:
+        if tile.get('notBundled'):
+            tiles.append({'skip': tile['name']})
+            continue
+        opens(tile['game'], tile['mode'], tile['name'])
+        for link in tile['also']:
+            opens(link['game'], link['mode'], tile['name'])
+        tiles.append({'classes': tile['classes'], 'name': tile['name'], 'label': tile['label'], 'line': tile['line'],
+                      'game': tile['game'], 'mode': tile['mode'], 'svg': tile['svg'],
+                      'image': versioned(tile['art']) if tile['art'] else None,
+                      'imageWide': versioned(tile['artWide']) if tile['artWide'] else None,
+                      # The Dark and Light themes show the index's line drawing instead, where it has one.
+                      'drawing': versioned(tile['lines']) if tile.get('lines') else None,
+                      'also': [{'label': l['label'], 'aria': l['aria'], 'game': l['game'], 'mode': l['mode']} for l in tile['also']]})
+    if ids - reached:
+        raise ValueError(f'Games with no tile on the index: {sorted(ids - reached)}')
+    return tiles
+
+
 assert MEDIAPIPE_NOTICE.startswith('MediaPipe Face Landmarker'), 'NOTICES layout changed'
 CAMERA_FRAME = "frame.allow = 'fullscreen; camera';"
 CAMERA_FREE_NOTE = (b'> This copy is from the camera-free build of Minimal Primitives. Its camera input is\n'
@@ -87,22 +132,34 @@ def build(variant='full', make_zip=True):
         (output / 'collection.js').write_text(library.replace(CAMERA_FRAME, "frame.allow = 'fullscreen';"))
     for name in ['bootstrap.js', 'hooks.js', 'scores-compat.js']:
         shutil.copyfile(ROOT / 'adapters' / name, output / name)
+    index = json.loads((ROOT / 'index.json').read_text())
+    tiles = library_tiles(index, games, output)
+    # The opening is the index's own markup, placed first in the body as on the web; collection.js plays it.
+    page = (output / 'index.html').read_text()
+    if page.count('<body>') != 1 or 'class="intro"' in page:
+        raise ValueError('Opening anchor drift in web/index.html')
+    # The title with its gear and the Settings sheet are the index's own markup too; collection.js wires them.
+    for mark, part in (('<!--index:header-->', 'header'), ('<!--index:settings-->', 'settings')):
+        if page.count(mark) != 1:
+            raise ValueError(f'{mark} anchor drift in web/index.html')
+        # An outside link leaves the app: it opens in a new tab, as every shipped page's links do.
+        page = page.replace(mark, index[part].replace('<a href="https://', '<a target="_blank" rel="noopener noreferrer" href="https://'), 1)
+    (output / 'index.html').write_text(page.replace('<body>', '<body>\n' + index['opening'], 1))
+    (output / 'tiles.json').write_text(json.dumps(tiles, separators=(',', ':'), ensure_ascii=False) + '\n')
+    # Catalog order is the library's: each tile's game, then the games on its card (Tilt, then Tilt · 3D and Cube Maze).
+    order = [game for t in tiles if 'game' in t for game in [t['game']] + [l['game'] for l in t['also']]]
     def image_url(name):
         asset = 'assets/' + name + '.png'
         version = hashlib.sha256((output / asset).read_bytes()).hexdigest()[:12]
         return asset + '?v=' + version
 
     catalog = []
-    for game in games:
+    for game in sorted(games, key=lambda g: (1, 0) if g.get('group') else (0, order.index(g['id']))):
         entry = {key: game[key] for key in ['id', 'title', 'entry', 'commit']}
-        entry.update(
-            modes=[mode | {'image': image_url(game['id'] + '-' + mode['id'])}
-                   for mode in game.get('modes', [])],
-            variants=game.get('variants', []),
-            image=image_url(game['id']),
-        )
+        entry.update(modes=game.get('modes', []), variants=game.get('variants', []))
         if game.get('group'):
-            entry['group'] = game['group']
+            # The accessible puzzles have no index tile of their own; their pictures come with the games.
+            entry.update(group=game['group'], image=image_url(game['id']))
         catalog.append(entry)
     (output / 'catalog.json').write_text(json.dumps(catalog, separators=(',', ':')) + '\n')
     shutil.copyfile(ROOT / 'sources.json', output / 'SOURCE_MANIFEST.json')

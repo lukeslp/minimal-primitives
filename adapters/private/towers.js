@@ -5,8 +5,10 @@ const __minimalRest=()=>{if(spin){cancelAnimationFrame(spin.frame);spin=null;}sw
 const __minimal=MinimalBridge.install({
   rulesVersion:'__RULES__',scoringPolicy:'__POLICY__',
   describe(){return{id:at,mode:openingAt(at)>=0?'opening':'campaign',layout:{n:puzzle.n,clues:puzzle.clues,given:puzzle.given},solved:S.solved,repeat:progress.completed.includes(at),restored:!!S.undo.length||S.cells.some((v,i)=>v!==puzzle.given[i]),value:0,progress:{completed:progress.completed.length+(S.solved&&ids.has(at)&&!progress.completed.includes(at)?1:0)}};},
-  snapshot(){return{at,S:{cells:S.cells.slice(),undo:S.undo.map(u=>u.slice()),focus:S.focus,hint:S.hint,solved:S.solved,keyboard:S.keyboard},store,progress,prefs,primer:__minimalPrimer(),turn:quarters(),view,feedback:$('#feedback').textContent,announce:$('#announce').textContent,ui:MinimalBridge.ui()};},
+  snapshot(){return{at,gen:gen?MinimalBridge.clone(gen):null,S:{cells:S.cells.slice(),undo:S.undo.map(u=>u.slice()),focus:S.focus,hint:S.hint,solved:S.solved,keyboard:S.keyboard},store,progress,prefs,primer:__minimalPrimer(),turn:quarters(),view,feedback:$('#feedback').textContent,announce:$('#announce').textContent,ui:MinimalBridge.ui()};},
   restore(d){
+    // A free-play board lives in `gen`; set it first so board('generated') can find it.
+    if(d&&'gen' in d)gen=d.gen?MinimalBridge.clone(d.gen):null;
     const next=d&&board(d.at);
     if(!next||!Array.isArray(d.S?.cells)||d.S.cells.length!==next.n*next.n||!Array.isArray(d.S.undo)||!d.store||!d.progress||!d.prefs)throw Error('Invalid Towers snapshot');
     stopTour();__minimalRest();
@@ -20,6 +22,7 @@ const __minimal=MinimalBridge.install({
     applyPrefs();build();render();
     $('#feedback').textContent=d.feedback||'';$('#announce').textContent=d.announce||'';
     write(K.settings,prefs);write(K.current,store);write(K.progress,progress);
+    if(gen)write(K.generated,gen);else{try{localStorage.removeItem(K.generated);}catch(_){}}
     if(d.primer)write(K.primer,1);else{try{localStorage.removeItem(K.primer);}catch(_){}}
     save();
     MinimalBridge.restoreUI(d.ui);

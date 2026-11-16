@@ -8,7 +8,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Tilt</title>
 <link rel="icon" href="./favicon.svg">
-<link rel="stylesheet" href="./tilt-levels.css?v=759550c0">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/icon-180.png">
+<meta name="apple-mobile-web-app-title" content="Tilt">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<script src="./pwa.js?v=52e1e0478737" defer></script>
+<link rel="stylesheet" href="./tilt-levels.css?v=be160764">
 
 <link rel="canonical" href="https://lukesteuber.com/games/tilt/">
 <meta name="description" content="Tip stacked trays so the marble drops through the right holes.">
@@ -26,13 +33,14 @@
 <meta name="twitter:description" content="Tip stacked trays so the marble drops through the right holes.">
 <meta name="twitter:image" content="https://lukesteuber.com/games/social/tilt-levels3-6c7ffb5cf051.png">
 <meta name="twitter:image:alt" content="A marble on three stacked 5 by 5 trays, with blocks and holes leading to the exit.">
-<link rel="stylesheet" href="./controls.css?v=2e033f1e">
+<link rel="stylesheet" href="./controls.css?v=4568a846">
 </head>
 <body>
 <header>
 <button id="restart-btn" class="ib" type="button" aria-label="Restart"></button>
 <h1 class="sr-only">Tilt</h1>
 <div id="readout" class="readout"></div>
+<p id="end-line" class="end-line" hidden></p>
 </header>
 <main id="board-shell">
 <div id="stack-fit">
@@ -59,7 +67,7 @@
 <div class="row"><button id="previous" type="button">Previous</button><button id="following" type="button">Next</button></div>
 <section aria-labelledby="catalog-title"><h3 id="catalog-title">Boards</h3><ol id="level-catalog" class="campaign-catalog"></ol></section>
 </div>
-<footer class="sheet-foot"><a href="https://lukesteuber.com">lukesteuber.com</a></footer>
+<footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer>
 </dialog>
 <dialog id="help" class="sheet" aria-labelledby="help-title">
 <div class="sheet-head"><h2 id="help-title">Help</h2><form method="dialog"><button class="ib sheet-x" type="submit" aria-label="Close Help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div>
@@ -68,13 +76,13 @@
 <p>A hole drops it to the same cell of the tray below, and another hole there drops it again.</p>
 <p>The one hole in the lowest tray finishes the board.</p>
 </div>
-<footer class="sheet-foot"><a href="https://lukesteuber.com">lukesteuber.com</a></footer>
+<footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer>
 </dialog>
 <script src="./engine.js?v=734d969ebf9c"></script>
 <script src="./levels.js?v=e3d3850e2f1a"></script>
-<script src="./tilt-levels.js?v=4adcb5f3a10f"></script>
+<script src="./tilt-levels.js?v=f7ffee72bca0"></script>
 <script src="./tilt-input.js?v=02a623466af0"></script>
 <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
-<script defer src="./controls.js?v=15096395"></script>
+<script defer src="./controls.js?v=ba58331a"></script>
 </body>
 </html>

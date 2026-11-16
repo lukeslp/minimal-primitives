@@ -393,6 +393,8 @@ function solidCover() {
 }
 const marbleLocal = V3(), leanVec = V3(), leanGoal = V3();
 let anim = null, queue = [], undoStack = [], showNext = false, hint = null, wayDir = null;
+// True from the solve that finished the last open board until another board opens.
+let finale = false;
 let pxWorld = 0.01, cueState = null, cueCount = 0;
 const plateBottom = k => H0 + (L - 1 - k) * G, topY = k => plateBottom(k) + T;
 const cx = col => col - (N - 1) / 2, cz = row => row - (N - 1) / 2;
@@ -699,7 +701,7 @@ function run(item) {
   undoStack.push(history.slice()); history.push(d);
   const start = marbleLocal.clone();
   solvedNow = r.solved;
-  if (solvedNow) { if (!done.includes(boardId)) done.push(boardId); reached = Math.max(reached, Math.min(BOARDS.length - 1, indexOf(boardId) + 1)); lookHintDue = null; endLookHint(); }
+  if (solvedNow) { if (!done.includes(boardId)) { done.push(boardId); if (campaignDone()) finale = true; } reached = Math.max(reached, Math.min(BOARDS.length - 1, indexOf(boardId) + 1)); lookHintDue = null; endLookHint(); }
   if (history.length === 3) lookHintDue = boardId;
   save(); announceTip(d, r); updateUI();
   const phases = [movePhase(d, from, r, start)];
@@ -720,11 +722,17 @@ function restart() {
 }
 function go(id) {
   const i = indexOf(id); if (i < 0 || i > reached) return false;
-  queue = []; anim = null; clearHint(); hideWay(); lookHintDue = null; endLookHint();
+  queue = []; anim = null; clearHint(); hideWay(); lookHintDue = null; endLookHint(); finale = false;
   boardId = id; history = []; undoStack = []; resetLook(true); buildBoard(); syncAll(); save(); arrival(); say('');
   return true;
 }
-function nextBoard() { const i = indexOf(boardId); go(BOARDS[i + 1] ? BOARDS[i + 1].id : BOARDS[0].id); }
+// Next: the following board; after the last, the first board not yet finished. When every board is finished it is
+// Replay: the campaign starts again from board 1, each board fresh, with every finished mark kept.
+function nextBoard() {
+  if (ending()) { go(BOARDS[0].id); return; }
+  const i = indexOf(boardId), open = BOARDS.find(b => !done.includes(b.id));
+  go(BOARDS[i + 1] ? BOARDS[i + 1].id : open ? open.id : BOARDS[0].id);
+}
 
 // ---------- Screen geometry ----------
 let viewH = 1, viewW = 1;
@@ -1027,7 +1035,7 @@ function maybeLookHint() {
 }
 
 // ---------- Chrome ----------
-const icons = { restart: 'M5 7a8 8 0 1 1-1 9M5 3v5h5', undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12', hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z', settings: 'M4 7h16M4 17h16M8 4v6M16 14v6', help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2', next: 'M5 12h14m-6-6 6 6-6 6', first: 'M19 12H6m5-5-5 5 5 5M3 6v12' };
+const icons = { restart: 'M5 7a8 8 0 1 1-1 9M5 3v5h5', undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12', hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z', settings: 'M4 7h16M4 17h16M8 4v6M16 14v6', help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2', next: 'M5 12h14m-6-6 6 6-6 6', replay: 'M21 4v6h-6M3 20v-6h6M5.5 9a7.5 7.5 0 0 1 12.4-2.8L21 10M3 14l3.1 3.8A7.5 7.5 0 0 0 18.5 15' };
 for (const [id, path] of Object.entries(icons)) { const b = $('#' + id + '-btn'); if (b) b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + path + '"/></svg>'; }
 const where = s => 'Level ' + (s.level + 1) + ', row ' + (s.row + 1) + ', column ' + (s.col + 1);
 function say(text) { const n = $('#announcement'); n.textContent = ''; n.textContent = text; }
@@ -1037,8 +1045,11 @@ function announceTip(d, r) {
   else if (r.path.some(c => c.drop)) say(NAMES[d] + '. Drops to ' + where(r) + '.');
   else say(NAMES[d] + '. ' + where(r) + '.');
 }
-function announceSolved() { say('Finished in ' + history.length + (history.length === 1 ? ' move' : ' moves') + '; par ' + par + '.' + (campaignDone() ? ' Every board is finished.' : '')); }
+function announceSolved() { say('Finished in ' + history.length + (history.length === 1 ? ' move' : ' moves') + '; par ' + par + '.' + (ending() ? ' ' + endLine() : '')); }
 const campaignDone = () => BOARDS.every(b => done.includes(b.id));
+// The end: every board finished, shown on the last board, or on the one whose finish completed them all.
+const ending = () => solvedNow && campaignDone() && (finale || !BOARDS[indexOf(boardId) + 1]);
+const endLine = () => 'All ' + BOARDS.length + ' boards solved.';
 function describe() {
   const lines = [solvedNow ? 'The marble is out, on the floor under the exit.' : 'Marble on ' + where(place).toLowerCase() + '.'];
   for (let k = 0; k < L; k++) {
@@ -1070,8 +1081,10 @@ function updateUI() {
   $('#readout').textContent = (i + 1) + ' / ' + BOARDS.length + ' · ' + history.length + ' / ' + par;
   $('#undo-btn').disabled = !undoStack.length && !busy();
   $('#next-btn').hidden = !showNext;
-  const last = showNext && !BOARDS[i + 1], nb = $('#next-btn');
-  if (nb.dataset.kind !== (last ? 'first' : 'next')) { nb.dataset.kind = last ? 'first' : 'next'; nb.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + icons[last ? 'first' : 'next'] + '"/></svg>'; nb.setAttribute('aria-label', last ? 'Back to the first board' : 'Next board'); }
+  // At the end one line shows above the arrow, and the arrow becomes Replay.
+  const end = showNext && ending(), kind = end ? 'replay' : 'next', nb = $('#next-btn'), line = $('#end-line');
+  line.hidden = !end; line.textContent = end ? endLine() : '';
+  if (nb.dataset.kind !== kind) { nb.dataset.kind = kind; nb.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + icons[kind] + '"/></svg>'; nb.setAttribute('aria-label', end ? 'Replay' : 'Next board'); }
   canvas.setAttribute('aria-label', describe());
   $('#previous').disabled = i === 0; $('#following').disabled = i >= reached || i === BOARDS.length - 1;
   updateCatalog(); updateHintButton();
@@ -1155,7 +1168,7 @@ function tapFor(d) {
 window.__tilt3d = {
   boards: BOARDS,
   get board() { return boardId; },
-  get state() { return { theme: prefs.theme, board: boardId, level: place.level, row: place.row, col: place.col, moves: history.length, par, solved: solvedNow, busy: busy(), queued: queue.length, history: history.slice(), done: done.slice(), reached, hint, next: showNext, corrupt, looked: prefs.looked, motion: prefs.motion, sensor: { enabled: sensor.enabled, calibrated: !!sensor.base, armed: sensor.armed } }; },
+  get state() { return { theme: prefs.theme, board: boardId, level: place.level, row: place.row, col: place.col, moves: history.length, par, solved: solvedNow, busy: busy(), queued: queue.length, history: history.slice(), done: done.slice(), reached, hint, next: showNext, ending: showNext && ending(), corrupt, looked: prefs.looked, motion: prefs.motion, sensor: { enabled: sensor.enabled, calibrated: !!sensor.base, armed: sensor.armed } }; },
   go, tip(d) { if (DIRS[d]) enqueue({ kind: 'tip', dir: d }); }, undo, restart, pressHint, next: nextBoard,
   swipeFor, tapFor,
   cellPoint(level, row, col) { placeStack(); return localToScreen(V3(cx(col), topY(level), cz(row))); },

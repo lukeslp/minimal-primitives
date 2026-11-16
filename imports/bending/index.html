@@ -14,7 +14,7 @@
 
   <link rel="preload" href="./fonts/IBMPlexMono-500.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="./rimlight.css?v=0f8ac9d7">
-  <link rel="stylesheet" href="./dark.css?v=c6dd413f">
+  <link rel="stylesheet" href="./dark.css?v=08a136e3">
 <meta name="description" content="Use gravity to send light where you point it.">
 <meta property="og:title" content="Bending">
 <meta property="og:description" content="Use gravity to send light where you point it.">
@@ -30,7 +30,7 @@
 <meta name="twitter:description" content="Use gravity to send light where you point it.">
 <meta name="twitter:image" content="https://lukesteuber.com/games/social/light-2a4f60426143.png">
 <meta name="twitter:image:alt" content="Two beams of light bend past a planet to their numbered lights on the rim of a well; a third crosses straight.">
-<link rel="stylesheet" href="./controls.css?v=2e033f1e">
+<link rel="stylesheet" href="./controls.css?v=4568a846">
 </head>
 <body class="dark">
   <canvas id="sky" aria-hidden="true"></canvas>
@@ -41,7 +41,7 @@
     <div id="board">
       <canvas id="well" role="img" aria-label="Bending" aria-describedby="well-keys"></canvas>
       <div id="planet-buttons"></div>
-      <div id="completion" class="completion" hidden><button class="ib" id="next" type="button" aria-label="Next stage"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+      <div id="completion" class="completion" hidden><p id="end-line" class="end-line" hidden></p><button class="ib" id="next" type="button" aria-label="Next stage" data-kind="next"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
     </div>
     <p id="well-keys" class="sr-only">Tab or a number goes to a planet. Enter places it, arrows move it, Delete sends it back. Z undoes, R restarts, H hints, N goes on.</p>
     <div class="bar">
@@ -76,7 +76,7 @@
       <details class="help-more"><summary>Keys</summary>
         <p>Tab or a number goes to a planet. Enter places it, arrows move it, Delete sends it back. Z undoes, R restarts, H hints, N goes on.</p>
       </details>
-      <div class="sheet-foot"><a class="foot-link" href="https://lukesteuber.com/">lukesteuber.com</a></div>
+      <div class="sheet-foot"><a class="foot-link" href="https://lukesteuber.com/minimal/">All games</a> · <a class="foot-link" href="https://lukesteuber.com/">lukesteuber.com</a></div>
     </div>
   </div></dialog>
 
@@ -101,8 +101,8 @@
     </div>
   </div></dialog>
 
-  <script type="module" src="./dark.mjs?v=d143c10b"></script>
-<script defer src="./controls.js?v=0bc7c534"></script>
+  <script type="module" src="./dark.mjs?v=c40ea317"></script>
+<script defer src="./controls.js?v=052c0407"></script>
 <script data-goatcounter="https://stats.dr.eamer.dev/count" data-goatcounter-pageviews async referrerpolicy="no-referrer" src="https://stats.dr.eamer.dev/count.js?v=20261102-pageviews"></script>
 </body>
 </html>

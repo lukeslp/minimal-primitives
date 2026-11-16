@@ -1,8 +1,8 @@
 @font-face{font-family:"Plex Mono";src:url("fonts/IBMPlexMono-500.woff2") format("woff2");font-weight:500;font-display:swap}
 @font-face{font-family:"Plex Sans";src:url("fonts/IBMPlexSans-400.woff2") format("woff2");font-weight:400;font-display:swap}
-:root{color-scheme:light;--bg:#ffffff;--ink:#000000;--text:#111111;--sub:#5e5e5e;--line:#d4d4d4;--guide:#8f8f8f;--frame:#1c1c1c;--band:rgba(0,0,0,.05);--scrim:rgba(255,255,255,.84);--empty:#cdcdcd;--grid:#8f8f8f;--mono:"Plex Mono",ui-monospace,Menlo,Consolas,monospace;--sans:"Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
-@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#000000;--ink:#ffffff;--text:#ededed;--sub:#a6a6a6;--line:#2f2f2f;--frame:#ededed;--band:rgba(255,255,255,.06);--scrim:rgba(0,0,0,.8);--empty:#484848;--grid:#8f8f8f}}
-:root[data-theme="dark"]{color-scheme:dark;--bg:#000000;--ink:#ffffff;--text:#ededed;--sub:#a6a6a6;--line:#2f2f2f;--frame:#ededed;--band:rgba(255,255,255,.06);--scrim:rgba(0,0,0,.8);--empty:#484848;--grid:#8f8f8f}
+:root{color-scheme:light;--bg:#ffffff;--ink:#000000;--text:#111111;--sub:#5e5e5e;--line:#d4d4d4;--guide:#8f8f8f;--frame:#1c1c1c;--band:rgba(0,0,0,.05);--scrim:rgba(255,255,255,.84);--empty:#cdcdcd;--grid:#8f8f8f;--socket:#adadad;--mono:"Plex Mono",ui-monospace,Menlo,Consolas,monospace;--sans:"Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#000000;--ink:#ffffff;--text:#ededed;--sub:#a6a6a6;--line:#2f2f2f;--frame:#ededed;--band:rgba(255,255,255,.06);--scrim:rgba(0,0,0,.8);--empty:#484848;--grid:#8f8f8f;--socket:#6b6b6b}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#000000;--ink:#ffffff;--text:#ededed;--sub:#a6a6a6;--line:#2f2f2f;--frame:#ededed;--band:rgba(255,255,255,.06);--scrim:rgba(0,0,0,.8);--empty:#484848;--grid:#8f8f8f;--socket:#6b6b6b}
 
 *,*::before,*::after{box-sizing:border-box;border-radius:0}
 html,body{touch-action:manipulation}
@@ -37,6 +37,17 @@ kbd{font:500 14px/1 var(--mono)}
 .cell:is(.b,.w):not(.given){--k:transparent calc(var(--r) - .5px),var(--empty) calc(var(--r) + .5px);
   background-image:radial-gradient(circle at 100% 100%,var(--k)),radial-gradient(circle at 0 100%,var(--k)),radial-gradient(circle at 100% 0,var(--k)),radial-gradient(circle at 0 0,var(--k));
   background-repeat:no-repeat;background-size:var(--r) var(--r);background-position:left top,right top,left bottom,right bottom}
+/* Empty: a hairline outline of the rounded square a tap will put there, so an empty square cannot be
+   taken for a white given, which is flat. Shape, not shade: it holds in light, dark and grayscale. */
+.cell.e::before{content:"";position:absolute;inset:18%;border:1px solid var(--socket);border-radius:calc(var(--r) * .64);pointer-events:none}
+/* A tapped given refuses: four corner brackets hold it for a moment and it shakes once. With reduced
+   motion the animations stop (see the end of this file) and the brackets alone are the cue. */
+.cell.given.refuse{z-index:1;animation:refuse .3s ease-out}
+.cell.given.refuse::after{content:"";position:absolute;inset:5px;pointer-events:none;--a:max(8px,calc(var(--cell) * .22));border:2px solid var(--on);
+  -webkit-mask:conic-gradient(at var(--a) var(--a),#0000 75%,#000 0) 0 0/calc(100% - var(--a)) calc(100% - var(--a));
+  mask:conic-gradient(at var(--a) var(--a),#0000 75%,#000 0) 0 0/calc(100% - var(--a)) calc(100% - var(--a));animation:refuse-fade .7s ease-in forwards}
+@keyframes refuse{20%{translate:-3px 0}40%{translate:3px 0}60%{translate:-2px 0}80%{translate:2px 0}}
+@keyframes refuse-fade{0%,55%{opacity:1}to{opacity:0}}
 .cell:focus{outline:none}
 .cell:focus-visible{outline:2px solid var(--on);outline-offset:-4px;z-index:2}
 .cell.evidence::after,.cell.hint-target::after{content:"";position:absolute;inset:6px;pointer-events:none}

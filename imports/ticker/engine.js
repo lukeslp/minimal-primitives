@@ -144,9 +144,10 @@
   const solved = (board, state) => !state.wrong && state.notes.length === board.melody.length;
   // What is in play: the board's notes, low to high, then the replay sound;
   // while a wrong note stands, only undo and replay; once the tune is
-  // rebuilt, next and replay (replay alone on the last board).
-  function contention(board, state, last) {
-    if (solved(board, state)) return last ? ['replay'] : ['next', 'replay'];
+  // rebuilt, next and replay, the last board too, so one switch always has a
+  // way on (there next is the first unfinished board, or Replay from board 1).
+  function contention(board, state) {
+    if (solved(board, state)) return ['next', 'replay'];
     if (state.wrong) return ['undo', 'replay'];
     return board.notes.map((_, k) => k).concat('replay');
   }
@@ -182,7 +183,7 @@
   // Par: the presses a perfect presser needs to rebuild the tune, note by
   // note, each choice among the board's notes and replay.
   function solve(board, speed = 'normal', shift = 0) {
-    const T = period(board, speed), ids = contention(board, start(), false), steps = [];
+    const T = period(board, speed), ids = contention(board, start()), steps = [];
     let par = 0;
     for (const j of board.melody) { const c = cost(ids, j, T, shift); steps.push(c.presses); par += c.winner === j ? c.presses : Infinity; }
     return { par, steps };

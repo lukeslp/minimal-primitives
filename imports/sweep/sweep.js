@@ -38,7 +38,22 @@
   const reduced = () => prefs.motion === 'reduce' || motionQuery.matches;
   const dark = () => prefs.theme === 'dark' || (prefs.theme === 'system' && darkQuery.matches);
   const rowsOf = () => board.cells.length, colsOf = () => board.cells[0].length, present = (r, c) => r >= 0 && c >= 0 && r < rowsOf() && c < colsOf() && board.cells[r][c] !== '.';
-  const solved = () => E.solved(board, grid), last = () => boards.indexOf(board) === boards.length - 1;
+  const solved = () => E.solved(board, grid);
+  // ---- The end, the same in all eight accessible games. Next goes to the
+  // following board and, past the last, to the first unfinished one. Once
+  // every board is finished the readout says so, and on the last board Next
+  // turns into Replay: board 1 again, fresh, with the finished marks kept.
+  const ENDING = `All ${boards.length} boards solved.`, ARROW = 'M5 12h14M13 6l6 6-6 6', REPLAY = 'M17 3l3 3-3 3M4 11V9a3 3 0 0 1 3-3h13M7 21l-3-3 3-3M20 13v2a3 3 0 0 1-3 3H4';
+  const allSolved = () => boards.every(b => finished.has(b.id));
+  const ahead = () => boards[boards.indexOf(board) + 1] || boards.find(b => !finished.has(b.id)) || boards[0];
+  const replays = () => !boards[boards.indexOf(board) + 1] && allSolved();
+  function labelNext() {
+    const n = $('#next-btn'), again = replays(), label = again ? 'Replay from board 1' : 'Next board', d = again ? REPLAY : ARROW;
+    n.dataset.end = again ? 'replay' : 'next';
+    if (n.getAttribute('aria-label') === label && n.querySelector('path')?.getAttribute('d') === d) return;
+    n.setAttribute('aria-label', label);
+    n.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  }
   const lightCount = g => g.flat().filter(v => v === 1).length;
   const pars = new Map(), parOf = (b, mode = prefs.mode) => { const k = b.id + mode; if (!pars.has(k)) pars.set(k, S.par(E, b, mode)); return pars.get(k); };
   function announce(text) { $('#announcement').textContent = text; }
@@ -55,12 +70,14 @@
   // ---- The scan. Its rows are the board's rows that hold tiles, then one
   // row of controls: Undo (once there is a move) and Hint. Each row ends in a
   // back stop that returns to the rows. A finished board is scanned across
-  // Next and Undo alone, Next first; after the last board nothing is scanned.
+  // Next and Undo alone, Next first, the last board too: there Next leads to
+  // the first unfinished board, or is Replay once every board is finished.
+  // So a scan always offers a way on.
   let scan = null, hint = null;
   const lineup = () => S.boardRows(board);
   const controlRow = () => lineup().length;
   function rowsNow() {
-    if (solved()) return last() ? [] : [['next', ...(history.length ? ['undo'] : [])]];
+    if (solved()) return [['next', ...(history.length ? ['undo'] : [])]];
     return lineup().map(x => x.cells.map(c => `cell:${x.r}:${c}`).concat('back')).concat([[...(history.length ? ['undo'] : []), 'hint', 'back']]);
   }
   const delay = () => S.SPEEDS[prefs.speed];
@@ -190,12 +207,13 @@
 
   function chrome() {
     const i = boards.indexOf(board), done = solved(), par = parOf(board);
-    $('#readout').textContent = `${i + 1} / ${boards.length} · ${hits} / ${par}`;
-    $('#readout').setAttribute('aria-label', `Board ${i + 1} of ${boards.length}; ${hits} presses; par ${par}`);
+    const end = done && allSolved();
+    $('#readout').textContent = end ? ENDING : `${i + 1} / ${boards.length} · ${hits} / ${par}`;
+    $('#readout').setAttribute('aria-label', `${end ? ENDING + ' ' : ''}Board ${i + 1} of ${boards.length}; ${hits} presses; par ${par}`);
     boardNode.setAttribute('aria-label', `Board ${i + 1}, ${rowsOf()} rows by ${colsOf()} columns. ${done ? 'Every tile dark.' : lightCount(grid) + ' light tiles.'} ${hits} presses, par ${par}. ${{ step: 'Space steps the frame, Enter chooses.', hold: 'Hold any key to move the frame; let go to choose.', auto: 'Press any key as the frame passes your row, then your tile.' }[prefs.mode]}`);
     $('#undo-btn').disabled = history.length === 0;
     $('#hint-btn').disabled = done;
-    $('#next-btn').hidden = !done || last();
+    $('#next-btn').hidden = !done; labelNext();
     $('#speed').disabled = prefs.mode === 'step';
     // Long press is the take-back for auto- and step-scan; in Hold to move,
     // holding is the movement. Rest after is for auto-scan, which moves by
@@ -235,7 +253,7 @@
     chrome(); save(); show(before, [r, c]);
     bloomAt(r, c);
     if (solved()) { paintBoard([r, c], true); sound('solve'); } else sound('act', history.length - 1);
-    if (solved()) announce(`Every tile dark in ${hits} presses. Par ${parOf(board)}. ${last() ? 'Every board is finished.' : 'Next board is ready.'}`);
+    if (solved()) announce(`Every tile dark in ${hits} presses. Par ${parOf(board)}. ${allSolved() ? ENDING : 'Next board is ready.'}`);
     else announce(`Row ${r + 1}, column ${c + 1} turned. ${lightCount(grid)} light. ${hits} presses.`);
   }
   function takeBack() {
@@ -284,7 +302,7 @@
     board = b; fresh(); announce(`Board ${boards.indexOf(b) + 1}.`); return true;
   }
   function restart() { fresh(); announce('Board restarted.'); }
-  function nextBoard() { const b = boards[boards.indexOf(board) + 1]; return b && solved() ? go(b.id) : false; }
+  function nextBoard() { return solved() ? go(ahead().id) : false; }
 
   // ---- The switch. A press is judged at the moment it went down.
   let gate = S.gate(prefs.release);
@@ -625,7 +643,7 @@
     get recovery() { return { pending: !!pending, long: !!long && !long.fired, longs, ring: holdRing.getAttribute('display') !== 'none' ? +holdRing.dataset.fill : null }; },
     get payoff() { return { ...payoff, blooming: payoffLayer.querySelectorAll('.bloom').length, palette: P.NAMES[boards.indexOf(board) % P.NAMES.length], painted: payoff.painted, paints: [...tiles.values()].map(t => [t.r, t.c, t.paint.getAttribute('fill'), +getComputedStyle(t.paint).opacity]) }; },
     plan() { const p = S.plan(E, board, grid, prefs.mode, here()); return p && { cells: p.cells.map(c => c.slice()), presses: p.presses }; },
-    target() { if (solved()) return last() ? null : 'next'; const p = S.plan(E, board, grid, prefs.mode, here()); return p && p.cells.length ? `cell:${p.cells[0][0]}:${p.cells[0][1]}` : null; },
+    target() { if (solved()) return 'next'; const p = S.plan(E, board, grid, prefs.mode, here()); return p && p.cells.length ? `cell:${p.cells[0][0]}:${p.cells[0][1]}` : null; },
     frame() { const vis = n => n.getAttribute('display') !== 'none', r = n => ({ x: +n.getAttribute('x'), y: +n.getAttribute('y'), width: +n.getAttribute('width'), height: +n.getAttribute('height') }); return { fill: vis(fill) ? r(fill) : null, band: band && vis(band) ? r(band) : null, back: vis(backIcon), inverted: inverted.map(n => n.id || 'tile:' + n.dataset.r + ':' + n.dataset.c), row: vis(rowRect) ? { x: +rowRect.getAttribute('x'), y: +rowRect.getAttribute('y'), width: +rowRect.getAttribute('width'), height: +rowRect.getAttribute('height'), heavy: rowRect.classList.contains('heavy') } : null, item: vis(itemRect) ? { x: +itemRect.getAttribute('x'), y: +itemRect.getAttribute('y'), width: +itemRect.getAttribute('width'), height: +itemRect.getAttribute('height') } : null, ring: vis(ring) ? { cx: +ring.getAttribute('cx'), cy: +ring.getAttribute('cy'), r: +ring.getAttribute('r') } : null }; },
     center(r, c) { return present(r, c) ? { x: geo.ox + (c + .5) * geo.s, y: geo.oy + (r + .5) * geo.s, size: geo.s } : null; },
     // The fit's area, and the board with its back-stop room on each side.

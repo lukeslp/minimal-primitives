@@ -141,14 +141,16 @@
     // and each camera game's camera too (read by their gaze code).
     const FLIP='minimal-gaze.v1:invert-y',cameraGame=!!document.querySelector('video#camera');
     const flipped=()=>{try{return localStorage.getItem(FLIP)==='1'?'on':'off';}catch(_){return 'off';}};
-    const MODES=config.modes||['off','switch','look'],SPEEDS={slow:1600,normal:1100,fast:700},HOLDS=[600,800,1000,1400];
+    const MODES=config.modes||['off','switch','look'],SPEEDS={slowest:6000,slower:3000,slow:1600,normal:1100,fast:700},HOLDS=[600,800,1000,1400];
     const camOK=cameraAllowed(),trackOK=trackerAllowed(),pointing=config.keys.some(k=>k==='point'||k==='drag'||k.id==='point'||k.id==='drag');
     // Every choice and its first value, which is the default. Press time is
     // how long a press must last to count; release time is how long after a
-    // press another is taken as a bounce. Long press takes back a step (off
-    // unless chosen); rest stops the scan after so many silent passes (never
-    // unless chosen).
-    const CHOICES={mode:MODES,speed:['normal','slow','fast'],scan:['groups','keys'],press:[0,200,500,1000],release:[300,600,1000,1500],long:[0,1000,1500,2000],rest:[0,2,4,8],highlight:['invert','outline'],brake:['off','on'],look:camOK?['head','eyes','pointer','tracker']:['pointer','head','eyes','tracker'],hold:[800,600,1000,1400]};
+    // press another is taken as a bounce (a tenth of a second unless chosen,
+    // short enough for a player who presses twice quickly on purpose). Long
+    // press takes back a step (off unless chosen); rest stops the scan after
+    // so many silent passes (never unless chosen). Speed reaches down to a
+    // step every 6 s for a player who needs that long to press.
+    const CHOICES={mode:MODES,speed:['normal','slow','slower','slowest','fast'],scan:['groups','keys'],press:[0,200,500,1000],release:[100,300,600,1000,1500],long:[0,1000,1500,2000],rest:[0,2,4,8],highlight:['invert','outline'],brake:['off','on'],look:camOK?['head','eyes','pointer','tracker']:['pointer','head','eyes','tracker'],hold:[800,600,1000,1400]};
     let prefs=Object.fromEntries(Object.entries(CHOICES).map(([k,v])=>[k,v[0]])),engine=null;
     // A game never set keeps the player's choice from the collection's
     // Accessibility page, where it fits this game; its own setting, once
@@ -160,8 +162,13 @@
     // setting. A save that is not readable at all starts from the defaults.
     // One bad value used to turn Access off and stop saving for good.
     try{const raw=localStorage.getItem(KEY);if(raw!==null){const s=JSON.parse(raw);if(s&&typeof s==='object')for(const k in CHOICES)if(CHOICES[k].includes(s[k]))prefs[k]=s[k];}}catch(_){}
-    if(!camOK&&prefs.look!=='tracker'||prefs.look==='tracker'&&!trackOK)prefs.look='pointer';
-    const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(prefs));}catch(_){}};
+    // A look this page cannot offer (Head or Eyes where the camera's code may
+    // not run, Eye tracker where the bridge may not be reached) plays by
+    // pointer here, but the player's own choice stays saved for the pages
+    // that can, until they choose another look here.
+    let keptLook=null;
+    if(!camOK&&prefs.look!=='tracker'&&prefs.look!=='pointer'||prefs.look==='tracker'&&!trackOK){keptLook=prefs.look;prefs.look='pointer';}
+    const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(keptLook?{...prefs,look:keptLook}:prefs));}catch(_){}};
     const sheet=byId(config.sheet||'settings');
     // The Access rows follow the sheet's Motion or Theme row, or, where a game
     // names one, its own control (config.anchor) and that control's row
@@ -195,7 +202,7 @@
     calName.textContent='Calibration';calButton.type='button';calButton.id='access-calibrate';calButton.className=picker?'access-action':anchor.className||'access-action';calButton.textContent='Calibrate';cal.append(calName,calButton);
     calButton.addEventListener('click',()=>{if(sheet.open&&sheet.close)sheet.close();ensure(e=>e.calibrate());});
     const secs=v=>v?v/1000+' s':'Off';
-    row0.after(row('mode','Access',MODES.map(m=>[m,names[m]])),row('speed','Speed',[['slow','Slow'],['normal','Normal'],['fast','Fast']]),
+    row0.after(row('mode','Access',MODES.map(m=>[m,names[m]])),row('speed','Speed',[['slowest','Slowest (6 s)'],['slower','Slower (3 s)'],['slow','Slow'],['normal','Normal'],['fast','Fast']]),
       row('scan','Scan',[['groups','Groups'],['keys','Keys']]),row('press','Press time',CHOICES.press.map(v=>[String(v),secs(v)])),
       row('release','Release time',CHOICES.release.map(v=>[String(v),secs(v)])),row('long','Long press',CHOICES.long.map(v=>[String(v),secs(v)])),
       row('rest','Rest after',[['0','Never'],['2','2 passes'],['4','4 passes'],['8','8 passes']]),row('highlight','Highlight',[['invert','Invert'],['outline','Outline']]),
@@ -206,6 +213,13 @@
     const locked=()=>{try{return localStorage.getItem('minimal-access.v1:locked')==='1';}catch(_){return false;}};
     const lockNote=document.createElement('p');lockNote.className='access-row access-locked';lockNote.dataset.access='locked';lockNote.textContent='Set by your clinician.';lockNote.hidden=true;
     rows.mode.node.before(lockNote);
+    // Why a look is greyed out, said beside it rather than left to guess.
+    const lookNote=document.createElement('p');lookNote.className='access-row access-note';lookNote.dataset.access='look-note';
+    lookNote.textContent=[!camOK&&'Head and Eyes need the camera, which this page does not allow.',!trackOK&&'Eye tracker needs the gaze bridge on this computer, which this page cannot reach.'].filter(Boolean).join(' ');
+    rows.look.node.after(lookNote);
+    // Access that could not load (offline, a blocked file) says so where it was chosen.
+    const loadNote=document.createElement('p');loadNote.className='access-row access-error';loadNote.dataset.access='load-error';loadNote.setAttribute('role','alert');loadNote.textContent='Access could not load. Check the connection, then choose it again.';loadNote.hidden=true;
+    rows.mode.node.after(loadNote);
     // The lock can change while the page is open (the app sets it); Settings shows the current one.
     byId(config.settings)?.addEventListener('click',()=>paintRows(),true);
     // Exact timings from the accessible app (minimal-access.v1:exact): read live by
@@ -216,20 +230,20 @@
       const lock=locked();lockNote.hidden=!lock;for(const id in rows){const c=rows[id].node.querySelector('select,button');if(c)c.disabled=lock;}calButton.disabled=lock;
       for(const id of ['speed','scan','press','release','long','rest','highlight'])rows[id].node.hidden=prefs.mode!=='switch';
       rows.brake.node.hidden=prefs.mode!=='switch'||!pointing;
-      rows.look.node.hidden=rows.hold.node.hidden=prefs.mode!=='look';rows.flip.node.hidden=!cameraGame&&(prefs.mode!=='look'||prefs.look==='pointer');cal.hidden=prefs.mode!=='look'||prefs.look==='pointer';
+      rows.look.node.hidden=rows.hold.node.hidden=prefs.mode!=='look';lookNote.hidden=prefs.mode!=='look'||!lookNote.textContent;rows.flip.node.hidden=!cameraGame&&(prefs.mode!=='look'||prefs.look==='pointer');cal.hidden=prefs.mode!=='look'||prefs.look==='pointer';
     }
     function change(id,v,user){
       if(locked()){paintRows();return;}
       if(id==='flip'){try{if(v==='on')localStorage.setItem(FLIP,'1');else localStorage.removeItem(FLIP);}catch(_){}paintRows();return;}
-      prefs[id]=typeof CHOICES[id][0]==='number'?+v:v;save();paintRows();
+      prefs[id]=typeof CHOICES[id][0]==='number'?+v:v;if(id==='look')keptLook=null;save();paintRows();
       if(prefs.mode!=='off'||engine)ensure(e=>e.set(user));
     }
     // access.js, once: it hands back the engine, which keeps reading these prefs.
     let loading=null;
     function ensure(then){
       if(engine){then(engine);return;}
-      loading=loading||new Promise((done,fail)=>{const n=document.createElement('script');n.src=new URL('./access.js?v=b25ce723',here).href;n.onload=()=>window.MinimalAccessEngine?done():fail();n.onerror=fail;document.head.append(n);});
-      loading.then(()=>{engine=engine||window.MinimalAccessEngine({config,prefs,save,paintRows,completionNodes,nexts,spot,place,here,SPEEDS,exact});then(engine);},()=>{loading=null;});
+      loading=loading||new Promise((done,fail)=>{const n=document.createElement('script');n.src=new URL('./access.js?v=c99b2bd9',here).href;n.onload=()=>window.MinimalAccessEngine?done():fail();n.onerror=fail;document.head.append(n);});
+      loading.then(()=>{loadNote.hidden=true;engine=engine||window.MinimalAccessEngine({config,prefs,save,paintRows,completionNodes,nexts,spot,place,here,SPEEDS,exact});then(engine);},()=>{loading=null;loadNote.hidden=false;document.body.dataset.accessError='load';});
     }
     paintRows();
     if(prefs.mode!=='off')requestAnimationFrame(()=>ensure(e=>e.set(false)));

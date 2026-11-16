@@ -26,6 +26,25 @@ try {
   const migrated = migrate(candidate, boards);
   if (migrated) record = migrated;
 } catch (_) {}
+// Which stages have ever been solved. Replay clears the boards and keeps these
+// marks, so a stage stays finished after its planets go back to the tray.
+function marks() {
+  const kept = Array.isArray(record.done) && record.done.length === boards.length ? record.done : [];
+  record.done = record.stages.map((entry, i) => entry.solved || kept[i] === true);
+}
+marks();
+const finished = i => record.done[i] || record.stages[i].solved;
+const allFinished = () => boards.every((_, i) => finished(i));
+const firstOpen = () => boards.findIndex((_, i) => !finished(i));
+// True from the solve that finished the last open stage until another stage opens.
+let finale = false;
+// The end: every stage finished, shown on the last stage, or on the one whose solve finished them all.
+const ending = () => stage().solved && allFinished() && (finale || record.board === boards.length - 1);
+const endLine = () => `All ${boards.length} boards solved.`;
+const ICONS = {
+  next: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  replay: '<path d="M21 4v6h-6M3 20v-6h6"/><path d="M5.5 9a7.5 7.5 0 0 1 12.4-2.8L21 10M3 14l3.1 3.8A7.5 7.5 0 0 0 18.5 15"/>'
+};
 let result;
 let held = null;
 let history = [];
@@ -116,7 +135,7 @@ function tone() {
   } catch (_) {}
 }
 function announce() {
-  $('status').replaceChildren(document.createTextNode(stage().solved ? 'Solved' : `${result.count} of ${result.lit.length} lit`));
+  $('status').replaceChildren(document.createTextNode(stage().solved ? ending() ? endLine() : 'Solved' : `${result.count} of ${result.lit.length} lit`));
 }
 function positionButtons() {
   const { scale, x, y } = view.geometry;
@@ -185,16 +204,27 @@ function update(atRest = false, before = null, landed = null) {
     // A planet that has come to rest on a new dot sends a ripple; a solved stage sends one from each.
     if (landed) stage().planets.forEach((index, i) => { if (index !== null && index !== landed[i]) ripple(i, 110); });
     if (result.solved && !stage().solved) { wonAt = performance.now(); stage().planets.forEach((_, i) => ripple(i, 260 + i * 130)); }
+    if (result.solved && !stage().solved && !allFinished() && boards.every((_, i) => i === record.board || finished(i))) finale = true;
     stage().solved = result.solved;
+    if (result.solved) record.done[record.board] = true;
     if (result.solved) unlock(record, record.board, boards);
     if (result.solved) selected = null;
     if (before && result.lit.some((lit, i) => lit && !before[i])) tone();
     announce();
     save();
   }
-  $('readout').textContent = `${record.board + 1} / ${boards.length} · ${record.stages.filter(entry => entry.solved).length} ✓`;
+  $('readout').textContent = `${record.board + 1} / ${boards.length} · ${boards.filter((_, i) => finished(i)).length} ✓`;
   canvas.setAttribute('aria-label', `Bending, stage ${record.board + 1} of ${boards.length}: ${result.lit.length} beams, ${stage().planets.length} planets`);
   $('completion').hidden = !stage().solved;
+  // At the end the line shows above the arrow, and the arrow becomes Replay.
+  const end = ending(), kind = end ? 'replay' : 'next';
+  $('end-line').hidden = !end;
+  $('end-line').textContent = end ? endLine() : '';
+  if ($('next').dataset.kind !== kind) {
+    $('next').dataset.kind = kind;
+    $('next').querySelector('svg').innerHTML = ICONS[kind];
+    $('next').setAttribute('aria-label', end ? 'Replay' : 'Next stage');
+  }
   $('undo').disabled = history.length === 0;
   positionButtons();
   animation();
@@ -268,6 +298,7 @@ function load(index) {
   selected = null;
   bodies = [];
   ripples = [];
+  finale = false;
   wonAt = -Infinity;
   $('planet-buttons').replaceChildren();
   buttons = stage().planets.map((_, i) => {
@@ -297,16 +328,26 @@ function restart() {
   stage().planets.fill(null);
   update(true);
 }
+function replay() {
+  marks();
+  record.stages = fresh().stages;
+  record.board = 0;
+  load(0);
+}
 function hint() {
   if (held) return;
   stage().hints = Math.min(boards[record.board].answer.length, stage().hints + 1);
   save();
   draw();
 }
+// Next: the following stage; after the last, the first stage not yet finished.
+// When every stage is finished it is Replay: the boards start again from
+// stage 1, cleared, and every finished mark stays.
 function next() {
   if (!stage().solved || held) return;
   const keys = document.body.dataset.input === 'keyboard';
-  load((record.board + 1) % boards.length);
+  if (ending()) replay();
+  else load(record.board < boards.length - 1 ? record.board + 1 : firstOpen());
   // The next arrow has gone; a keyboard player carries on from the first planet.
   if (keys) buttons[0]?.focus({ preventScroll: true });
 }
@@ -395,7 +436,7 @@ function settings() {
     const button = document.createElement('button');
     button.type = 'button';
     const current = index === record.board;
-    const completed = record.stages[index].solved;
+    const completed = finished(index);
     const available = index < record.available;
     const state = current ? 'current' : completed ? 'completed' : available ? 'available' : 'locked';
     button.append(document.createTextNode(String(index + 1)));
@@ -407,7 +448,7 @@ function settings() {
     button.dataset.state = state;
     button.setAttribute('aria-label', `Stage ${index + 1}, ${state}${current && completed ? ', completed' : ''}`);
     button.setAttribute('aria-current', String(index === record.board));
-    button.dataset.complete = record.stages[index].solved;
+    button.dataset.complete = completed;
     button.addEventListener('click', () => { $('settings').close(); load(index); });
     item.append(button);
     $('stage-list').append(item);
@@ -432,6 +473,7 @@ $('settings-button').addEventListener('click', settings);
 $('reset-stage').addEventListener('click', () => {
   cancel();
   record.stages[record.board] = fresh().stages[record.board];
+  record.done[record.board] = false;
   $('settings').close();
   load(record.board);
 });
@@ -439,6 +481,7 @@ $('reset-game').addEventListener('click', () => {
   cancel();
   const { motion, sound } = record;
   record = { ...fresh(), motion, sound };
+  marks();
   $('settings').close();
   load(0);
 });
@@ -463,11 +506,13 @@ window.__rimlight = {
   get planets() { return [...stage().planets]; },
   get lit() { return [...result.lit]; },
   get solved() { return stage().solved; },
+  get done() { return boards.map((_, i) => finished(i)); },
+  get ending() { return ending(); },
   get hints() { return stage().hints; },
   get gliding() { return gliding; },
   get won() { return won(performance.now()); },
   get size() { return size(); },
   lens, clues,
   get geometry() { return view.geometry; },
-  place, load, undo, restart, hint, next
+  place, load, undo, restart, hint, next, replay
 };

@@ -95,7 +95,8 @@ def transform(game, path, text):
         if game['id'] == 'akari':
             other = '../akari-light/index.html' if path.startswith('akari/') else '../akari/index.html'
             text = re.sub(r'data-other="[^"]*"', 'data-other="' + other + '"', text)
-            text = replace_once(text, '<div class="row"><span>Share</span><button id="share">Copy link</button></div>', '<div class="row" hidden><span>Share</span><button id="share">Copy link</button></div>', path)
+            # The Share row (a web link, and on the dark board a picture share too) has no place in the package.
+            text = replace_once(text, '<div class="row"><span>Share</span><button id="share">', '<div class="row" hidden><span>Share</span><button id="share">', path)
             if path == 'akari/index.html':
                 text = replace_or_absorbed(text, 'Smooth squares are lit; hatched squares still need light.', 'Lighter panels are lit; darker panels still need light.', path)
     # Pure-white lamp cores with a tight halo over a moderately lit floor.

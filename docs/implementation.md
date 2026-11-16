@@ -1,6 +1,6 @@
 # Minimal Primitives implementation contract
 
-Accepted October 14, 2026. Browser-first private collection; no accounts or cloud saves. Public publication follows review. Amended October 15 at Luke's request: an offline Android app (`android/`, built by `tools/android.py`) plays the exact browser build, with no network permission and scores kept on the device.
+Accepted October 14, 2026. Browser-first private collection; no accounts or cloud saves. Public publication follows review. Amended October 15: an offline Android app (`android/`, built by `tools/android.py`) plays the exact browser build, with no network permission and scores kept on the device.
 
 ## Games and preservation
 Ten titles: Hexsweeper (Sphere, Classic, Infinite), Notan, Akari, Spiral Galaxies, Bridges, Slant, Fold, Bending, Tilt, Horologist. Import committed runtime snapshots with source SHA and hashes. No source edits for bundling. Preserve controls, appearance, themes, hints, rules and completion; integration transforms affect storage, links, transport and invisible state/lifecycle hooks, plus the explicitly requested Home icon and pure-white lamp cores with a tighter halo in Akari’s charcoal look. The floor brightness sits visually halfway between the original dim floor and the first bright version. Smooth, darker unlit panels replace decorative hatching while retaining natural light spill; lit panels lose that dark surface. The forced-colors pattern fallback is retained. In both Akari looks, Next sits directly below the completed board. Puzzle-share controls are hidden in the collection because their embedded-page links do not open the itch collection; the itch page handles collection sharing. Falloff, occlusion, animation and red conflict indicators are retained; the classic board is unchanged. The library follows the Minimal Primitives web index: edge-to-edge monochrome square artwork, no visible titles or introductory text. Sphere, Classic and Infinite each have a direct-launch tile. No collection bar or side rail; games fill the viewport. A Home icon beside the native restart control returns to the library. Collection scores live in Settings and in a single trophy modal below the library. This modal combines board categories, nickname, explicit future-score sharing, save and removal; actions use labeled icons. The footer centers the oneimpossiblethingatatime.com link independently of the trophy. This supersedes the initial external-bar plan at Luke’s request. Only the selected game runs. Lossless adapter snapshots retain undo and transient state on switching. The selected game/mode is recorded in the URL fragment so refresh reopens it; Home clears that selection. A synchronous pagehide checkpoint preserves the current board, Undo and open settings before reload. Reloaded attempts remain local practice.
@@ -49,7 +49,7 @@ uses the same board-adjacent completion placement as the collection.
 
 ## Motor-accessible puzzles in the package, November 2, 2026
 
-At Luke's request the package carries the eight motor-accessible puzzles from
+The package carries the eight motor-accessible puzzles from
 game-riffs (Glance, Glyph, Pursuit, Shoo, Nod, Noon, Sweep, Ticker) beside the
 ten games: "the 10 + the 8". They are imported like the others, from their
 `runtime.json`, and marked `group: accessible` in `sources.json` and the

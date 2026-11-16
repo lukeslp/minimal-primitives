@@ -1,0 +1,3 @@
+Most games now have an ending. Finish the last board and the game says so, then offers generated free play, a new board or Replay, depending on the game. Next always takes you to your first unfinished board.
+
+Also new: Cast drops cubes where you aim and colors its finish by level; the one-switch scan reaches Next on every board; and Scores opens from Settings.

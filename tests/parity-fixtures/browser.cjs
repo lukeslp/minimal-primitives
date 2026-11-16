@@ -11,7 +11,8 @@ const ORIGIN = 'https://lukesteuber.com';
 // The motor-accessible puzzles have no resume or score adapter; package.test.cjs opens each one.
 const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'sources.json'))).games.filter(g => g.id !== 'hexsweeper' && g.group !== 'accessible');
 // Main-grid tiles: one per game, one per Hexsweeper mode, none for the accessible group.
-const mainTiles = JSON.parse(fs.readFileSync(path.join(ROOT, 'sources.json'))).games.filter(g => g.group !== 'accessible').reduce((n, g) => n + (g.modes ? g.modes.length : 1), 0);
+// The library's tiles are the Minimal index's (index.json), the last one opening the accessible puzzles.
+const mainTiles = JSON.parse(fs.readFileSync(path.join(ROOT, 'index.json'))).tiles.filter(t => !t.notBundled).length;
 const mime = {'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.woff2':'font/woff2','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml','.jpg':'image/jpeg'};
 // The same reference change, or the source already carrying it upstream.
 function adopt(source,anchor,next,label){
@@ -112,6 +113,18 @@ async function restored(frame) {
   const error=await frame.page().evaluate(n=>window.__parityMessages.find(e=>e.nonce===n&&e.type==='error'),nonce);
   assert(!error,error?.payload?.message);
 }
+// Opens a game from the library the way a keyboard does. `key` is game[:mode], the link's data-open. A game with
+// its own tile opens from the tile; one on another tile's card ("Also" Tilt · 3D, Cube Maze, Constellations,
+// Hexsweeper Flat and Endless) is reached by focusing that tile, which shows its card, then the link on it.
+async function open(page,key) {
+  const link=page.locator(`#tiles [data-open="${key}"]`);
+  await page.locator('#library').waitFor({state:'visible'});await link.first().waitFor({state:'attached'});
+  assert.equal(await link.count(),1,'one library link opens '+key);
+  await link.locator('xpath=ancestor::div[contains(concat(" ",@class," ")," tile ")]').locator('.go').focus();
+  await link.focus();
+  assert.equal(await link.evaluate(a=>document.activeElement===a),true,key+' is reachable by keyboard');
+  await page.keyboard.press('Enter');
+}
 async function shell(ctx,game) {
   const page=await ctx.newPage();
   await page.clock.install({time:new Date('2026-10-14T12:00:00Z')});
@@ -119,8 +132,7 @@ async function shell(ctx,game) {
   await page.clock.setFixedTime(new Date('2026-10-14T12:00:00Z'));
   await page.goto(ORIGIN+'/export/index.html');
   await page.mouse.move(-1,-1);
-  await page.locator(`.tile[data-game="${game.id}"]`).focus();
-  await page.keyboard.press('Enter');
+  await open(page,game.id);
   await page.waitForSelector('#player iframe');
   const frame=await (await page.locator('#player iframe').elementHandle()).contentFrame();
   await ready(frame,true);
@@ -201,4 +213,4 @@ function sameSnapshot(actual,expected,message) {
   }
   assert.deepEqual(actual,expected,message);
 }
-module.exports={mainTiles,sameSnapshot,ROOT,EVIDENCE,ORIGIN,games,launch,context,ready,restored,shell,standalone,snapshot,surface,layout,pixels,verifyImports};
+module.exports={mainTiles,sameSnapshot,ROOT,EVIDENCE,ORIGIN,games,launch,context,ready,restored,open,shell,standalone,snapshot,surface,layout,pixels,verifyImports};

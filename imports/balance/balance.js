@@ -46,7 +46,7 @@
     if (Number.isInteger(n) && n >= 1 && n <= TOTAL) at = campaign[n - 1].id;
   }
   let puzzle = board(at);
-  const S = { cells: (store.boards[at] || E.start(puzzle)).slice(), undo: [], focus: 0, hint: null, solved: false, keyboard: false };
+  const S = { cells: (store.boards[at] || E.start(puzzle)).slice(), undo: [], focus: 0, hint: null, solved: false, keyboard: false, refused: -1 };
 
   // ---- icons ----
   const paths = { reset: 'M5 7a8 8 0 1 1-1 9M5 3v5h5', undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12', hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z', next: 'M5 12h14M13 6l6 6-6 6', settings: 'M4 7h16M4 17h16M8 4v6M16 14v6', help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2' };
@@ -147,7 +147,7 @@
       const value = S.cells[i], given = puzzle.givens[i] !== 0, r = Math.floor(i / n), c = i % n;
       if (tint && tint[i] >= 0) { cell.dataset.k = tint[i]; cell.style.setProperty('--d', (r + c) * 40 + 'ms'); } else delete cell.dataset.k;
       cell.className = 'cell ' + 'ebw'[value] + (given ? ' given' : '') + (runH.has(i) ? ' run-h' : '') + (runV.has(i) ? ' run-v' : '') +
-        (evidence.has(i) ? ' evidence' : '') + (i === target ? ' hint-target' : '');
+        (evidence.has(i) ? ' evidence' : '') + (i === target ? ' hint-target' : '') + (i === S.refused ? ' refuse' : '');
       cell.tabIndex = i === S.focus ? 0 : -1;
       cell.setAttribute('aria-selected', String(i === S.focus));
       cell.setAttribute('aria-label', 'Row ' + (r + 1) + ', column ' + (c + 1) + ': ' + E.NAME[value] + (given ? ', fixed' : '') +
@@ -208,9 +208,19 @@
     render();
     save();
   }
+  // A tapped given refuses on the board as well as in words: brackets on its corners for a moment, and a
+  // shake unless motion is reduced. Tapping it again starts the cue over.
+  let refuseTimer = 0;
+  function refuse(i) {
+    const cell = root.querySelectorAll('.cell')[i];
+    if (S.refused === i && cell) { cell.classList.remove('refuse'); void cell.offsetWidth; }
+    S.refused = i;
+    clearTimeout(refuseTimer);
+    refuseTimer = setTimeout(() => { S.refused = -1; render(); }, 700);
+  }
   function act(i) {
     if (S.solved) return;
-    if (puzzle.givens[i]) { S.hint = null; say('That square is fixed.'); render(); return; }
+    if (puzzle.givens[i]) { S.hint = null; refuse(i); say('That square is fixed.'); render(); return; }
     const before = S.cells.slice();
     S.cells[i] = (S.cells[i] + 1) % 3;
     commit(before);
@@ -256,6 +266,7 @@
     S.hint = null;
     S.solved = false;
     S.keyboard = false;
+    S.refused = -1;
     say('');
     judge(false);
     build();

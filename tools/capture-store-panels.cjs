@@ -56,7 +56,7 @@ const server=http.createServer((q,r)=>{const f=path.join(dir,decodeURIComponent(
   try{
    if(s.game){
     if(s.accessible){await p.locator('#access-open').click();await wait(p,400);}
-    await p.locator(`.tile[data-game="${s.game}"]`+(s.mode?`[data-mode="${s.mode}"]`:'')).click();await wait(p,2500);
+    await p.locator(`[data-open="${s.game}${s.mode?':'+s.mode:''}"]`).evaluate(a=>a.click());await wait(p,2500);
     const f=await (await p.locator('#player iframe').elementHandle()).contentFrame();
     if(s.act)await s.act(p,f);
    }else await wait(p,1500);

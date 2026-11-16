@@ -7,13 +7,20 @@
 <meta name="description" content="Tip a stack of glass trays so the marble drops through the right holes.">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://stats.dr.eamer.dev; connect-src ws://127.0.0.1:47913 'self' https://stats.dr.eamer.dev; img-src 'self' data: https://stats.dr.eamer.dev; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'">
 <script src="./theme-boot.js?v=14494e9e"></script>
-<title>Tilt · 3D</title><link rel="icon" href="./favicon.svg"><link rel="stylesheet" href="./tilt-3d.css?v=6019a523">
+<title>Tilt · 3D</title><link rel="icon" href="./favicon.svg">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/icon-180.png">
+<meta name="apple-mobile-web-app-title" content="Tilt 3D">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<script src="./pwa.js?v=74f99d61" defer></script><link rel="stylesheet" href="./tilt-3d.css?v=a5460396">
 <link rel="stylesheet" href="./controls.css?v=4568a846">
 <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
 </head>
 <body>
 <header><h1 class="sr-only">Tilt · 3D</h1><button id="restart-btn" class="ib" type="button" aria-label="Restart"></button><div id="readout" class="readout"></div></header>
-<main id="play"><canvas id="scene" role="img" aria-label="Stacked glass trays"></canvas><div class="marble" aria-hidden="true"></div><div id="completion"><button id="next-btn" class="ib" type="button" aria-label="Next board" hidden></button></div></main>
+<main id="play"><canvas id="scene" role="img" aria-label="Stacked glass trays"></canvas><div class="marble" aria-hidden="true"></div><div id="completion"><p id="end-line" class="end-line" hidden></p><button id="next-btn" class="ib" type="button" aria-label="Next board" hidden></button></div></main>
 <p id="announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
 <nav class="toolbar" aria-label="Game controls"><div><button id="undo-btn" class="ib" type="button" aria-label="Undo"></button><button id="hint-btn" class="ib" type="button" aria-label="Hint" aria-pressed="false"></button></div><div><button id="settings-btn" class="ib" type="button" aria-label="Settings"></button><button id="help-btn" class="ib" type="button" aria-label="Help"></button></div></nav>
 <dialog id="settings" class="sheet" aria-labelledby="settings-title"><div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
@@ -30,7 +37,7 @@
 <p>Two fingers or a right-drag turn the view, and a pinch zooms.</p>
 <details class="help-more"><summary>Keys and phone tilt</summary><p>The arrow keys or W, A, S and D tip the stack toward that side of the screen, as do the wheel and a two-finger swipe on a trackpad. Z or Backspace undoes. Ctrl and the wheel, or + and −, zoom; Q and E turn the view and 0 sets it back.</p><p>Hint shows the next tip; press it again to play it. The top line shows the board, then the moves made and par.</p><p>Phone tilt, in Settings, tips the stack as you lean the phone. Hold it comfortably for a moment, lean, and come back to level between moves.</p></details>
 </div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
-<script src="./engine.js?v=f7090c41"></script><script src="./levels.js?v=6f9d5509"></script><script type="module" src="./tilt-3d.js?v=cc686935"></script>
+<script src="./engine.js?v=f7090c41"></script><script src="./levels.js?v=6f9d5509"></script><script type="module" src="./tilt-3d.js?v=fd03a131"></script>
 <script src="./tilt-input.js?v=16308a33"></script>
 <script defer src="./controls.js?v=91e1112b"></script>
 </body></html>

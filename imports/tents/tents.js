@@ -3,7 +3,7 @@
   'use strict';
   const E = Tents, OPENING = TentsLevels.opening, L = TentsLevels.campaign;
   const $ = s => document.querySelector(s);
-  const K = { current: 'tents.current.v1', progress: 'tents.progress.v1', settings: 'tents.settings.v1', opening: 'tents.opening.v1' };
+  const K = { current: 'tents.current.v1', progress: 'tents.progress.v1', settings: 'tents.settings.v1', opening: 'tents.opening.v1', generated: 'tents.generated.v1' };
   const ids = new Set(L.map(p => p.id));
 
   /* ---- Storage: every read is validated; a bad save falls back to a fresh one. ---- */
@@ -24,14 +24,21 @@
   const progress = read(K.progress, v => isObject(v) && v.version === 1 && Array.isArray(v.completed) && v.completed.every(id => ids.has(id)) && new Set(v.completed).size === v.completed.length, { version: 1, completed: [] });
   const prefs = read(K.settings, v => isObject(v) && v.version === 1 && ['system', 'light', 'dark'].includes(v.theme) && ['system', 'reduce'].includes(v.motion), { version: 1, theme: 'system', motion: 'system' });
   const store = read(K.current, v => isObject(v) && v.version === 1 && ids.has(v.at) && isObject(v.boards) && Object.keys(v.boards).every(id => ids.has(id) && E.stateValid(L.find(p => p.id === id), v.boards[id])), { version: 1, at: L[0].id, boards: {} });
+  /* Free play: the generated board in hand, kept under its own key so the campaign save keeps its shape.
+     { version, seed, w, h, cells (the trees), rows, cols, state (the marks), playing } */
+  let gen = read(K.generated, v => isObject(v) && v.version === 1 && Number.isInteger(v.seed) && typeof v.playing === 'boolean' && E.valid(v) && Array.isArray(v.rows) && E.stateValid(v, v.state), null);
+  const allDone = () => L.every(p => progress.completed.includes(p.id));
+  const ENDING = 'All ' + L.length + ' boards solved.';
 
   const query = new URLSearchParams(location.search), asked = Number(query.get('level'));
   if (Number.isInteger(asked) && asked >= 1 && asked <= L.length) store.at = L[asked - 1].id;
   const firstVisit = !query.has('level') && read(K.opening, v => v === 1, 0) !== 1;
 
   const openingAt = id => OPENING.findIndex(p => p.id === id);
-  const boardOf = id => L.find(p => p.id === id) || OPENING[openingAt(id)];
-  let at = firstVisit ? OPENING[0].id : store.at, puzzle = boardOf(at), lastInvoker = null;
+  const genBoard = () => gen && { id: 'generated', w: gen.w, h: gen.h, cells: gen.cells, rows: gen.rows, cols: gen.cols, seed: gen.seed };
+  let genPuzzle = genBoard();
+  const boardOf = id => id === 'generated' ? genPuzzle : L.find(p => p.id === id) || OPENING[openingAt(id)];
+  let at = firstVisit ? OPENING[0].id : gen && gen.playing && !query.has('level') ? 'generated' : store.at, puzzle = boardOf(at), lastInvoker = null;
   /* S is the live state of the board on screen. S.cells: 0 blank, 1 tent, 2 grass.
      S.pairs: the ties drawn last, kept so a tie stays put until the marks move it. */
   const S = { cells: [], undo: [], solved: false, focus: 0, hint: null, keyboard: false, pairs: [] };
@@ -42,7 +49,7 @@
     tent: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 23 21h-8.2L12 14.5 9.2 21H1Z"/></svg>',
     grass: '<svg class="dot" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2.4"/></svg>'
   };
-  const ICONS = { undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12', hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z', next: 'M5 12h14M13 6l6 6-6 6', settings: 'M4 7h16M4 17h16M8 4v6M16 14v6', help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2', reset: 'M5 7a8 8 0 1 1-1 9M5 3v5h5' };
+  const ICONS = { undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12', hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z', next: 'M5 12h14M13 6l6 6-6 6', more: 'M12 5v14M5 12h14', settings: 'M4 7h16M4 17h16M8 4v6M16 14v6', help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2', reset: 'M5 7a8 8 0 1 1-1 9M5 3v5h5' };
   for (const [id, name] of [['restart-btn', 'reset'], ['undo-btn', 'undo'], ['hint-btn', 'hint'], ['next-btn', 'next'], ['settings-btn', 'settings'], ['help-btn', 'help']]) $('#' + id).innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICONS[name] + '"/></svg>';
 
   function say(text) { $('#feedback').textContent = text; }
@@ -106,13 +113,13 @@
     const first = cellNodes()[0];
     if (!first) return;
     const r = first.getBoundingClientRect(), s = r.width, W = innerWidth, H = innerHeight, p = puzzle;
-    const key = [at, Math.round(r.left), Math.round(r.top), Math.round(s), W, H].join(' ');
+    const key = [at, genPuzzle ? genPuzzle.seed : 0, $('#ending').hidden, Math.round(r.left), Math.round(r.top), Math.round(s), W, H].join(' ');
     if (key === forestKey && old) return;
     forestKey = key;
-    const seed = Number(at.replace(/\D/g, '')) || 1;
+    const seed = at === 'generated' ? gen.seed % 100000 + 1 : Number(at.replace(/\D/g, '')) || 1;
     // Where nothing may stand: the board and its numbers, the readout, the toolbar, the arrow.
     const keep = [{ left: r.left - s * .6, top: r.top - s * .2, right: r.left + s * p.w + s * .9, bottom: r.top + s * p.h + s * .9 }];
-    for (const q of ['#restart-btn', '#readout', '.toolbar', '#next-btn']) { const n = $(q); if (n) { const b = n.getBoundingClientRect(); if (b.width) keep.push({ left: b.left - 10, top: b.top - 10, right: b.right + 10, bottom: b.bottom + 10 }); } }
+    for (const q of ['#restart-btn', '#readout', '.toolbar', '#next-btn', '#ending']) { const n = $(q); if (n) { const b = n.getBoundingClientRect(); if (b.width) keep.push({ left: b.left - 10, top: b.top - 10, right: b.right + 10, bottom: b.bottom + 10 }); } }
     const blocked = (gx, gy) => { const x = r.left + gx * s, y = r.top + gy * s; return keep.some(k => x < k.right && x + s > k.left && y < k.bottom && y + s > k.top); };
     const gx0 = -Math.ceil(r.left / s), gx1 = Math.ceil((W - r.left) / s), gy0 = -Math.ceil(r.top / s), gy1 = Math.ceil((H - r.top) / s);
     const trees = new Set(), tents = new Set(), id = (x, y) => x + ',' + y;
@@ -184,11 +191,16 @@
         ties.append(line);
       }
     }
-    const n = L.findIndex(q => q.id === at);
-    $('#readout').textContent = n < 0 ? '' : (n + 1) + ' / ' + L.length + ' · ' + progress.completed.length + ' ✓';
+    const n = L.findIndex(q => q.id === at), fresh = S.solved && nextTarget() === 'new', ended = S.solved && n >= 0 && allDone();
+    $('#readout').textContent = at === 'generated' ? p.w + ' × ' + p.h + ' · ' + progress.completed.length + ' ✓' : n < 0 ? '' : (n + 1) + ' / ' + L.length + ' · ' + progress.completed.length + ' ✓';
     $('#undo-btn').disabled = !S.undo.length;
     $('#completion').hidden = !S.solved;
-    $('#next-btn').setAttribute('aria-label', n === L.length - 1 ? 'Choose next puzzle' : 'Next puzzle');
+    // The line under a solve that leaves all thirty done; the status line says it to screen readers.
+    $('#ending').hidden = !ended; $('#ending').textContent = ended ? ENDING : '';
+    const next = $('#next-btn'), glyph = fresh ? 'more' : 'next';
+    next.setAttribute('aria-label', fresh ? 'New board' : 'Next puzzle');
+    if (next.dataset.icon !== glyph) { next.dataset.icon = glyph; next.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICONS[glyph] + '"/></svg>'; }
+    $('#free-row').hidden = !allDone();
     $('#feedback').classList.toggle('sr-only', S.solved);
     $('#campaign').value = n < 0 ? '' : at;
     $('#previous').disabled = n <= 0; $('#following').disabled = n < 0 || n === L.length - 1;
@@ -205,8 +217,10 @@
   /* ---- Play ---- */
   function save() {
     if (openingAt(at) >= 0) return;
+    if (at === 'generated') { gen.state = S.cells.slice(); gen.playing = true; write(K.generated, gen); return; }
     store.at = at; store.boards[at] = S.cells.slice();
     write(K.current, store); write(K.progress, progress);
+    if (gen && gen.playing) { gen.playing = false; write(K.generated, gen); }
   }
   function judge(announce) {
     const was = S.solved, played = puzzle;
@@ -214,7 +228,7 @@
     if (!S.solved) return;
     if (ids.has(at) && !progress.completed.includes(at)) progress.completed.push(at);
     if (!announce) return;
-    say('Solved.');
+    say(ids.has(at) && allDone() ? ENDING : 'Solved.');
     if (!was && S.keyboard) requestAnimationFrame(() => { if (S.solved && puzzle === played && !document.querySelector('dialog[open]')) $('#next-btn').focus({ preventScroll: true }); });
   }
   function commit(before) {
@@ -256,23 +270,39 @@
   }
   function switchBoard(id) {
     at = id; puzzle = boardOf(id);
-    const saved = store.boards[id];
+    const saved = id === 'generated' ? gen.state : store.boards[id];
     S.cells = saved && E.stateValid(puzzle, saved) ? saved.slice() : Array(puzzle.w * puzzle.h).fill(0);
     S.undo = []; S.hint = null; S.focus = 0; S.keyboard = false; S.solved = false; S.pairs = []; drag = null;
     say(''); build(); fit(); judge(false); render(); save();
   }
+  /* Where Next goes from a solved board: the next board in order; past the last, the first one not yet
+     solved; with all thirty solved, a new generated board (and the same from a generated board). */
+  function nextTarget() {
+    const k = openingAt(at), n = L.findIndex(p => p.id === at);
+    if (k >= 0) return k < OPENING.length - 1 ? OPENING[k + 1].id : store.at;
+    if (n >= 0 && n < L.length - 1) return L[n + 1].id;
+    const open = L.find(p => !progress.completed.includes(p.id));
+    return open ? open.id : 'new';
+  }
+  // A new generated board from a fresh seed, never one of the campaign's. Found in a few milliseconds.
+  const layouts = new Set([...OPENING, ...L].map(p => p.cells.join('')));
+  function newGenerated() {
+    if (!allDone()) return false;
+    save();
+    let p = null;
+    for (let k = 0; k < 3 && !p; k++) p = E.freePlay(crypto.getRandomValues(new Uint32Array(1))[0], layouts);
+    if (!p) return false;
+    gen = { version: 1, seed: p.seed, w: p.w, h: p.h, cells: p.cells, rows: p.rows, cols: p.cols, state: Array(p.w * p.h).fill(0), playing: true };
+    genPuzzle = genBoard();
+    switchBoard('generated');
+    return true;
+  }
   function advance(event) {
     if (!S.solved) return;
-    const byKey = !event || event.detail === 0, k = openingAt(at), n = L.findIndex(p => p.id === at);
-    if (k >= 0) {
-      if (k === OPENING.length - 1) { write(K.opening, 1); switchBoard(store.at); }
-      else switchBoard(OPENING[k + 1].id);
-    } else {
-      const open = L.find(p => !progress.completed.includes(p.id));
-      if (n < L.length - 1) switchBoard(L[n + 1].id);
-      else if (open) switchBoard(open.id);
-      else { openSheet('settings', $('#settings-btn')); return; }
-    }
+    const byKey = !event || event.detail === 0, target = nextTarget();
+    if (openingAt(at) === OPENING.length - 1) write(K.opening, 1);
+    if (target === 'new') { if (!newGenerated()) return; }
+    else switchBoard(target);
     if (byKey) focusCell(S.focus, true);
   }
 
@@ -373,6 +403,7 @@
     $('#' + id).addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
   }
   for (const p of L) { const o = document.createElement('option'); o.value = p.id; o.textContent = optionText(p.id); $('#campaign').append(o); }
+  $('#new-game').addEventListener('click', () => { $('#settings').close(); newGenerated(); });
   $('#campaign').addEventListener('change', e => { if (ids.has(e.target.value)) switchBoard(e.target.value); $('#settings').close(); });
   for (const [id, delta] of [['previous', -1], ['following', 1]]) $('#' + id).addEventListener('click', () => {
     const n = L.findIndex(p => p.id === at) + delta;
@@ -391,5 +422,5 @@
   window.addEventListener('resize', () => { fit(); forest(); });
 
   applyPrefs(); switchBoard(at);
-  window.__tents = { S, get puzzle() { return puzzle; }, get at() { return at; }, get progress() { return progress; }, keys: K };
+  window.__tents = { S, get puzzle() { return puzzle; }, get at() { return at; }, get progress() { return progress; }, get generated() { return gen; }, keys: K };
 })();

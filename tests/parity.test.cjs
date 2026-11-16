@@ -58,7 +58,7 @@ for(const game of selected) {
     const before=await h.surface(frame);
     await page.screenshot({clip:await page.locator('iframe').boundingBox(),path:path.join(h.EVIDENCE,game.id+'-before-switch.png')});
     // Library destroys the iframe. Relaunch must use the snapshot, not upstream disk save.
-    await frame.locator('#minimal-home').click();await page.mouse.move(-1,-1);await page.locator(`.tile[data-game="${game.id}"]`).focus();await page.keyboard.press('Enter');
+    await frame.locator('#minimal-home').click();await page.mouse.move(-1,-1);await h.open(page,game.id);
     frame=await (await page.locator('iframe').elementHandle()).contentFrame();await h.ready(frame,true);await h.restored(frame);await a.tick(page);
     await page.screenshot({clip:await page.locator('iframe').boundingBox(),path:path.join(h.EVIDENCE,game.id+'-after-switch.png')});
     await t.test('fresh iframe snapshot equality',async()=>h.sameSnapshot(await h.snapshot(frame),state));
@@ -91,7 +91,7 @@ for(const game of selected) {
       await frame.evaluate(s=>MinimalAdapter.restore(s),state);await frame.locator('#minimal-home').click();
       // Home waits for an asynchronous snapshot before selecting the library.
       await page.locator('#library:visible').waitFor();
-      await page.reload();await page.mouse.move(-1,-1);await page.locator(`.tile[data-game="${game.id}"]`).focus();await page.keyboard.press('Enter');
+      await page.reload();await page.mouse.move(-1,-1);await h.open(page,game.id);
       frame=await (await page.locator('iframe').elementHandle()).contentFrame();await h.ready(frame,true);await h.restored(frame);await a.tick(page);
       h.sameSnapshot(await h.snapshot(frame),state,game.id+' stored snapshot after Home and reload');
       assert.equal(await frame.evaluate(()=>sessionStorage.getItem('parity.session')),'own session sentinel');

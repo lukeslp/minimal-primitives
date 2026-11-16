@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#111111"><title>Minimal Primitives</title>
-<link rel="stylesheet" href="collection.css"><link rel="stylesheet" href="duo-layout.css"><script src="scores-transport.js" defer></script><script src="collection.js" defer></script><script src="duo-layout.js" defer></script>
+<meta name="theme-color" content="#e6e6e6"><title>Minimal Primitives</title>
+<script src="library-theme.js"></script>
+<link rel="stylesheet" href="index-tiles.css"><link rel="stylesheet" href="collection.css"><link rel="stylesheet" href="duo-layout.css"><script src="scores-transport.js" defer></script><script src="collection.js" defer></script><script src="duo-layout.js" defer></script>
 </head>
 <body>
-<main id="library"><h1 class="sr-only">Minimal Primitives</h1><section id="tiles" aria-label="Games"></section><button class="access" id="access-open" type="button" aria-label="Motor Accessibility Puzzles"><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><circle cx="50" cy="50" r="46" stroke-width="4"/><circle cx="50" cy="24" r="7.5" fill="currentColor" stroke="none"/><path d="M24 38.5 50 43l26-4.5" stroke-width="7"/><path d="M50 43v16M50 59 38 80M50 59l12 21" stroke-width="7"/></svg></button><footer aria-label="Collection preferences"><a href="https://oneimpossiblethingatatime.com/" target="_blank" rel="noopener noreferrer">oneimpossiblethingatatime.com</a><button id="scores-button" class="icon-button" aria-label="Scores and sharing" title="Scores and sharing"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8v5a4 4 0 0 1-8 0V3ZM8 5H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4M12 12v6m-4 3h8m-6-3h4v3"/></svg></button></footer></main>
-<main id="accessible" hidden><h1 class="sr-only">Motor Accessibility Puzzles</h1><section id="access-tiles" aria-label="Motor Accessibility Puzzles"></section><footer aria-label="Motor Accessibility Puzzles"><button id="access-back" class="icon-button" type="button" aria-label="All games" title="All games"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8M5 10v11h5v-7h4v7h5V10"/></svg></button></footer></main>
+<main id="library"><!--index:header--><section id="tiles" class="tiles" aria-label="Games"></section><footer aria-label="Collection preferences"><a href="https://oneimpossiblethingatatime.com/" target="_blank" rel="noopener noreferrer">oneimpossiblethingatatime.com</a><button id="scores-button" class="icon-button" aria-label="Scores and sharing" title="Scores and sharing"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8v5a4 4 0 0 1-8 0V3ZM8 5H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4M12 12v6m-4 3h8m-6-3h4v3"/></svg></button></footer></main>
+<main id="accessible" hidden><h1 class="sr-only">Motor Accessibility Puzzles</h1><section id="access-tiles" class="tiles" aria-label="Motor Accessibility Puzzles"></section><footer aria-label="Motor Accessibility Puzzles"><button id="access-back" class="icon-button" type="button" aria-label="All games" title="All games"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8M5 10v11h5v-7h4v7h5V10"/></svg></button></footer></main>
 <section id="player" aria-label="Selected game" hidden></section><div id="duo-pane"></div>
 <dialog id="scores" aria-labelledby="scores-title">
   <form method="dialog"><button class="close icon-button" aria-label="Close" title="Close">×</button></form>
@@ -22,5 +23,6 @@
     <p id="profile-status" role="status"></p>
   </section>
 </dialog>
+<!--index:settings-->
 <p id="notice" role="status" hidden></p>
 </body></html>

@@ -109,12 +109,13 @@
       swatch: "conic-gradient(#111416 0 25%, #d8d4c9 0 50%, #202326 0 75%, #777a77 0)",
     },
     {
-      id: "canopy",
-      label: "Verdant Canopy",
-      shortLabel: "Canopy",
+      // Removed 2026-11-11: no source could be confirmed for its image.
+      // The slot stays so later shader indices do not move.
+      retired: true,
+      label: "Retired canopy slot",
+      shortLabel: "Retired",
       fallback: ["#07100b", "#34563a", "#9ab18d", "#101a13"],
-      swatch: "radial-gradient(circle at 62% 24%, #b9c99e 0 8%, #34563a 35%, #07100b 76%)",
-      texture: { desktop: "assets/reflections/canopy-2048.webp", mobile: "assets/reflections/canopy-1024.webp", speed: 0.00025, exposure: 0.74, saturation: 0.88, backdrop: 0.46, mapping: "environment", frame: "ambient", reflectionStrength: 0.24, roughness: 0.12, motion: 6, motionAmount: 0.018, motionRate: 0.055 },
+      swatch: "linear-gradient(#111, #050505)",
     },
     {
       retired: true,
@@ -133,20 +134,22 @@
       swatch: "linear-gradient(#111, #050505)",
     },
     {
-      id: "portoro",
-      label: "Portoro Marble",
-      shortLabel: "Portoro",
+      // Removed 2026-11-11: no source could be confirmed for its image.
+      // The slot stays so later shader indices do not move.
+      retired: true,
+      label: "Retired marble slot",
+      shortLabel: "Retired",
       fallback: ["#050403", "#604c2c", "#d4b26f", "#15110a"],
-      swatch: "linear-gradient(118deg, #030303 0 34%, #ba9656 35% 38%, #f0dfb2 39%, #090807 41% 68%, #745b35 69% 72%, #020202 73%)",
-      texture: { desktop: "assets/reflections/portoro-2048.webp", mobile: "assets/reflections/portoro-1024.webp", speed: 0.0005, exposure: 0.82, saturation: 0.76, backdrop: 0.44, mapping: "surface", frame: "shell", surfaceMix: 0.90, reflectionStrength: 0.30, roughness: 0.08, gamma: 0.82 },
+      swatch: "linear-gradient(#111, #050505)",
     },
     {
-      id: "deco",
-      label: "Deco Lacquer",
-      shortLabel: "Deco",
+      // Removed 2026-11-11: no source could be confirmed for its image.
+      // The slot stays so later shader indices do not move.
+      retired: true,
+      label: "Retired deco slot",
+      shortLabel: "Retired",
       fallback: ["#030303", "#5b492d", "#c4a26b", "#100e0b"],
-      swatch: "repeating-conic-gradient(from 315deg at 50% 100%, #080808 0 7deg, #b28d55 8deg 9deg, #080808 10deg 16deg)",
-      texture: { desktop: "assets/reflections/deco-2048.webp", mobile: "assets/reflections/deco-1024.webp", speed: 0.0009, exposure: 0.84, saturation: 0.74, backdrop: 0.44, mapping: "surface", frame: "shell", surfaceMix: 0.88, reflectionStrength: 0.28, roughness: 0.10, gamma: 0.84 },
+      swatch: "linear-gradient(#111, #050505)",
     },
     {
       id: "oculus",
@@ -172,12 +175,13 @@
       swatch: "linear-gradient(#111, #050505)",
     },
     {
-      id: "gilded-ribbon",
-      label: "Gilded Ribbon",
-      shortLabel: "Ribbon",
+      // Removed 2026-11-11: no source could be confirmed for its image.
+      // The slot stays so later shader indices do not move.
+      retired: true,
+      label: "Retired ribbon slot",
+      shortLabel: "Retired",
       fallback: ["#020103", "#4d3449", "#dfa35f", "#080510"],
-      swatch: "repeating-radial-gradient(ellipse at 72% 58%, #060407 0 8px, #c27d38 9px 11px, #16101c 12px 19px, #8c7bb5 20px 21px)",
-      texture: { desktop: "assets/reflections/gilded-ribbon-1280.webp", mobile: "assets/reflections/gilded-ribbon-768.webp", speed: 0.00020, exposure: 0.90, saturation: 0.94, backdrop: 0.44, mapping: "surface", frame: "lag", surfaceMix: 0.90, reflectionStrength: 0.34, roughness: 0.07, gamma: 0.78, motion: 7, motionAmount: 0.028, motionRate: 0.060 },
+      swatch: "linear-gradient(#111, #050505)",
     },
     {
       id: "ion-storm",
@@ -220,12 +224,13 @@
       texture: { desktop: "assets/reflections/chromatic-ink-1280.webp", mobile: "assets/reflections/chromatic-ink-768.webp", speed: 0.00015, exposure: 0.82, saturation: 1.08, backdrop: 0.38, mapping: "surface", frame: "shell", surfaceMix: 0.94, reflectionStrength: 0.24, roughness: 0.12, motion: 2, motionAmount: 0.22, motionRate: 0.075, pulse: 0.0, scaleX: 0.86, scaleY: 0.92 },
     },
     {
-      id: "amber-cells",
-      label: "Amber Cells",
-      shortLabel: "Cells",
+      // Removed 2026-11-11: no source could be confirmed for its image.
+      // The slot stays so later shader indices do not move.
+      retired: true,
+      label: "Retired cells slot",
+      shortLabel: "Retired",
       fallback: ["#1c0b02", "#95500e", "#f5bd4e", "#40200a"],
-      swatch: "radial-gradient(circle at 28% 32%, #f4bd56 0 16%, #9b5417 17% 21%, transparent 22%), radial-gradient(circle at 68% 61%, #d98724 0 25%, #2b1205 27% 100%)",
-      texture: { desktop: "assets/reflections/amber-cells-2048.webp", mobile: "assets/reflections/amber-cells-1024.webp", speed: -0.00008, exposure: 0.84, saturation: 0.90, backdrop: 0.44, mapping: "surface", frame: "shell", surfaceMix: 0.92, reflectionStrength: 0.28, roughness: 0.12, seamSafe: false, seamBlend: 0.070, motion: 3, motionAmount: 0.038, motionRate: 0.22, pulse: 0.0 },
+      swatch: "linear-gradient(#111, #050505)",
     },
   ];
   const MATERIAL_INDEX = new Map(

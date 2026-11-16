@@ -10,6 +10,7 @@
     "index.html",
     "levels.js",
     "og.png",
+    "privacy.html",
     "paint-input.js",
     "regions.js",
     "score-clock.js",
@@ -19,6 +20,13 @@
     "controls.css",
     "controls.js",
     "access.js",
-    "bridge-client.js"
+    "bridge-client.js",
+    "manifest.webmanifest",
+    "sw.js",
+    "pwa.js",
+    "icons/icon-180.png",
+    "icons/icon-192.png",
+    "icons/icon-512.png",
+    "icons/maskable-512.png"
   ]
 }

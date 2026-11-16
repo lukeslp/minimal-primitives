@@ -152,7 +152,7 @@ async function main() {
       page.on('requestfailed', request => { const url = new URL(request.url()); networkErrors.push({ path: url.origin + url.pathname, error: request.failure()?.errorText }); });
       page.on('console', message => { if (/CORS|preflight|certificate|local network/i.test(message.text())) corsMessages.push(message.text()); });
       await page.goto(origin + SHELL);
-      await page.getByRole('button', { name: 'Notan', exact: true }).waitFor();
+      await page.locator('[data-open="notan"]').waitFor();
       return { context, page };
     }
     async function optIn(page, nickname) {
@@ -166,7 +166,7 @@ async function main() {
     }
     async function launch(page, game) {
       const title = { notan: 'Notan', bridges: 'Bridges', slant: 'Slant' }[game];
-      await page.locator('#tiles button').filter({ has: page.locator('.sr-only', { hasText: new RegExp('^' + title + '$') }) }).click();
+      await page.locator('#tiles .tile').filter({ has: page.locator('.cap', { hasText: new RegExp('^' + title + '$') }) }).locator('.go').evaluate(a => a.click());
       const frame = await (await page.locator('#player iframe').elementHandle()).contentFrame();
       await frame.waitForFunction(game => !!window['__' + game] && !!window.MinimalAdapter, game);
       return frame;
@@ -312,19 +312,26 @@ async function main() {
       } else {
         const edges = await frame.evaluate(() => {
           const p = __bridges.puzzle, answer = Bridges.logical(p).lo;
-          return Bridges.topology(p).edges.map(({ a, b }, i) => ({ a, value: answer[i],
+          return Bridges.topology(p).edges.map(({ a, b }, i) => ({ a, i, value: answer[i],
             key: p.islands[b].x > p.islands[a].x ? 'ArrowRight' : p.islands[b].x < p.islands[a].x ? 'ArrowLeft' : p.islands[b].y > p.islands[a].y ? 'ArrowDown' : 'ArrowUp' }));
         });
-        for (const edge of edges) for (let n = 0; n < edge.value; n++) {
+        // Since game-riffs 2ba8a67, with Scores on in the collection, a press that follows another within a few
+        // ms can be dropped, more often on a loaded machine. Press at a person's pace and wait for each bridge.
+        for (const edge of edges) for (let n = 1; n <= edge.value; n++) {
           const island = frame.locator('#board .island').nth(edge.a);
-          await island.focus(); await island.press('Shift+' + edge.key);
+          for (let tries = 0; tries < 4 && await frame.evaluate(i => __bridges.S.cells[i], edge.i) < n; tries++) {
+            await island.focus(); await island.press('Shift+' + edge.key);
+            await frame.waitForFunction(([i, n]) => __bridges.S.cells[i] >= n, [edge.i, n], { timeout: 1500 }).catch(() => {});
+          }
+          equal(await frame.evaluate(i => __bridges.S.cells[i], edge.i), n, `Native bridges edge ${edge.i} bridge ${n}`);
         }
       }
       await frame.waitForFunction(game => window['__' + game].S.solved, game);
       const finish = await waitFinish(from);
       equal(finish.response.ranked, true); equal(finish.response.score.identity.mode, mode);
       equal(finish.response.score.category, 'unassisted');
-      await frame.locator('#scores-btn').click();
+      // Since game-riffs 2ba8a67 a solved board shows the arrow alone; Scores opens from Settings.
+      await frame.locator('#settings-btn').click(); await frame.getByRole('button', { name: 'Scores for this puzzle', exact: true }).click();
       await frame.locator('#score-remove').waitFor({ state: 'visible' });
       assert.ok((await frame.locator('#scores-result').textContent()).includes('Unassisted'));
       for (const category of ['unassisted', 'assisted', 'repeat', 'repeat-assisted', 'practice']) {

@@ -120,7 +120,7 @@ async function main() {
       await page.waitForSelector('.tile');
       const {game, mode} = entry, accessible = game.group === 'accessible';
       if (accessible) await page.locator('#access-open').click();
-      await page.locator('.tile[data-game="' + game.id + '"]' + (mode ? '[data-mode="' + mode.id + '"]' : '')).click();
+      await page.locator('[data-open="' + game.id + (mode ? ':' + mode.id : '') + '"]').evaluate(a => a.click());
       const frame = await (await page.waitForSelector('#player iframe')).contentFrame();
       await frame.waitForFunction(ready => (ready || !!window.MinimalAdapter) && !!document.querySelector('#minimal-home'), accessible, {timeout: 15000});
       const play = frame.getByRole('button', {name: 'Play', exact: true});

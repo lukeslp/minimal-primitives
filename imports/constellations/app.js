@@ -2,13 +2,13 @@
 (() => {
  'use strict';
  const E=Constellations,B=ConstellationBoards,$=id=>document.getElementById(id),NS='http://www.w3.org/2000/svg',KEY='constellations.v2',OLD='constellations.v1';
- const icons={restart:'M4 10a8 8 0 1 1 1 8M4 4v6h6',undo:'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12',hint:'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z',next:'M5 12h14m-6-6 6 6-6 6',settings:'M4 7h16M4 17h16M8 4v6M16 14v6',help:'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2',close:'M6 6l12 12M18 6 6 18'};
+ const icons={restart:'M4 10a8 8 0 1 1 1 8M4 4v6h6',undo:'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12',hint:'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z',next:'M5 12h14m-6-6 6 6-6 6',replay:'M21 4v6h-6M3 20v-6h6M5.5 9a7.5 7.5 0 0 1 12.4-2.8L21 10M3 14l3.1 3.8A7.5 7.5 0 0 0 18.5 15',settings:'M4 7h16M4 17h16M8 4v6M16 14v6',help:'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2',close:'M6 6l12 12M18 6 6 18'};
  const icon=name=>'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+icons[name]+'"/></svg>';
  for(const [id,name]of[['restart-btn','restart'],['undo-btn','undo'],['hint-btn','hint'],['next-btn','next'],['settings-btn','settings'],['help-btn','help']])$(id).innerHTML=icon(name);
  document.querySelectorAll('.close').forEach(n=>n.innerHTML=icon('close'));
  const clone=value=>JSON.parse(JSON.stringify(value));
  // The game is always night. Older saves carry theme and Twinkle settings; they still load, the theme reads as dark and Twinkle is kept.
- let blocked=false,warning='',store={version:1,current:B[0].id,records:{},completed:[],settings:{theme:'dark',motion:'system'}};
+ let blocked=false,warning='',store={version:1,revision:2,current:B[0].id,records:{},completed:[],settings:{theme:'dark',motion:'system'}};
  function recordValid(p,r){return r&&E.stateValid(p,r.weights)&&Array.isArray(r.locks)&&r.locks.length===r.weights.length&&r.locks.every(v=>typeof v==='boolean')&&Array.isArray(r.undo)&&r.undo.length<=200&&r.undo.every(m=>E.stateValid(p,m.weights)&&Array.isArray(m.locks)&&m.locks.length===r.weights.length&&m.locks.every(v=>typeof v==='boolean'));}
  // The twelve boards became real constellations with version 2. Progress on the old boards cannot carry over, so an
  // old save is copied into recovery (and then removed once the copy reads back) and play starts clean.
@@ -20,6 +20,10 @@
     const v=JSON.parse(raw);
     if(!v||v.version!==1||!B.some(p=>p.id===v.current)||!v.records||typeof v.records!=='object'||Array.isArray(v.records)||!Array.isArray(v.completed)||!v.completed.every(id=>B.some(p=>p.id===id))||!['system','dark','light'].includes(v.settings?.theme)||!(v.settings.motion===undefined||['system','still'].includes(v.settings.motion))||!(v.settings.twinkle===undefined||typeof v.settings.twinkle==='boolean')||Object.entries(v.records).some(([id,r])=>!B.some(p=>p.id===id&&recordValid(p,r))))throw Error('Unreadable save');
     store=v;store.settings.theme='dark';store.settings.motion??='system';
+    // Revision 2 doubled Canis Minor's one line, so each of its stars needs two threads. Threads saved on it before
+    // then belong to the old board and would open half-done, so that record goes and the board opens empty; its
+    // completed mark stays, since the player did finish it. Every other board and record loads as saved.
+    if(store.revision!==2){delete store.records['canis-minor'];store.revision=2;}
    }catch(_){
     try{const recovery=KEY+'.recovery.'+Date.now()+'.'+crypto.randomUUID();localStorage.setItem(recovery,raw);if(localStorage.getItem(recovery)!==raw)throw Error();warning='An unreadable save was kept in recovery.';}
     catch(_){blocked=true;warning='The unreadable save is protected. This session will not replace it.';}
@@ -48,9 +52,22 @@
   if(still()&&finishTimer!==null)finish();
   night.still(still());
  }
+ // finale: true from the solve that finished the last open board until another board opens.
+ let finale=false;
+ const allDone=()=>B.every(b=>store.completed.includes(b.id));
+ // The end: every board finished, shown on the last board, or on the one whose solve finished them all.
+ const ending=()=>E.inspect(p,s.weights).solved&&allDone()&&(finale||B.indexOf(p)===B.length-1);
+ const endLine=()=>`All ${B.length} boards solved.`;
+ // At the end one line shows under the name, and the arrow becomes Replay.
+ function endShown(){
+  const end=!$('next-btn').hidden&&ending(),kind=end?'replay':'next',nb=$('next-btn');
+  $('end-line').hidden=!end;$('end-line').textContent=end?endLine():'';
+  if(nb.dataset.kind!==kind){nb.dataset.kind=kind;nb.innerHTML=icon(kind);}
+  nb.setAttribute('aria-label',ending()?'Replay':'Next board');
+ }
  function finish(){
   clearTimeout(finishTimer);finishTimer=null;$('board').classList.remove('celebrating');
-  $('next-btn').hidden=!E.inspect(p,s.weights).solved;
+  $('next-btn').hidden=!E.inspect(p,s.weights).solved;endShown();
   if(!$('next-btn').hidden&&keyboard)$('next-btn').focus({preventScroll:true});
  }
  function completion(solved){
@@ -59,7 +76,7 @@
   if(solved){s.selected=null;s.hint=null;cancel();if(buttons.includes(document.activeElement))document.activeElement.blur();}
   $('board').classList.toggle('solved',solved);document.documentElement.classList.toggle('night',solved);
   // The constellation's name appears only once its figure is complete, so the shape is found, not announced.
-  $('sky-name').textContent=solved?p.name:'';$('sky-name').hidden=!solved;$('board').classList.remove('celebrating');$('next-btn').hidden=true;
+  $('sky-name').textContent=solved?p.name:'';$('sky-name').hidden=!solved;$('board').classList.remove('celebrating');$('next-btn').hidden=true;endShown();
   if(solved){if(still()||document.hidden)finish();else{$('board').classList.add('celebrating');finishTimer=setTimeout(finish,1200);}}
  }
  function finishedStars(report){
@@ -67,6 +84,18 @@
   return new Set(report.groups.filter(group=>group.every(i=>report.degrees[i]===p.stars[i].need&&!errors.has(i))).flat());
  }
  function point(i){return layout.point(i);}
+ // Where a star sits on the board, in thirds across and down, so a screen reader can find it: "top left", "center".
+ function place(i){
+  const xs=p.stars.map(a=>a.x),ys=p.stars.map(a=>a.y),a=p.stars[i],third=(v,lo,hi)=>hi-lo<1e-9?1:Math.min(2,Math.floor((v-lo)/(hi-lo)*3));
+  const v=['top','middle','bottom'][third(a.y,Math.min(...ys),Math.max(...ys))],h=['left','center','right'][third(a.x,Math.min(...xs),Math.max(...xs))];
+  return v==='middle'?h:h==='center'?v:v+' '+h;
+ }
+ const starName=i=>`star ${i+1}, ${place(i)}`;
+ // A star over its need is named in the announcement, as its own label names it.
+ function overMessage(r){
+  const over=r.degrees.flatMap((d,i)=>d>p.stars[i].need?[i]:[]);
+  return 'Too many connections: '+over.map(i=>`${starName(i)}, has ${r.degrees[i]} of ${p.stars[i].need}`).join('; ')+'.';
+ }
  const f2=v=>(+v).toFixed(2),apart=(a,b)=>{const d=Math.abs(a-b)%360;return Math.min(d,360-d);};
 
  // ---- Stars ----
@@ -169,9 +198,11 @@
    }
   }
   const crossing=new Set(report.errors.filter(v=>v.rule==='crossing').flatMap(v=>v.edges));
-  s.weights.forEach((v,e)=>{if(v)route(e,v,'w',tone(e)+(crossing.has(e)?' crossing':'')+(s.locks[e]?' locked':''),hue(e));});
+  // A press that will clear a route fades its threads until release, so the coming removal shows before it happens.
+  const leaving=preview?.edge!==undefined&&!s.locks[preview.edge]&&!nextCount(preview.edge)?preview.edge:null;
+  s.weights.forEach((v,e)=>{if(v)route(e,v,'w',tone(e)+(crossing.has(e)?' crossing':'')+(s.locks[e]?' locked':'')+(e===leaving?' leaving':''),hue(e));});
   if(s.hint?.edge!==undefined&&!solved)route(s.hint.edge,s.hint.count,'n','hint-line');
-  if(preview?.edge!==undefined){const value=(s.weights[preview.edge]+1)%3;route(preview.edge,value||s.weights[preview.edge],'p','pending'+(!value?' removing':''));}
+  if(preview?.edge!==undefined&&!s.locks[preview.edge]){const value=nextCount(preview.edge);route(preview.edge,value||s.weights[preview.edge],'p','pending'+(!value?' removing':''));}
   const x=Math.max(4,G.R*.7);
   for(const e of crossing)for(const f of t.cross[e])if(f<e&&crossing.has(f)){const at=crossingPoint(e,f);add('x'+e+'.'+f,'path',{d:`M${f2(at.x-x)} ${f2(at.y-x)}l${f2(2*x)} ${f2(2*x)}m0 ${f2(-2*x)}l${f2(-2*x)} ${f2(2*x)}`,class:'cross-mark'});}
   if(!solved)for(let e=0;e<t.edges.length;e++){
@@ -220,7 +251,7 @@
  function field(){
   if(!wasSolved){if(night.shown)night.hide();skyCanvas.remove();fieldKey='';revealed=false;return;}
   const W=innerWidth,H=innerHeight,board=$('board').getBoundingClientRect(),arrow=arrowSpot(board),boxes=[{l:arrow.x-44,t:arrow.y-44,r:arrow.x+44,b:arrow.y+44}];
-  for(const n of document.querySelectorAll('#restart-btn,#readout,#sky-name,.toolbar button')){const r=n.getBoundingClientRect();if(r.width)boxes.push({l:r.left,t:r.top,r:r.right,b:r.bottom});}
+  for(const n of document.querySelectorAll('#restart-btn,#readout,#sky-name,#end-line,.toolbar button')){const r=n.getBoundingClientRect();if(r.width)boxes.push({l:r.left,t:r.top,r:r.right,b:r.bottom});}
   const key=[p.id,W,H,devicePixelRatio,Math.round(board.left),Math.round(board.top),Math.round(board.width),...boxes.flatMap(k=>[k.l,k.t].map(Math.round))].join(' ');
   if(night.shown&&key===fieldKey)return;
   fieldKey=key;
@@ -240,7 +271,7 @@
   buttons.forEach((b,i)=>{
    const a=p.stars[i],degree=report.degrees[i];
    b.className='star'+(complete.has(i)?' complete':'')+(degree===a.need?' satisfied':'')+(degree>a.need?' overfull':'')+(s.selected===i?' selected':'')+(errors.has(i)?' conflict':'')+(hinted.has(i)?' hint-target':'')+(refused.has(i)?' refused':'');
-   b.tabIndex=!report.solved&&i===s.focus?0:-1;b.setAttribute('aria-pressed',String(s.selected===i));b.setAttribute('aria-disabled',String(report.solved));b.setAttribute('aria-label',`Star row ${a.y+1}, column ${a.x+1}: ${degree} of ${a.need} connections${errors.has(i)?', conflict':''}`);
+   b.tabIndex=!report.solved&&i===s.focus?0:-1;b.setAttribute('aria-pressed',String(s.selected===i));b.setAttribute('aria-disabled',String(report.solved));b.setAttribute('aria-label',`Star ${i+1}, ${place(i)}: ${degree} of ${a.need} connections${degree>a.need?', too many':errors.has(i)?', conflict':''}`);
    const key=[target,radii[i],spokes[i].join(',')].join(':');
    if(b.dataset.paint!==key){b.dataset.paint=key;b.innerHTML=paintStar(i,target);b.ticks=[...b.querySelectorAll('.tick')];}
    const met=spent(i,a.need,degree);b.ticks.forEach((n,k)=>{if(n.classList.contains('spent')!==met[k])n.classList.toggle('spent',met[k]);});
@@ -248,7 +279,7 @@
   });
   drawThreads(report);$('undo-btn').disabled=!s.undo.length;$('hint-btn').disabled=report.solved;
   completion(report.solved);
-  $('next-btn').setAttribute('aria-label',B.indexOf(p)===B.length-1?'Choose board':'Next board');
+  endShown();
   $('readout').textContent=`${B.indexOf(p)+1} / ${B.length} · ${s.weights.reduce((a,b)=>a+b,0)} / ${p.stars.reduce((sum,a)=>sum+a.need,0)/2}`;
   $('readout').setAttribute('aria-label',`Board ${B.indexOf(p)+1} of ${B.length}. ${s.weights.reduce((a,b)=>a+b,0)} of ${p.stars.reduce((sum,a)=>sum+a.need,0)/2} threads. Choose board`);
   field();
@@ -269,7 +300,7 @@
   buttons.forEach((b,i)=>{const a=point(i);b.style.left=a.x+'px';b.style.top=a.y+'px';});render();
  }
  function load(id){
-  cancel();clearTimeout(refusalTimer);refused.clear();clearTimeout(finishTimer);finishTimer=null;wasSolved=false;document.documentElement.classList.remove('night');$('board').classList.remove('solved','celebrating');$('next-btn').hidden=true;$('sky-name').hidden=true;$('sky-name').textContent='';if(p)save();p=B.find(b=>b.id===id)||B[0];t=E.topology(p);s=fresh(p);
+  cancel();clearTimeout(refusalTimer);refused.clear();clearTimeout(finishTimer);finishTimer=null;wasSolved=false;finale=false;document.documentElement.classList.remove('night');$('board').classList.remove('solved','celebrating');$('next-btn').hidden=true;$('end-line').hidden=true;$('sky-name').hidden=true;$('sky-name').textContent='';if(p)save();p=B.find(b=>b.id===id)||B[0];t=E.topology(p);s=fresh(p);
   if(store.records[p.id])Object.assign(s,clone(store.records[p.id]));
   $('stars').replaceChildren();$('threads').replaceChildren();buttons=p.stars.map((a,i)=>{const b=document.createElement('button');b.type='button';b.className='star';b.dataset.star=i;b.addEventListener('focus',()=>s.focus=i);$('stars').append(b);return b;});
   store.current=p.id;prefs();fit();save();
@@ -278,12 +309,25 @@
  function commit(edge,value){
   if(!Number.isInteger(edge)||!t.edges[edge]||!Number.isInteger(value)||value<0||value>2||s.weights[edge]===value||E.inspect(p,s.weights).solved)return;
   if(s.locks[edge]){refuse([t.edges[edge].a,t.edges[edge].b],'This thread is locked. Hold it to unlock.');return;}
-  s.undo.push(snapshot());if(s.undo.length>200)s.undo.shift();s.weights[edge]=value;s.selected=null;s.hint=null;preview=null;hover=null;
-  const r=E.inspect(p,s.weights);if(r.solved){if(!store.completed.includes(p.id))store.completed.push(p.id);say(`Complete: ${p.name}.`);}else if(r.errors.length)say(r.errors[0].rule==='crossing'?'Threads cross. Undo or clear a thread.':'A star has too many connections.');else say(`${value} ${value===1?'thread':'threads'}.`);
+  const before=s.weights[edge];s.undo.push(snapshot());if(s.undo.length>200)s.undo.shift();s.weights[edge]=value;s.selected=null;s.hint=null;preview=null;hover=null;
+  const r=E.inspect(p,s.weights);if(r.solved){if(!store.completed.includes(p.id)){store.completed.push(p.id);if(allDone())finale=true;}say(`Complete: ${p.name}.`+(ending()?' '+endLine():''));}else if(r.errors.length)say(r.errors[0].rule==='crossing'?'Threads cross. Undo or clear a thread.':overMessage(r));else say(moveMessage(before,value));
   render();save();
  }
+ // What a change did to its route, then the board's total as the readout counts it, so the number said is never
+ // the route's count standing in for the board's.
+ function moveMessage(before,value){
+  const what=value>before?'Thread added.':before-value===2?'Both threads removed.':'Thread removed.',hits=s.weights.reduce((a,b)=>a+b,0),par=p.stars.reduce((sum,a)=>sum+a.need,0)/2;
+  return `${what} ${hits} of ${par} threads.`;
+ }
+ // What the next tap, drag or key on a route makes of it: none, one, two, none again. A second thread goes on only
+ // while both stars still have a tick for it; otherwise the tap clears the route, so a second tap never overfills a star.
+ function nextCount(e){
+  const n=(s.weights[e]+1)%3;if(n!==2)return n;
+  const full=i=>t.adj[i].reduce((sum,f)=>sum+s.weights[f],0)>=p.stars[i].need;
+  return full(t.edges[e].a)||full(t.edges[e].b)?0:2;
+ }
  // A route crossing a thread cannot be used; trying it is refused like any other refused move.
- function cycle(e){if(!t.edges[e])return;if(barred(e)&&!E.inspect(p,s.weights).solved){refuse([t.edges[e].a,t.edges[e].b],'That route crosses a thread.');return;}commit(e,(s.weights[e]+1)%3);}
+ function cycle(e){if(!t.edges[e])return;if(barred(e)&&!E.inspect(p,s.weights).solved){refuse([t.edges[e].a,t.edges[e].b],'That route crosses a thread.');return;}commit(e,nextCount(e));}
  function refuse(stars,message){refused=new Set(stars);clearTimeout(refusalTimer);render();say(message);refusalTimer=setTimeout(()=>{refused.clear();render();},650);}
  function pair(a,b){const e=t.edges.findIndex(e=>e.a===a&&e.b===b||e.a===b&&e.b===a);if(e<0){refuse([a,b],'Choose one of this star’s visible paths.');return;}cycle(e);}
  function tap(i){if(E.inspect(p,s.weights).solved)return;if(s.selected===null){s.selected=i;s.hint=null;render();}else if(s.selected===i){s.selected=null;render();}else pair(s.selected,i);}
@@ -304,6 +348,7 @@
   render();
  }
  function cancel(){if(drag)clearTimeout(drag.timer);drag=null;preview=null;hover=null;}
+ const shows=e=>!barred(e)&&!s.locks[e];
  function pickStar(x,y){const r=$('board').getBoundingClientRect();let best=-1,distance=buttons[0].offsetWidth/2;for(let i=0;i<p.stars.length;i++){const a=point(i),d=Math.hypot(x-r.left-a.x,y-r.top-a.y);if(d<=distance){distance=d;best=i;}}return best;}
  function pickEdge(x,y){
   const r=$('board').getBoundingClientRect(),hits=[];
@@ -331,8 +376,12 @@
   if(source<0&&edge===null){s.selected=null;render();return;}
   cancel();keyboard=false;drag={id:e.pointerId,source:source<0?null:source,edge,x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY,moved:false,target:source,held:false};
   if(source>=0){s.focus=source;buttons[source].focus({preventScroll:true});}
-  if(edge!==null)drag.timer=setTimeout(()=>{if(!drag||drag.moved)return;drag.held=true;},550);
+  // Past the lock threshold release locks (or does nothing on an empty route), so the add/clear preview goes.
+  if(edge!==null)drag.timer=setTimeout(()=>{if(!drag||drag.moved)return;drag.held=true;preview=null;render();},550);
   board.setPointerCapture(e.pointerId);
+  // A press on a route shows at once what releasing will do: a dashed thread to add, faded threads to clear.
+  // A locked thread only refuses on release, so it shows nothing.
+  if(edge!==null&&shows(edge)){preview={edge};render();}
  });
  function updateDrag(e){
   if(!drag||drag.id!==e.pointerId)return;
@@ -340,8 +389,8 @@
   if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8){drag.moved=true;clearTimeout(drag.timer);}
   if(drag.source!==null&&drag.moved){
    drag.target=pickStar(e.clientX,e.clientY);const edge=t.edges.findIndex(v=>v.a===drag.source&&v.b===drag.target||v.b===drag.source&&v.a===drag.target);
-   preview=edge>=0?{edge}:{invalid:drag.target!==drag.source};
-  }else if(drag.edge!==null&&!drag.moved)preview=barred(drag.edge)?null:{edge:drag.edge};
+   preview=edge>=0?(s.locks[edge]?null:{edge}):{invalid:drag.target!==drag.source};
+  }else if(drag.edge!==null&&!drag.moved)preview=drag.held||!shows(drag.edge)?null:{edge:drag.edge};
   else preview=null;
  }
  function end(e,cancelled=false){
@@ -408,7 +457,10 @@
  function openSheet(id){cancel();s.selected=null;render();if(id==='settings'){inventory();prefs();$('storage-warning').hidden=!warning;$('storage-warning').textContent=warning;}$(id).showModal();}
  $('settings-btn').onclick=() =>openSheet('settings');$('readout').onclick=()=>openSheet('settings');$('help-btn').onclick=()=>openSheet('help');
  $('motion').onchange=()=>{store.settings.motion=$('motion').value;prefs();save();};
- $('next-btn').onclick=()=>{const n=B.indexOf(p);if(n===B.length-1)openSheet('settings');else load(B[n+1].id);};
+ // Next: the following board; after the last, the first board not yet solved. When every board is solved it is
+ // Replay: the boards start again from board 1, cleared, and every solved mark stays.
+ function replay(){store.records={};s=fresh(p);load(B[0].id);}
+ $('next-btn').onclick=()=>{if(ending()){replay();return;}const n=B.indexOf(p),open=B.find(b=>!store.completed.includes(b.id));load(n<B.length-1?B[n+1].id:(open||B[0]).id);};
  // The control frame moves the arrow's place on resize in the next frame, so the field is checked again after it.
  window.addEventListener('resize',()=>{cancel();fit();requestAnimationFrame(()=>requestAnimationFrame(field));});window.addEventListener('pagehide',save);
  document.addEventListener('visibilitychange',()=>{document.documentElement.classList.toggle('page-hidden',document.hidden);night.pause(document.hidden);if(document.hidden){cancel();if(finishTimer!==null)finish();render();save();}});
@@ -420,7 +472,7 @@
  Object.defineProperty(window,'__constellations',{value:Object.freeze({
   get boards(){return clone(B);},get board(){return p.id;},
   get state(){const r=E.inspect(p,s.weights);return clone({weights:s.weights,degrees:r.degrees,solved:r.solved,hits:s.weights.reduce((a,b)=>a+b,0),par:p.stars.reduce((sum,a)=>sum+a.need,0)/2,groups:r.groups});},
-  cycle,set:commit,undo,restart,go:load,topology:()=>clone(t),
+  cycle,set:commit,undo,restart,go:load,replay,get ending(){return!$('next-btn').hidden&&ending();},get completed(){return store.completed.slice();},topology:()=>clone(t),
   sky:()=>({night:wasSolved,seed:wasSolved?p.id:'',...(night.info||{stars:0}),colors:colors?colors.map(c=>c?.color??null):null}),
   position:index=>{const a=point(index),r=$('board').getBoundingClientRect();return{x:r.left+a.x,y:r.top+a.y};},bounds,
   snapshot:()=>clone({id:p.id,weights:s.weights,locks:s.locks,undo:s.undo,selected:s.selected,focus:s.focus,report:E.inspect(p,s.weights),settings:store.settings}),

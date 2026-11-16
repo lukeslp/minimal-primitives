@@ -134,6 +134,11 @@ async function transportTests() {
       await frame.waitForFunction(() => document.querySelector('#scores-status').textContent !== 'Loading…');
     };
     const close = async frame => { await frame.getByRole('button', { name: 'Close Scores', exact: true }).click(); };
+    // Since game-riffs 2ba8a67 a solved board shows the arrow alone; Scores opens from Settings.
+    const openSolved = async frame => {
+      await frame.locator('#settings-btn').click();
+      await frame.getByRole('button', { name: 'Scores for this puzzle', exact: true }).click();
+    };
     const solve = async (frame, game) => {
       // Derive the pinned engine solution; use native input/commit paths below.
       const answer = await frame.evaluate(game => {
@@ -177,7 +182,7 @@ async function transportTests() {
       equal(await frame.evaluate(() => document.activeElement.id), 'settings-btn');
 
       await solve(frame, game);
-      await frame.locator('#scores-btn').click();
+      await openSolved(frame);
       await frame.waitForFunction(() => document.querySelector('#scores-result').textContent.includes('1:05'));
       await frame.locator('#score-remove').waitFor({ state: 'visible' });
       const beforePreference = requests.filter(r => r.method === 'POST').length;
@@ -201,7 +206,7 @@ async function transportTests() {
     await page.evaluate(() => localStorage.clear());
     let frame = await launch('slant', 'standard', false);
     const startLocal = requests.length;
-    await solve(frame, 'slant'); await frame.locator('#scores-btn').click();
+    await solve(frame, 'slant'); await openSolved(frame);
     await frame.locator('#score-submit').waitFor({ state: 'visible' });
     await frame.locator('#score-alias').fill('FuturePlayer'); await frame.locator('#score-submit button').click();
     await frame.waitForFunction(() => document.querySelector('#scores-status').textContent.includes('future new attempts'));
@@ -264,7 +269,7 @@ async function transportTests() {
     failBoards = false;
     // A failed main finish produces no native retry or historical publication.
     failFinish = true; await solve(frame, 'slant');
-    await frame.locator('#scores-btn').click();
+    await openSolved(frame);
     await frame.waitForFunction(() => document.querySelector('#scores-result').textContent.includes('no shared score'));
     const failedPosts = requests.filter(r => r.method === 'POST').length;
     await frame.locator('#score-submit button').click();

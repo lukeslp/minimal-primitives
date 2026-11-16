@@ -57,7 +57,7 @@ release key (see Release signing).
 - The app follows the device's light or dark setting, so games that theme
   themselves by `prefers-color-scheme` look as they do in a mobile browser.
 - The launcher icon and splash are the Hexsweeper Sphere tile from the library
-  (`web/assets/hexsweeper-sphere.png`): black line work on white paper for the
+  (`web/assets/tiles/sphere.png`): black line work on white paper for the
   icon, and the same lines in white on the library's dark ground for the splash.
   `python3 tools/android.py --icons` redraws them from that artwork (it needs
   Pillow); a normal build does not.

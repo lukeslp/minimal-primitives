@@ -18,6 +18,7 @@
     undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12',
     hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z',
     next: 'M5 12h14m-6-6 6 6-6 6',
+    replay: 'M4 11V9a3 3 0 0 1 3-3h12m-3-3 3 3-3 3M20 13v2a3 3 0 0 1-3 3H5m3 3-3-3 3-3',
     settings: 'M4 7h16M4 17h16M8 4v6M16 14v6',
     help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2'
   };
@@ -272,11 +273,35 @@
     });
   }
 
+  // The end of the campaign. Next takes the following board; after the last,
+  // the first board not yet finished. With every board finished it becomes
+  // Replay, which starts again at board 1 and keeps the finished marks.
+  const allDone = () => Boards.every(board => done.has(board.id));
+  const endLine = 'All ' + Boards.length + ' boards solved.';
+  function nextTarget() {
+    const index = Boards.indexOf(current);
+    if (index + 1 < Boards.length) return Boards[index + 1];
+    return Boards.find((board, at) => at <= reached && !done.has(board.id)) || null;
+  }
+  let nextMode = 'next';
+  function showNext() {
+    const button = $('next-btn');
+    const mode = solved && !nextTarget() ? 'replay' : 'next';
+    button.hidden = !solved;
+    if (mode !== nextMode) {
+      nextMode = mode;
+      button.innerHTML = icon(mode);
+      button.setAttribute('aria-label', mode === 'replay' ? 'Replay from board 1' : 'Next board');
+    }
+    $('end-line').textContent = endLine;
+    $('end-line').hidden = !(solved && allDone());
+  }
+
   function refresh() {
     const index = Boards.findIndex(board => board.id === current.id) + 1;
     $('readout').textContent = index + ' / ' + Boards.length + ' · ' + moves + '/' + par;
     $('board').setAttribute('aria-label', describe());
-    $('next-btn').hidden = !solved || index === Boards.length;
+    showNext();
     $('previous').disabled = index === 1;
     $('following').disabled = index - 1 >= reached || index === Boards.length;
     updateCatalog();
@@ -352,7 +377,7 @@
   function announce(dir, result) {
     const where = 'Level ' + (result.level + 1) + ', row ' + (result.row + 1) + ', column ' + (result.col + 1) + '.';
     if (!result.moved) say(NAMES[dir] + '. The marble stays.');
-    else if (result.solved) say(NAMES[dir] + '. ' + (result.path.some(cell => cell.drop) ? 'Drops. ' : '') + where + ' Finished in ' + moves + '.');
+    else if (result.solved) say(NAMES[dir] + '. ' + (result.path.some(cell => cell.drop) ? 'Drops. ' : '') + where + ' Finished in ' + moves + '.' + (allDone() ? ' ' + endLine : ''));
     else if (result.path.some(cell => cell.drop)) say(NAMES[dir] + '. Drops to ' + where);
     else say(NAMES[dir] + '. ' + where);
   }
@@ -486,8 +511,10 @@
   $('undo-btn').addEventListener('click', undo);
   $('hint-btn').addEventListener('click', armHint);
   $('next-btn').addEventListener('click', () => {
-    const index = Boards.findIndex(board => board.id === current.id);
-    if (solved && index + 1 < Boards.length) go(Boards[index + 1].id);
+    if (!solved) return;
+    const target = nextTarget();
+    if (target) go(target.id);
+    else if (go(Boards[0].id)) say('Board 1.');
   });
 
   function openSheet(id, button) {

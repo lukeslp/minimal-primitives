@@ -711,10 +711,89 @@ body.help-open { overflow: hidden; }
   .help-tab { font-size: 0.73rem; }
 }
 /* sheet:end */
+/* Tiny classic Minesweeper thumb — full color, lightbox on click */
+.help-history-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0 0.75rem;
+}
+.help-history {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 33px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--text-main) 16%, transparent);
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: zoom-in;
+  background: #000;
+  line-height: 0;
+}
+.help-history:focus-visible {
+  outline: 2px solid var(--text-main);
+  outline-offset: 2px;
+}
+.help-history img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+.help-history-cap {
+  margin: 0;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--text-sub);
+}
+.help-history-cap a {
+  color: var(--text-main);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+.lightbox.open { opacity: 1; pointer-events: auto; }
+.lightbox img {
+  max-width: min(920px, 100%);
+  max-height: min(88vh, 100%);
+  border-radius: 4px;
+}
+.lightbox-close {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  width: 2.25rem;
+  height: 2.25rem;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+.lightbox-close:hover,
+.lightbox-close:focus-visible {
+  background: rgba(255, 255, 255, 0.22);
+  outline: none;
+}
 @media (prefers-reduced-motion: reduce) {
   .sphere-banner,
   .help-overlay,
   .count-style-toast { transition: none; }
+  .lightbox { transition: none; }
 }
 .sphere-banner { border-radius: 6px; }
 .sphere-banner .banner-btn { border-radius: 4px; }
@@ -821,6 +900,14 @@ body.help-open { overflow: hidden; }
       <li><span class="act">Hold<span class="help-desk-only"> / ⌃-click</span></span><span>Flag it</span></li>
       <li><span class="act">Drag</span><span>Spin the sphere</span></li>
     </ul>
+    <div class="help-history-row">
+      <button type="button" class="help-history" id="help-history-btn" aria-label="Open classic square-grid Minesweeper screenshot">
+        <img src="assets/classic-minesweeper.png" alt="Classic Windows Minesweeper (square grid)" width="44" height="33" loading="lazy">
+      </button>
+      <p class="help-history-cap">
+        Riding on the original — <a href="https://www.coolmathgames.com/blog/the-history-of-minesweeper" target="_blank" rel="noopener noreferrer">history of Minesweeper</a>
+      </p>
+    </div>
     <p class="help-more">Also <a href="../infinite.html">Infinite</a> · <a href="../bounded.html">Classic</a></p>
     </section>
     <section class="help-tabpanel" role="tabpanel" id="help-panel-themes" aria-labelledby="help-tab-themes" data-tab="themes" hidden>
@@ -869,10 +956,14 @@ body.help-open { overflow: hidden; }
   </div>
 </div>
 
+<div id="history-lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Classic Minesweeper" hidden>
+  <button type="button" class="lightbox-close" id="lightbox-close-btn" aria-label="Close">×</button>
+  <img src="assets/classic-minesweeper.png" alt="Classic Windows Minesweeper on the Bliss desktop">
+</div>
 <script src="hexasphere.js?v=20260810z11"></script>
-<script src="sphere.js?v=20261007help"></script>
-<script src="mirror-material.js?v=20260820a1"></script>
-<script src="quiet-chrome.js?v=20261007help"></script>
+<script src="sphere.js?v=20261113rim"></script>
+<script src="mirror-material.js?v=20261111trim"></script>
+<script src="quiet-chrome.js?v=20261104focus"></script>
 <!-- minimal-controls:start -->
 <script src="controls.js?v=b817233a"></script>
 <!-- minimal-controls:end -->
@@ -892,7 +983,7 @@ const sphereChrome = initQuietChrome(sphereGame);
 (function () {
   const grid = document.getElementById("help-theme-grid");
   if (!grid || !window.SphereSweeper) return;
-  const ROSTER = ["light", "dark", "stratosphere", "mercury", "ion-storm", "aurora", "galaxy", "gilded-ribbon", "heat-lightning"];
+  const ROSTER = ["light", "dark", "stratosphere", "mercury", "ion-storm", "aurora", "galaxy", "heat-lightning"];
   const themes = SphereSweeper.THEMES;
   function swatchFor(t) {
     if (t.reflectionSurface) return "linear-gradient(145deg, " + (t.fallbackBgGlow || "#666") + ", " + (t.fallbackBg || "#000") + ")";
@@ -1013,6 +1104,123 @@ const sphereChrome = initQuietChrome(sphereGame);
   try { stored = localStorage.getItem(TAB_KEY) || "play"; } catch (_) {}
   showTab(stored);
   window.HEXSWEEPER_SHOW_SHEET_TAB = showTab;
+})();
+// Android can recreate the Activity/WebView during display transfer while
+// retaining the task and process. Native bootstraps each owned document, passing
+// whether its saved Activity bundle exists. Ordinary web visits never opt in.
+// Only Help UI metadata lives here; the engine owns its existing game autosave.
+(function () {
+  const KEY = "hexsweeper-sphere-native-ui-v1";
+  const help = document.getElementById("help-overlay");
+  const panel = document.getElementById("help-panel");
+  const scroller = document.getElementById("help-tabstack") || panel;
+  let started = false;
+  function focusToken() {
+    const node = document.activeElement;
+    if (!help.contains(node)) return "id:help-panel";
+    if (node.id) return "id:" + node.id;
+    if (node.dataset.theme) return "theme:" + node.dataset.theme;
+    if (node.dataset.size) return "size:" + node.dataset.size;
+    return "id:help-panel";
+  }
+  function save() {
+    const tab = help.querySelector('.help-tab[aria-selected="true"]');
+    try {
+      localStorage.setItem(KEY, JSON.stringify({
+        version: 1,
+        // Opening is synchronous; its opacity class follows on the next frame.
+        // Modal isolation can make Help inert without closing its parent.
+        open: !help.hidden && (help.classList.contains("open") || !help.inert),
+        tab: tab ? tab.dataset.tab : "play",
+        scroll: scroller.scrollTop,
+        focus: focusToken(),
+      }));
+    } catch (_) {} // Blocked/full storage must not interfere with the sheet.
+  }
+  function read() {
+    try {
+      const value = JSON.parse(localStorage.getItem(KEY));
+      return value && value.version === 1 && typeof value.open === "boolean"
+        && typeof value.tab === "string" && value.tab.length < 32
+        && Number.isFinite(value.scroll) && value.scroll >= 0
+        && typeof value.focus === "string" && value.focus.length < 100 ? value : null;
+    } catch (_) { return null; }
+  }
+  window.__restoreNativeUiSession = function (restoreSavedBundle) {
+    if (!window.HEXSWEEPER_SPHERE_APP || started || !help || !panel) return;
+    started = true;
+    // Read/reset before enabling any writers, or the new closed DOM would
+    // overwrite the old open sheet before it could be restored.
+    const saved = restoreSavedBundle === true ? read() : null;
+    if (restoreSavedBundle !== true) {
+      try { localStorage.removeItem(KEY); } catch (_) {}
+    }
+    if (saved && saved.open) {
+      document.getElementById("qc-help")?.click();
+      window.HEXSWEEPER_SHOW_SHEET_TAB?.(saved.tab, false);
+      const target = [...help.querySelectorAll('[id], [data-theme], [data-size]')].find(node =>
+        (node.id && saved.focus === "id:" + node.id)
+        || (node.dataset.theme && saved.focus === "theme:" + node.dataset.theme)
+        || (node.dataset.size && saved.focus === "size:" + node.dataset.size));
+      if (target && !target.disabled && !target.closest("[hidden], [inert]") && target.getClientRects().length) {
+        target.focus({ preventScroll: true });
+      }
+      scroller.scrollTop = Math.min(saved.scroll, Math.max(0, scroller.scrollHeight - scroller.clientHeight));
+    }
+    let queued = false;
+    function saveSoon() {
+      if (queued) return;
+      queued = true;
+      queueMicrotask(() => { queued = false; save(); });
+    }
+    // Capture changes made through existing Close/Done/Escape handlers,
+    // keyboard tabs and programmatic Help activation.
+    new MutationObserver(saveSoon).observe(help, {
+      subtree: true, attributes: true, attributeFilter: ["hidden", "class", "aria-selected"],
+    });
+    help.addEventListener("focusin", saveSoon);
+    scroller.addEventListener("scroll", save, { passive: true });
+    window.addEventListener("pagehide", save);
+    save();
+  };
+})();
+
+/* History image: the thumb in Help opens the full screenshot. The lightbox
+   takes Escape first so the sheet underneath stays open. */
+(function () {
+  const lb = document.getElementById("history-lightbox");
+  const openBtn = document.getElementById("help-history-btn");
+  const closeBtn = document.getElementById("lightbox-close-btn");
+  if (!lb || !openBtn) return;
+  function openLb() {
+    // The open sheet marks every other part of the page inert; this view sits
+    // above the sheet and has to take clicks and focus.
+    lb.inert = false;
+    lb.removeAttribute("aria-hidden");
+    lb.hidden = false;
+    requestAnimationFrame(() => lb.classList.add("open"));
+    closeBtn && closeBtn.focus();
+  }
+  function closeLb() {
+    lb.classList.remove("open");
+    setTimeout(() => { lb.hidden = true; }, 180);
+    openBtn.focus();
+  }
+  openBtn.addEventListener("click", openLb);
+  closeBtn && closeBtn.addEventListener("click", closeLb);
+  lb.addEventListener("click", (e) => { if (e.target === lb) closeLb(); });
+  window.addEventListener("keydown", (e) => {
+    if (!lb.classList.contains("open")) return;
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      closeLb();
+    } else if (e.key === "Tab") {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      closeBtn && closeBtn.focus();
+    }
+  }, true);
 })();
 </script>
 <!-- GoatCounter Analytics -->

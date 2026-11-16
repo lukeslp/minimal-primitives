@@ -86,6 +86,8 @@ async function main() {
       const context = await browser.newContext({viewport, deviceScaleFactor: scale, isMobile: mobile, hasTouch: mobile, colorScheme: SCHEME, serviceWorkers: 'block'});
       const outside = [], errors = [];
       await context.route('**/*', route => { const url = new URL(route.request().url()); if (url.hostname === '127.0.0.1' && Number(url.port) === port) return route.continue(); if (!['data:', 'blob:'].includes(url.protocol)) outside.push(url.href); return route.abort(); });
+      // The library's opening plays the first time the app is opened; a shot shows the library itself.
+      await context.addInitScript(() => { try { localStorage.setItem('lukesteuber.minimal.collection.v1:opening', '1'); } catch (_) {} });
       const page = await context.newPage();
       page.on('pageerror', error => errors.push(error.message));
       await page.goto(library);
@@ -102,7 +104,7 @@ async function main() {
         // The motor-accessible puzzles sit behind the last tile and have no resume adapter.
         const accessible = game.group === 'accessible';
         if (accessible) await page.locator('#access-open').click();
-        await page.locator('.tile[data-game="' + game.id + '"]' + (mode ? '[data-mode="' + mode.id + '"]' : '')).click();
+        await page.locator('[data-open="' + game.id + (mode ? ':' + mode.id : '') + '"]').evaluate(a => a.click());
         const frame = await (await page.waitForSelector('#player iframe')).contentFrame();
         await frame.waitForFunction(ready => (ready || !!window.MinimalAdapter) && !!document.querySelector('#minimal-home'), accessible, {timeout: 15000});
         const play = frame.getByRole('button', {name: 'Play', exact: true});

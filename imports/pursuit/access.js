@@ -194,6 +194,19 @@
     if (cal.kind === 'head') return { ...cal, centre: { yaw: rest.yaw, pitch: rest.pitch } };
     return { ...cal, u: { k: cal.u.k, b: -cal.u.k * rest.ax }, v: { k: cal.v.k, b: -cal.v.k * rest.ay } };
   }
+  // A typical reach, for a player whose five-dot calibration did not take
+  // twice: made from the five places as an average sitter reaches them (a
+  // quarter radian of head turn, or the look's same share), then recentred on
+  // one held dot. In image terms, as the readings are: the screen's left is
+  // the image's right, so a look left reads positive across, and a look up
+  // reads negative. Marked rough, so the next start asks for the five dots
+  // again.
+  function typical(kind) {
+    const T = { head: [{ yaw: 0, pitch: 0, roll: 0 }, { yaw: .25, pitch: 0, roll: 0 }, { yaw: -.25, pitch: 0, roll: 0 }, { yaw: 0, pitch: -.15, roll: 0 }, { yaw: 0, pitch: .15, roll: 0 }],
+      eyes: [{ ax: 0, ay: 0 }, { ax: .6, ay: 0 }, { ax: -.6, ay: 0 }, { ax: 0, ay: -.5 }, { ax: 0, ay: .5 }] };
+    const made = kind === 'head' ? headCalibration(T.head) : kind === 'eyes' ? eyesCalibration(T.eyes) : null;
+    return made && { ...made, rough: true };
+  }
   // Holding still: every recent reading lies close to their mean.
   function stillness(window, keys, tolerance) {
     if (!window.length) return { still: false };
@@ -204,7 +217,8 @@
   // An eyes calibration made before the eyes' up and down were measured from
   // the corners (no `e: 2`) still loads, but asks for a full calibration
   // again; a head calibration is unchanged.
-  const current = c => !!c && (c.kind !== 'eyes' || c.e === 2);
+  // A rough (typical) calibration also asks for the five dots again.
+  const current = c => !!c && !c.rough && (c.kind !== 'eyes' || c.e === 2);
   function validCalibration(c) {
     const num = v => typeof v === 'number' && Number.isFinite(v);
     if (!c || typeof c !== 'object') return false;
@@ -214,7 +228,120 @@
     if (c.kind === 'tracker') return num(c.dx) && num(c.dy);
     return false;
   }
-  return { clamp, oneEuro, dwell, MESH, headPose, landmarkPose, irisOffset, lookAngles, SPOTS, headCalibration, headMap, eyesCalibration, eyesMap, recentre, stillness, validCalibration, current };
+  return { clamp, oneEuro, dwell, MESH, headPose, landmarkPose, irisOffset, lookAngles, SPOTS, headCalibration, headMap, eyesCalibration, eyesMap, recentre, typical, stillness, validCalibration, current };
+});
+
+/* The camera: MediaPipe's Face Landmarker on the front camera. By Luke Steuber.
+   The one copy every camera game uses: each game's track.js is generated from
+   this file by tools/sync-gaze.py (never edit those copies). The front
+   camera's frames go straight from the video element into the Face
+   Landmarker, all on this device; only the landmarks come out, and no frame
+   is kept, drawn or sent. MediaPipe and its model are loaded the first time
+   the camera starts, never before.
+
+   create({ video, bases, name }) returns the camera. `bases` are the folders,
+   relative to the page's script, where MediaPipe's files may be; the first
+   that has them is used. A site that has none of them is told so by name
+   (error.code 'vendor-missing') rather than with a bare failure. */
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.CameraTrack = api;
+})(typeof globalThis === 'object' ? globalThis : this, function () {
+  'use strict';
+  // Where MediaPipe may be, in order: Glance's published folder beside the
+  // game on the same site (Glance's own ./vendor/ is the same folder), then a
+  // copy beside the game, for a site with no Glance (playnotan.com).
+  const BASES = ['../glance/vendor/', './vendor/'];
+  const MODEL = 'face_landmarker.task';
+
+  // The first base that answers for the model file. `fetch` is given so tests
+  // can stand in for the network.
+  async function findBase(bases, fetcher) {
+    for (const base of bases) {
+      try { const r = await fetcher(base + MODEL, { method: 'HEAD' }); if (r && r.ok) return base; } catch (_) {}
+    }
+    const error = Error('The camera files are not on this site'); error.code = 'vendor-missing'; throw error;
+  }
+
+  function create({ video, bases = BASES, fetcher = (...a) => fetch(...a), importer = url => import(url), doc = typeof document === 'object' ? document : null, clock = () => performance.now(), frame = f => requestAnimationFrame(f), cancel = h => cancelAnimationFrame(h), media = () => typeof navigator === 'object' && navigator.mediaDevices } = {}) {
+    let landmarker = null, loading = null, stream = null, running = false, handle = 0, last = -1, delegate = null, generation = 0, base = null, lastError = null;
+    // Loaded once and kept: GPU first, the CPU when the GPU path is not offered.
+    function load() {
+      if (!loading) loading = (async () => {
+        base = await findBase(bases, fetcher);
+        const vision = await importer(base + 'vision_bundle.mjs');
+        const files = { wasmLoaderPath: base + 'vision_wasm_internal.js', wasmBinaryPath: base + 'vision_wasm_internal.wasm' };
+        const options = d => ({ baseOptions: { modelAssetPath: base + MODEL, delegate: d }, runningMode: 'VIDEO', numFaces: 1, outputFacialTransformationMatrixes: true, outputFaceBlendshapes: false });
+        try { landmarker = await vision.FaceLandmarker.createFromOptions(files, options('GPU')); delegate = 'GPU'; }
+        catch (_) { landmarker = await vision.FaceLandmarker.createFromOptions(files, options('CPU')); delegate = 'CPU'; }
+        return landmarker;
+      })().catch(error => { loading = null; lastError = error; throw error; });
+      return loading;
+    }
+    function release() {
+      if (handle) { cancel(handle); handle = 0; }
+      if (stream) for (const track of stream.getTracks()) track.stop();
+      stream = null; video.srcObject = null; seen = -1;
+    }
+    // The video is never shown, so frames are taken on the page's own frame
+    // clock rather than the video's: at most about thirty readings a second,
+    // each of a new camera frame, stamped with the page clock.
+    let seen = -1, fails = 0, moved = 0;
+    // A camera that ends (unplugged, permission taken back, another app took
+    // it), a detector that keeps failing, or frames that stop coming: the
+    // camera is let go and the page told, so play can go on another way. The
+    // detector's last error is kept for status(), not swallowed.
+    function lose(reason) {
+      if (!running && !stream) return;
+      generation++; running = false; release(); fails = 0; moved = 0;
+      api.onStream && api.onStream(false); api.onLost && api.onLost(reason);
+    }
+    function schedule() { if (running) handle = frame(tick); }
+    function tick() {
+      handle = 0;
+      if (!running) return;
+      const now = clock();
+      if (video.readyState >= 2 && now - last >= 30 && video.currentTime !== seen) {
+        last = now; seen = video.currentTime;
+        let result = null;
+        try { result = landmarker.detectForVideo(video, now); fails = 0; } catch (error) { result = null; fails++; lastError = error; }
+        if (fails >= 30) { lose('detector'); return; }
+        if (result && api.onResult) api.onResult(result, now);
+        moved = now;
+      } else if (video.readyState >= 2 && moved && now - moved > 5000) { lose('stalled'); return; }
+      schedule();
+    }
+    const stopped = () => Error('Stopped');
+    const api = {
+      onResult: null, onStream: null, onLost: null,
+      // Ask for the camera, then load the landmarker; either refusal throws.
+      // A page hidden while the camera starts lets it go at once.
+      async start() {
+        if (running || stream) return;
+        const mine = ++generation;
+        const md = media();
+        if (!md || !md.getUserMedia) throw Error('No camera');
+        const s = await md.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } }, audio: false });
+        if (mine !== generation || (doc && doc.hidden)) { for (const track of s.getTracks()) track.stop(); if (mine === generation) generation++; throw stopped(); }
+        stream = s; video.srcObject = s; api.onStream && api.onStream(true);
+        for (const track of s.getVideoTracks()) track.addEventListener('ended', () => { if (stream === s) lose('ended'); });
+        try {
+          await video.play();
+          await load();
+        } catch (error) { if (mine === generation) { release(); api.onStream && api.onStream(false); } throw error; }
+        if (mine !== generation) throw stopped();
+        if (doc && doc.hidden) { generation++; release(); api.onStream && api.onStream(false); throw stopped(); }
+        running = true; last = -1; fails = 0; moved = clock(); schedule();
+      },
+      stop() { generation++; running = false; const had = !!stream; release(); if (had) api.onStream && api.onStream(false); },
+      get running() { return running; },
+      aspect() { return video.videoWidth && video.videoHeight ? video.videoWidth / video.videoHeight : 4 / 3; },
+      status() { return { running, live: stream ? stream.getVideoTracks().filter(t => t.readyState === 'live').length : 0, loaded: !!landmarker, delegate, base, error: lastError ? String(lastError.message || lastError) : null }; }
+    };
+    return api;
+  }
+  return { create, findBase, BASES };
 });
 
 /* Minimal Access: one switch, or look and hold, for every game in the shared
@@ -293,14 +420,14 @@ body[data-control-frame] .access-zoom .access-key[data-from] {outline:3px solid 
   // apply-control-frame.py places ahead of this file in each game's access.js:
   // the same filter, look and hold, landmark reading and calibration as the
   // camera games, from one copy.
-  const {clamp,oneEuro,dwell:lookAndHold,SPOTS,headPose,lookAngles,headCalibration,headMap,eyesCalibration,eyesMap,current,recentre,stillness,validCalibration}=window.GazeCore;
+  const {clamp,oneEuro,dwell:lookAndHold,SPOTS,headPose,lookAngles,headCalibration,headMap,eyesCalibration,eyesMap,current,recentre,typical,stillness,validCalibration}=window.GazeCore;
 
   window.MinimalAccessEngine = function (A) {
     const {config,prefs,save,paintRows,completionNodes,nexts,spot,here,SPEEDS}=A,place=A.place||(()=>{});
     // Exact timings a clinician set in the accessible app (minimal-access.v1:exact),
     // each held to its range; where one is missing or out of range the game's
     // own choice stands. Read live, so a change takes effect at once.
-    const RANGE={holdMs:[300,5000],scanMs:[400,4000],pressMs:[0,2000],releaseMs:[0,3000],longMs:[0,4000],rest:[0,20]};
+    const RANGE={holdMs:[300,5000],scanMs:[400,10000],pressMs:[0,2000],releaseMs:[0,3000],longMs:[0,4000],rest:[0,20]};
     const exact=k=>{let e=null;try{e=A.exact&&A.exact();}catch(_){}const v=e&&e[k],r=RANGE[k];return typeof v==='number'&&Number.isFinite(v)&&v>=r[0]&&v<=r[1]?v:null;};
     const T={get hold(){return exact('holdMs')??prefs.hold;},get scan(){return exact('scanMs')??(SPEEDS[prefs.speed]||1100);},get press(){return exact('pressMs')??prefs.press;},
       get release(){return exact('releaseMs')??prefs.release;},get long(){return exact('longMs')??prefs.long;},get rest(){return exact('rest')??prefs.rest;}};
@@ -324,7 +451,7 @@ body[data-control-frame] .access-zoom .access-key[data-from] {outline:3px solid 
       undo:'<path d="M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12"/>',hint:'<path d="M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z"/>',next:'<path d="M5 12h14M13 6l6 6-6 6"/>',
       diamond:'<path d="M12 4l8 8-8 8-8-8Z"/>',mark:'<path d="M7 7l10 10M17 7 7 17"/>',size1:'<circle cx="12" cy="12" r="3"/>',size2:'<circle cx="12" cy="12" r="5.5"/>',size3:'<circle cx="12" cy="12" r="8.5"/>',
       camera:'<path d="M3 8h4l2-3h6l2 3h4v11H3ZM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/>',point:'<path d="M12 3v6M12 15v6M3 12h6M15 12h6"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>',
-      drag:'<circle cx="6" cy="18" r="2" fill="currentColor" stroke="none"/><path d="M8 16 19 5M12 5h7v7"/>',rest:'<path d="M9 6v12M15 6v12"/>',lift:'<path d="M12 15V5M8 9l4-4 4 4M6 19h12"/>',ring:'<path d="M18.5 9A7 7 0 1 0 19 12"/><path d="M15.5 8.5h3.2V5.3"/>',ringback:'<path d="M5.5 9A7 7 0 1 1 5 12"/><path d="M8.5 8.5H5.3V5.3"/>'};
+      drag:'<circle cx="6" cy="18" r="2" fill="currentColor" stroke="none"/><path d="M8 16 19 5M12 5h7v7"/>',rest:'<path d="M9 6v12M15 6v12"/>',calibrate:'<circle cx="12" cy="12" r="3"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>',camoff:'<path d="M3 8h4l2-3h6l2 3h4v11H3ZM4 4l16 16"/>',lift:'<path d="M12 15V5M8 9l4-4 4 4M6 19h12"/>',ring:'<path d="M18.5 9A7 7 0 1 0 19 12"/><path d="M15.5 8.5h3.2V5.3"/>',ringback:'<path d="M5.5 9A7 7 0 1 1 5 12"/><path d="M8.5 8.5H5.3V5.3"/>'};
     // The pad holds the game's own keys, from games.json: a name with its usual
     // key, or the name with the game's own key. Undo, Hint and Next are never
     // repeated on it: the toolbar's own Undo and Hint and the game's Next stay
@@ -346,6 +473,12 @@ body[data-control-frame] .access-zoom .access-key[data-from] {outline:3px solid 
     const camKey={id:'camera',camera:true};camKey.node=node('camera','camera');
     // Looking needs somewhere to rest: a pause key, the only one that still fills while resting.
     const restKey={id:'rest',rest:true,lookOnly:true};restKey.node=node('rest','rest');keys.push(restKey);order.push(restKey);
+    // Resting with the camera or eye tracker on, two more keys appear beside
+    // it, so a player who plays only by looking can calibrate again or turn
+    // the camera off without reaching Settings.
+    const recalKey={id:'recalibrate',icon:'calibrate',lookOnly:true,restMenu:true};recalKey.node=node('recalibrate','calibrate');
+    const offKey={id:'camera-off',icon:'camoff',lookOnly:true,restMenu:true};offKey.node=node('camera-off','camoff');
+    keys.push(recalKey,offKey);order.push(recalKey,offKey);
     // Inside the accessible app (?in=accessible, or a frame of the same origin) the
     // scan and the look reach Home too; choosing it tells the app.
     const inApp=(()=>{try{if(new URLSearchParams(location.search).get('in')==='accessible')return true;return window.parent!==window&&window.parent.location.origin===location.origin;}catch(_){return false;}})();
@@ -354,6 +487,8 @@ body[data-control-frame] .access-zoom .access-key[data-from] {outline:3px solid 
     const layer=document.createElementNS(NS,'svg');layer.setAttribute('class','access-layer');layer.setAttribute('aria-hidden','true');layer.setAttribute('focusable','false');layer.style.display='none';
     const status=document.createElement('p');status.className='access-status';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
     const liveDot=document.createElement('span');liveDot.className='access-live';liveDot.hidden=true;liveDot.setAttribute('role','img');liveDot.setAttribute('aria-label','Camera on');
+    // Its name says whether a face is seen, as its fill shows it.
+    const setFace=v=>{if(liveDot.dataset.face!==v){liveDot.dataset.face=v;liveDot.setAttribute('aria-label',v==='seen'?'Camera on, face seen':'Camera on, no face seen');}};
     const probe=document.createElement('div');probe.className='access-probe';probe.setAttribute('aria-hidden','true');
     body.append(pad,layer,status,liveDot,probe);
     const say=text=>{status.textContent=text;};
@@ -446,7 +581,7 @@ body[data-control-frame] .access-zoom .access-key[data-from] {outline:3px solid 
       const e=mode==='switch'&&!point&&!asleep?current():null,lit=new Set(e?e.group||[e.key]:[]),group=!!(e&&e.group);
       // Only what changed is written, so a steady pad causes no work for the page.
       const put=(n,name,v)=>{if(v===null){if(n.hasAttribute(name))n.removeAttribute(name);}else if(n.getAttribute(name)!==v)n.setAttribute(name,v);};
-      for(const k of keys)if(k.node){put(k.node,'data-off',String(!live(k)||(resting&&!k.rest)));put(k.node,'data-scan',lit.has(k)?'':null);put(k.node,'data-scan-group',group&&lit.has(k)?'':null);}
+      for(const k of keys)if(k.node){put(k.node,'data-off',String(!live(k)||(resting&&!k.rest&&!k.restMenu)));put(k.node,'data-scan',lit.has(k)?'':null);put(k.node,'data-scan-group',group&&lit.has(k)?'':null);}
       for(const k of bar){const on=lit.has(k)&&live(k);put(k.el,'data-access-scan',on&&!group?'':null);put(k.el,'data-access-scan-group',on&&group?'':null);}
       put(body,'data-access-highlight',mode==='off'?null:prefs.highlight);
       put(restKey.node,'data-on',resting?'':null);
@@ -661,7 +796,7 @@ body[data-control-frame] .access-zoom .access-key[data-from] {outline:3px solid 
         }
         return best;
       }
-      const pads=keys.filter(k=>k.node&&(look?!k.point:!k.lookOnly)),arrows=['up','right','down','left'].map(id=>pads.find(k=>k.id===id));
+      const pads=keys.filter(k=>k.node&&(look?!k.point&&(!k.restMenu||resting&&phase==='camera'):!k.lookOnly)),arrows=['up','right','down','left'].map(id=>pads.find(k=>k.id===id));
       const dpad=arrows.every(Boolean)?arrows:null,sel=dpad&&pads.find(k=>k.id==='select');
       const acts=prompt?[camKey]:pads.filter(k=>!(dpad&&(dpad.includes(k)||k===sel)));
       const tools=[...document.querySelectorAll('.control-toolbar button')].filter(b=>b.offsetParent!==null).map(b=>b.getBoundingClientRect());
@@ -730,7 +865,7 @@ body[data-control-frame] .access-zoom .access-key[data-from] {outline:3px solid 
     function targetAt(x,y){
       if(!inSafe(x,y)||dialogOpen())return null;
       if(zoom){for(const t of zoom.targets)if((t.zoomClose||live(t.k))&&Math.hypot(x-t.cx,y-t.cy)<=t.r)return t;return null;}
-      for(const t of targets)if(live(t.k)&&(!resting||t.k.rest)&&Math.hypot(x-t.cx,y-t.cy)<=t.r)return t;
+      for(const t of targets)if(live(t.k)&&(!resting||t.k.rest||t.k.restMenu)&&Math.hypot(x-t.cx,y-t.cy)<=t.r)return t;
       if(resting)return null;
       if(phase!=='prompt')for(const t of barTargets)if(live(t.k)){const c=circleOf(t);if(c.r&&Math.hypot(x-c.cx,y-c.cy)<=c.r)return t;}
       if(boardKey&&phase!=='prompt'){const b=drawn();if(b&&x>=b.left&&x<=b.right&&y>=b.top&&y<=b.bottom&&!outside(document.elementFromPoint(x,y)))return boardAt(x,y);}
@@ -746,7 +881,7 @@ body[data-control-frame] .access-zoom .access-key[data-from] {outline:3px solid 
       const t={id:'board:'+(++boardSeq),k:boardKey,board:true,cx:x,cy:y,r:Math.max(20,Math.round((plan?plan.s:48)*.4))};
       boardSpots.push(t);if(boardSpots.length>8)boardSpots.shift();return t;
     }
-    function holds(t,x,y){if(!inSafe(x,y)||dialogOpen()||(zoom?!zoom.targets.includes(t):false)||(!t.zoomClose&&!live(t.k))||(resting&&!t.k.rest)||(t.k.camera&&phase!=='prompt'))return false;const c=circleOf(t);return Math.hypot(x-c.cx,y-c.cy)<=c.r+dead();}
+    function holds(t,x,y){if(!inSafe(x,y)||dialogOpen()||(zoom?!zoom.targets.includes(t):false)||(!t.zoomClose&&!live(t.k))||(resting&&!t.k.rest&&!t.k.restMenu)||(t.k.camera&&phase!=='prompt'))return false;const c=circleOf(t);return Math.hypot(x-c.cx,y-c.cy)<=c.r+dead();}
     const dwell=lookAndHold({time:T.hold,targets:targetAt,holds});
     const pointerDwell=()=>mode==='look'&&(phase==='pointer'||phase==='prompt');
     function feed(t,x,y){
@@ -760,7 +895,8 @@ body[data-control-frame] .access-zoom .access-key[data-from] {outline:3px solid 
       for(const f of fired){
         if(f.k.camera)startCamera(false);
         else if(f.zoomClose)closeZoom();
-        else if(f.k.rest){closeZoom();resting=!resting;flash(f.k);paint();say(resting?'Resting. Look at the pause key to go on.':'Looking again.');}
+        else if(f.k.rest){closeZoom();resting=!resting;flash(f.k);layout();say(resting?(phase==='camera'?'Resting. Look at the pause key to go on, the target key to calibrate, or the crossed camera to turn it off.':'Resting. Look at the pause key to go on.'):'Looking again.');}
+        else if(f.k.restMenu){resting=false;flash(f.k);if(f.k===recalKey){layout();beginCalibration(prefs.look!=='tracker');}else{stopCamera();prefs.look='pointer';save();paintRows();setPhase('pointer');say('Camera off. Look and hold by pointer; Look with in Settings turns it on again.');}}
         else if(f.board){sent++;lastSent='board';post('choice',{key:'board'});tap({x:f.cx,y:f.cy});}
         else if(!zoom&&!f.k.el&&plan&&plan.s<ZOOM)openZoom(f.k);
         else{closeZoom();flash(f.k);send(f.k);}
@@ -805,44 +941,19 @@ body[data-control-frame] .access-zoom .access-key[data-from] {outline:3px solid 
       if(pointerDwell()&&!document.hidden&&!synthetic)feed(now,pointer.present?pointer.x:null,pointer.present?pointer.y:null);
       draw();if((pointerDwell()&&pointer.present)||dwell.rings().length)wake();
     }
-    // The camera, as in Glance's track.js: frames go from a hidden video
-    // straight into the Face Landmarker, read on the page's frame clock.
+    // The camera: the shared one (tools/input/track.js, shipped ahead of this
+    // file), reading a hidden video kept on the page. MediaPipe comes from a
+    // copy beside the game or from Glance's folder on the same site; a site
+    // with neither is told so by name.
     const webcam=(()=>{
-      const base=new URL('../glance/vendor/',here).href;let video=null,landmarker=null,loading=null,stream=null,running=false,handle=0,last=-1,seen=-1,generation=0;
-      const api={onResult:null,onLost:null};let fails=0,moved=0;
-      // A camera that ends, a detector that keeps failing, or frames that stop: let go and say so (as in glance/track.js).
-      const lose=reason=>{if(!running&&!stream)return;generation++;running=false;release();fails=0;moved=0;showLive(virtual);api.onLost&&api.onLost(reason);};
-      function load(){
-        if(!loading)loading=(async()=>{
-          const vision=await import(base+'vision_bundle.mjs'),files={wasmLoaderPath:base+'vision_wasm_internal.js',wasmBinaryPath:base+'vision_wasm_internal.wasm'};
-          const options=d=>({baseOptions:{modelAssetPath:base+'face_landmarker.task',delegate:d},runningMode:'VIDEO',numFaces:1,outputFacialTransformationMatrixes:true,outputFaceBlendshapes:false});
-          try{landmarker=await vision.FaceLandmarker.createFromOptions(files,options('GPU'));}catch(_){landmarker=await vision.FaceLandmarker.createFromOptions(files,options('CPU'));}
-          return landmarker;
-        })().catch(e=>{loading=null;throw e;});
-        return loading;
-      }
-      function release(){if(handle){cancelAnimationFrame(handle);handle=0;}if(stream)for(const t of stream.getTracks())t.stop();stream=null;if(video){video.srcObject=null;video.remove();video=null;}seen=-1;}
-      function tickCam(){
-        handle=0;if(!running)return;const now=performance.now();
-        if(video&&video.readyState>=2&&now-last>=30&&video.currentTime!==seen){last=now;seen=video.currentTime;let r=null;try{r=landmarker.detectForVideo(video,now);fails=0;}catch(_){r=null;fails++;}if(fails>=30){lose('detector');return;}if(r&&api.onResult)api.onResult(r,now);moved=now;}
-        else if(video&&video.readyState>=2&&moved&&now-moved>5000){lose('stalled');return;}
-        if(running)handle=requestAnimationFrame(tickCam);
-      }
-      api.start=async()=>{
-        if(running||stream)return;const mine=++generation;
-        if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw Error('No camera');
-        const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480},frameRate:{ideal:30}},audio:false});
-        if(mine!==generation){for(const t of s.getTracks())t.stop();throw Error('Stopped');}
-        video=document.createElement('video');video.className='access-video';video.muted=true;video.playsInline=true;video.setAttribute('playsinline','');video.setAttribute('aria-hidden','true');body.append(video);
-        stream=s;video.srcObject=s;showLive(true);for(const t of s.getVideoTracks())t.addEventListener('ended',()=>{if(stream===s)lose('ended');});
-        try{await video.play();await load();}catch(e){if(mine===generation){release();showLive(virtual);}throw e;}
-        if(mine!==generation)throw Error('Stopped');
-        running=true;last=-1;fails=0;moved=performance.now();handle=requestAnimationFrame(tickCam);
-      };
-      api.stop=()=>{generation++;running=false;release();showLive(virtual);};
-      api.aspect=()=>video&&video.videoWidth&&video.videoHeight?video.videoWidth/video.videoHeight:4/3;
-      api.status=()=>({running,live:stream?stream.getVideoTracks().filter(t=>t.readyState==='live').length:0,loaded:!!landmarker});
-      Object.defineProperty(api,'running',{get:()=>running});api.base=base;
+      const video=document.createElement('video');video.className='access-video';video.muted=true;video.playsInline=true;video.setAttribute('playsinline','');video.setAttribute('aria-hidden','true');
+      const cam=CameraTrack.create({video,bases:CameraTrack.BASES.map(b=>new URL(b,here).href)});
+      const api={onResult:null,onLost:null};
+      cam.onResult=(r,t)=>api.onResult&&api.onResult(r,t);
+      cam.onStream=on=>{if(on&&!video.isConnected)body.append(video);showLive(on||virtual);};
+      cam.onLost=reason=>api.onLost&&api.onLost(reason);
+      api.start=()=>cam.start();api.stop=()=>cam.stop();api.aspect=()=>cam.aspect();api.status=()=>cam.status();
+      Object.defineProperty(api,'running',{get:()=>cam.running});
       return api;
     })();
     // An eye tracker, through the gaze bridge on this computer: its client
@@ -887,19 +998,19 @@ body[data-control-frame] .access-zoom .access-key[data-from] {outline:3px solid 
     let [tx,ty]=pixelFilters();
     function processTracker(t,p){
       if(phase!=='camera'&&phase!=='calibrating')return;
-      liveDot.dataset.face=p?'seen':'none';
+      setFace(p?'seen':'none');
       if(phase==='calibrating'){calibrate(t,p&&{x:p.x,y:p.y});return;}
       if(!p){feed(t,null,null);return;}
       const c=calibration.tracker||{dx:0,dy:0};
       feed(t,clamp(tx.filter(p.x+c.dx,t),0,innerWidth),clamp(ty.filter(p.y+c.dy,t),0,innerHeight));
     }
-    function showLive(on){liveDot.hidden=!on;if(!on)liveDot.dataset.face='none';}
-    function setPhase(next){phase=next;body.dataset.accessPhase=next;gaze=null;if(next!=='camera'&&next!=='calibrating')liveDot.dataset.face='none';layout();settle();draw();wake();}
+    function showLive(on){liveDot.hidden=!on;if(!on)setFace('none');}
+    function setPhase(next){phase=next;body.dataset.accessPhase=next;gaze=null;if(next!=='camera'&&next!=='calibrating')setFace('none');layout();settle();draw();wake();}
     // Invert vertical is the player's, shared by every game on this site.
     const invertY=()=>{try{return localStorage.getItem('minimal-gaze.v1:invert-y')==='1';}catch(_){return false;}};
     function processFace(result,t){
       if(phase!=='camera'&&phase!=='calibrating')return;
-      const lm=result&&result.faceLandmarks&&result.faceLandmarks[0];liveDot.dataset.face=lm?'seen':'none';
+      const lm=result&&result.faceLandmarks&&result.faceLandmarks[0];setFace(lm?'seen':'none');
       if(!lm){if(phase==='calibrating')calibrate(t,null);else feed(t,null,null);return;}
       const k=virtual?4/3:camera.aspect(),look=calib?calib.look:prefs.look;
       const f=look==='eyes'?lookAngles(lm,k):headPose(lm,result.facialTransformationMatrixes&&result.facialTransformationMatrixes[0],k);
@@ -912,22 +1023,35 @@ body[data-control-frame] .access-zoom .access-key[data-from] {outline:3px solid 
     function toScreen(u,v){const b=band()||Math.max(14,Math.round(Math.min(innerWidth,innerHeight)*.04)),x0=b,x1=innerWidth-b,y0=b,y1=innerHeight-b;return {x:(x0+x1)/2+u*(x1-x0)/2,y:(y0+y1)/2+v*(y1-y0)/2};}
     // Calibration: one dot at a time; hold still on it and its ring fills.
     // The first time, the centre and four edges; after that the centre alone.
-    function beginCalibration(full){if(prefs.look==='tracker')full=false;calib={full,look:prefs.look,spots:full?[0,1,2,3,4]:[0],step:0,win:[],captured:[],progress:0,last:null};setPhase('calibrating');say(full?'Look at each dot in turn and hold still.':'Look at the dot and hold still.');}
+    // `base`, when given, is a typical calibration recentred on one dot, after two five-dot calibrations that did not take.
+    function beginCalibration(full,base){if(prefs.look==='tracker'||base)full=false;calib={full,base:base||null,look:prefs.look,spots:full?[0,1,2,3,4]:[0],step:0,win:[],captured:[],progress:0,last:null,dotAt:null};setPhase('calibrating');say(base?'Calibration did not take. One dot instead: look at it and hold still.':full?'Look at each dot in turn and hold still.':'Look at the dot and hold still.');}
     function calibrate(t,f){
       if(dialogOpen()){calib.last=t;wake();return;}
       const dt=calib.last===null?0:clamp(t-calib.last,0,120),head=calib.look==='head',px=calib.look==='tracker',ks=px?['x','y']:head?['yaw','pitch']:['ax','ay'],tol=px?Math.max(12,Math.min(innerWidth,innerHeight)*.03):head?.02:.06,travel=head?.035:.06;calib.last=t;
+      // A dot not taken in 20 s counts as a calibration that did not take.
+      if(calib.dotAt===null)calib.dotAt=t;else if(t-calib.dotAt>20000){calibrationFailed();return;}
       if(f){calib.win.push({t,...f});while(t-calib.win[0].t>400)calib.win.shift();}else calib.win=[];
       const s=stillness(calib.win,ks,tol),span=calib.win.length?t-calib.win[0].t:0,spot=calib.spots[calib.step],axis=ks[[0,0,0,1,1][spot]],away=from=>Math.abs(s.mean[axis]-from[axis])>=travel,pair=spot===2?1:spot===4?3:-1,across=pair<0||!s.mean||Math.sign(s.mean[axis]-calib.captured[0][axis])!==Math.sign(calib.captured[pair][axis]-calib.captured[0][axis]);
       // Each edge dot needs the look moved its own way, and the right and bottom dots the other side of the centre from the left and top (as in glance.js).
       const moved=calib.step===0||(!!s.mean&&away(calib.captured[0])&&away(calib.captured[calib.captured.length-1])&&across);
       calib.progress=f&&s.still&&span>=250&&moved?calib.progress+dt/900:Math.max(0,calib.progress-dt/400);
-      if(calib.progress>=1){calib.captured.push(s.mean);calib.step++;calib.win=[];calib.progress=0;calib.last=null;if(calib.step>=calib.spots.length)finishCalibration();else say('Dot '+(calib.step+1)+' of '+calib.spots.length+'.');}
+      if(calib.progress>=1){calib.captured.push(s.mean);calib.step++;calib.win=[];calib.progress=0;calib.last=null;calib.dotAt=null;if(calib.step>=calib.spots.length)finishCalibration();else say('Dot '+(calib.step+1)+' of '+calib.spots.length+'.');}
       wake();
     }
     let calFails=0;
+    // Twice in a row is enough: a player who cannot hold the five dots is
+    // offered one dot on a typical reach, and one who cannot hold that (or an
+    // eye tracker's one dot, twice) plays by pointer. Nobody is kept in
+    // calibration for ever.
+    function calibrationFailed(){
+      const look=calib.look;
+      if(calib.base||look==='tracker'&&calFails>=1){calFails=0;calib=null;stopCamera();setPhase('pointer');say('Calibration did not take. Look and hold by pointer; Calibrate tries again.');return;}
+      if(++calFails>=2&&look!=='tracker'){calFails=0;beginCalibration(false,current(calibration[look])?calibration[look]:typical(look));return;}
+      beginCalibration(look!=='tracker');say(look==='tracker'?'Again: look at the dot and hold still.':'Again: look at each dot and hold still.');
+    }
     function finishCalibration(){
-      const {look,full,captured}=calib,mid=toScreen(0,0),made=look==='tracker'?{kind:'tracker',dx:mid.x-captured[0].x,dy:mid.y-captured[0].y}:full?(look==='head'?headCalibration(captured):eyesCalibration(captured)):recentre(calibration[look],captured[0]);
-      if(!made){if(++calFails>=2){calFails=0;calib=null;stopCamera();setPhase('pointer');say('Calibration did not take. Look and hold by pointer; Calibrate tries again.');return;}beginCalibration(true);say('Again: look at each dot and hold still.');return;}calFails=0;
+      const {look,full,captured}=calib,mid=toScreen(0,0),made=look==='tracker'?{kind:'tracker',dx:mid.x-captured[0].x,dy:mid.y-captured[0].y}:calib.base?recentre(calib.base,captured[0]):full?(look==='head'?headCalibration(captured):eyesCalibration(captured)):recentre(calibration[look],captured[0]);
+      if(!made){calibrationFailed();return;}calFails=0;
       calibration[look]=made;calib=null;activeLook=look;try{localStorage.setItem(CAL,JSON.stringify(calibration));}catch(_){}
       [fu,fv]=filters();[tx,ty]=pixelFilters();setPhase('camera');say(look==='tracker'?'Eye tracker ready. Look at a key and hold.':'Camera ready. Look at a key and hold.');
     }
@@ -935,19 +1059,19 @@ body[data-control-frame] .access-zoom .access-key[data-from] {outline:3px solid 
       if(mode!=='look'||prefs.look==='pointer'||phase==='starting')return;
       if(virtual||camera.running){beginCalibration(full||!current(calibration[prefs.look]));return;}
       setPhase('starting');
-      try{await camera.start();}catch(_){if(phase==='starting')fallback();return;}
+      try{await camera.start();}catch(error){if(phase==='starting')fallback(error);return;}
       if(phase!=='starting'||mode!=='look'){camera.stop();return;}
       beginCalibration(full||!current(calibration[prefs.look]));
     }
     function stopCamera(){camera.stop();virtual=false;showLive(false);calib=null;resume=false;activeLook=null;}
     // No eye tracker yet: the choice stays Eye tracker, play goes on by pointer, and the bridge is looked for every few seconds (it may start later).
     let seek=0;
-    function fallback(){
+    function fallback(error){
       if(prefs.look==='tracker'){stopCamera();setPhase('pointer');const msg='No eye tracker found yet: start the gaze bridge. Look and hold by pointer until it comes.';if(status.textContent!==msg)say(msg);clearTimeout(seek);
         const again=()=>{seek=0;if(mode!=='look'||prefs.look!=='tracker'||phase!=='pointer'||document.hidden){if(mode==='look'&&prefs.look==='tracker'&&phase==='pointer')seek=setTimeout(again,5000);return;}startCamera(false);};seek=setTimeout(again,5000);return;}
-      stopCamera();prefs.look='pointer';save();paintRows();setPhase('pointer');say('Camera unavailable. Look and hold by pointer.');
-      // Head and Eyes load MediaPipe from Glance's folder on this site; a site without it (playnotan.com) is told so, not left guessing.
-      fetch(webcam.base+'vision_bundle.mjs',{method:'HEAD'}).then(r=>{if(!r.ok)say('This site does not have the camera files Head and Eyes need. Look and hold by pointer.');},()=>{});}
+      stopCamera();prefs.look='pointer';save();paintRows();setPhase('pointer');
+      // A site without MediaPipe (playnotan.com has no Glance folder) is told so, not left guessing.
+      say(error&&error.code==='vendor-missing'?'This site does not have the camera files Head and Eyes need. Look and hold by pointer.':'Camera unavailable. Look and hold by pointer.');}
     addEventListener('keydown',e=>{if(e.key==='Escape'&&mode==='look'&&(phase==='starting'||phase==='calibrating')&&!dialogOpen()){stopCamera();prefs.look='pointer';save();paintRows();setPhase('pointer');}});
     document.addEventListener('visibilitychange',()=>{
       if(document.hidden){pointer.present=false;held.clear();swallowed.clear();dropHold();if(camera.running||phase==='starting'){resume=true;camera.stop();if(phase==='starting')setPhase('prompt');}}

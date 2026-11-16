@@ -2,7 +2,7 @@
  * File Purpose: Minimal hexasphere geometry (Goldberg dual of subdivided icosahedron).
  * Primary Functions/Classes: generateHexasphere, floodClosure, vec3 helpers.
  * Inputs: radius, subdivisions (0–12+). Outputs: { tiles, radius, subdivisions }.
- * Notes: Plain-object Vec3 — no Three.js. Ported from Rind hexasphere.ts (Rob Scanlon lineage).
+ * Notes: Plain-object Vec3 — no Three.js.
  * Author: Luke Steuber <luke@lukesteuber.com>
  */
 (function (global) {

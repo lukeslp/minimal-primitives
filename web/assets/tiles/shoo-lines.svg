@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" width="1200" height="1200">
+  <rect width="1200" height="1200" fill="#000"/>
+  <defs><pattern id="h" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="14" stroke="#fff" stroke-width="3"/></pattern></defs>
+  <g fill="none" stroke="#fff" stroke-linejoin="round" stroke-linecap="round">
+    <polygon points="445.8,244.0 522.9,288.5 522.9,377.5 445.8,422.0 368.8,377.5 368.8,288.5" stroke-width="3"/>
+    <polygon points="600.0,244.0 677.1,288.5 677.1,377.5 600.0,422.0 522.9,377.5 522.9,288.5" stroke-width="3"/>
+    <polygon points="754.2,244.0 831.2,288.5 831.2,377.5 754.2,422.0 677.1,377.5 677.1,288.5" stroke-width="3"/>
+    <polygon points="368.8,377.5 445.8,422.0 445.8,511.0 368.8,555.5 291.7,511.0 291.7,422.0" stroke-width="3"/>
+    <polygon points="522.9,377.5 600.0,422.0 600.0,511.0 522.9,555.5 445.8,511.0 445.8,422.0" stroke-width="3"/>
+    <polygon points="677.1,377.5 754.2,422.0 754.2,511.0 677.1,555.5 600.0,511.0 600.0,422.0" stroke-width="3"/>
+    <polygon points="831.2,377.5 908.3,422.0 908.3,511.0 831.2,555.5 754.2,511.0 754.2,422.0" stroke-width="3"/>
+    <polygon points="291.7,511.0 368.8,555.5 368.8,644.5 291.7,689.0 214.6,644.5 214.6,555.5" stroke-width="3"/>
+    <polygon points="445.8,511.0 522.9,555.5 522.9,644.5 445.8,689.0 368.8,644.5 368.8,555.5" stroke-width="3"/>
+    <polygon points="600.0,511.0 677.1,555.5 677.1,644.5 600.0,689.0 522.9,644.5 522.9,555.5" stroke-width="3"/>
+    <polygon points="754.2,511.0 831.2,555.5 831.2,644.5 754.2,689.0 677.1,644.5 677.1,555.5" stroke-width="3"/>
+    <polygon points="908.3,511.0 985.4,555.5 985.4,644.5 908.3,689.0 831.2,644.5 831.2,555.5" stroke-width="3"/>
+    <polygon points="368.8,644.5 445.8,689.0 445.8,778.0 368.8,822.5 291.7,778.0 291.7,689.0" stroke-width="3"/>
+    <polygon points="522.9,644.5 600.0,689.0 600.0,778.0 522.9,822.5 445.8,778.0 445.8,689.0" stroke-width="3"/>
+    <polygon points="677.1,644.5 754.2,689.0 754.2,778.0 677.1,822.5 600.0,778.0 600.0,689.0" stroke-width="3"/>
+    <polygon points="831.2,644.5 908.3,689.0 908.3,778.0 831.2,822.5 754.2,778.0 754.2,689.0" stroke-width="3"/>
+    <polygon points="445.8,778.0 522.9,822.5 522.9,911.5 445.8,956.0 368.8,911.5 368.8,822.5" stroke-width="3"/>
+    <polygon points="600.0,778.0 677.1,822.5 677.1,911.5 600.0,956.0 522.9,911.5 522.9,822.5" stroke-width="3"/>
+    <polygon points="754.2,778.0 831.2,822.5 831.2,911.5 754.2,956.0 677.1,911.5 677.1,822.5" stroke-width="3"/>
+    <polygon points="368.8,389.5 435.5,428.0 435.5,505.0 368.8,543.5 302.1,505.0 302.1,428.0" fill="#fff" stroke="none"/>
+    <circle cx="368.77121718955493" cy="452.5" r="9" fill="#000" stroke="none"/>
+    <path d="M353.77121718955493 510.5 v-14 a15 15 0 0 1 30 0 v14 z" fill="#000" stroke="none"/>
+    <g transform="translate(522.9 466.5) rotate(40)"><ellipse cx="0" cy="8" rx="20" ry="28" fill="#fff" stroke="none"/><line x1="-20" y1="2" x2="20" y2="2" stroke="#000" stroke-width="6"/><line x1="-19" y1="18" x2="19" y2="18" stroke="#000" stroke-width="6"/><circle cx="0" cy="-30" r="11" fill="#fff" stroke="none"/></g>
+    <g transform="translate(600.0 600.0) rotate(205)"><ellipse cx="0" cy="8" rx="20" ry="28" fill="#fff" stroke="none"/><line x1="-20" y1="2" x2="20" y2="2" stroke="#000" stroke-width="6"/><line x1="-19" y1="18" x2="19" y2="18" stroke="#000" stroke-width="6"/><circle cx="0" cy="-30" r="11" fill="#fff" stroke="none"/></g>
+    <g transform="translate(522.9 733.5) rotate(90)"><ellipse cx="0" cy="8" rx="20" ry="28" fill="#fff" stroke="none"/><line x1="-20" y1="2" x2="20" y2="2" stroke="#000" stroke-width="6"/><line x1="-19" y1="18" x2="19" y2="18" stroke="#000" stroke-width="6"/><circle cx="0" cy="-30" r="11" fill="#fff" stroke="none"/></g>
+    <g transform="translate(677.1 733.5) rotate(160)"><ellipse cx="0" cy="8" rx="20" ry="28" fill="#fff" stroke="none"/><line x1="-20" y1="2" x2="20" y2="2" stroke="#000" stroke-width="6"/><line x1="-19" y1="18" x2="19" y2="18" stroke="#000" stroke-width="6"/><circle cx="0" cy="-30" r="11" fill="#fff" stroke="none"/></g>
+    <circle cx="677.1" cy="449.5" r="12" stroke-width="3"/>
+    <circle cx="693.2" cy="461.2" r="12" stroke-width="3"/>
+    <circle cx="687.1" cy="480.3" r="12" stroke-width="3"/>
+    <circle cx="667.1" cy="480.3" r="12" stroke-width="3"/>
+    <circle cx="660.9" cy="461.2" r="12" stroke-width="3"/>
+    <circle cx="754.2" cy="583.0" r="12" stroke-width="3"/>
+    <circle cx="770.3" cy="594.7" r="12" stroke-width="3"/>
+    <circle cx="764.1" cy="613.8" r="12" stroke-width="3"/>
+    <circle cx="744.2" cy="613.8" r="12" stroke-width="3"/>
+    <circle cx="738.0" cy="594.7" r="12" stroke-width="3"/>
+    <polyline points="522.9,555.5 522.9,644.5 600.0,689.0 677.1,644.5" stroke-width="6"/>
+  </g>
+</svg>

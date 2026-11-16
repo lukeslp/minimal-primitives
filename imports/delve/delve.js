@@ -176,7 +176,8 @@
     ctx.lineWidth = thin;
     for (const e of f.enemies) {
       if (!run.view[e.y * f.w + e.x]) continue;
-      ctx.globalAlpha = e.state === 'rest' ? 0.4 : 1;
+      // Dim at rest: half ink, 3:1 on the floor gray, against 6.7:1 awake.
+      ctx.globalAlpha = e.state === 'rest' ? 0.5 : 1;
       icon(e.kind, e.x, e.y, col.ink, 0, col.floor);
       ctx.globalAlpha = 1;
       // The hits it can still take, as pips along the foot of its square.

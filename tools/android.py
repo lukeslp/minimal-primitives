@@ -43,7 +43,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 ANDROID = ROOT / 'android'
 OUTPUT = ROOT / 'build' / 'android'
-ICON_ART = ROOT / 'web' / 'assets' / 'hexsweeper-sphere.png'
+ICON_ART = ROOT / 'web' / 'assets' / 'tiles' / 'sphere.png'
 ICON_DENSITIES = {'mdpi': 1, 'hdpi': 1.5, 'xhdpi': 2, 'xxhdpi': 3, 'xxxhdpi': 4}
 ICON_SPHERE_DP = 60  # inside the 66dp adaptive-icon safe zone of a 108dp layer
 # Gradle 8.14 runs on JDK 17 to 24; the Android Gradle Plugin needs 17 or newer.

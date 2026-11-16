@@ -240,6 +240,15 @@
     "inhibition and pacing"
    ]
   },
+  "cube-maze": {
+   "primitives": [
+    "tilt",
+    "turn"
+   ],
+   "exercises": [
+    "directional control"
+   ]
+  },
   "glance": {
    "primitives": [
     "flip",

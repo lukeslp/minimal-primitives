@@ -4,7 +4,7 @@
  *   (red while armed) on the left, Help on the right. Everything else —
  *   theme, board size, warning style, drag inversion, effects — lives in the
  *   Help sheet, which sphere/index.html turns into a settings sheet.
- * Primary Functions/Classes: initQuietChrome(game)
+ * Primary Functions/Classes: initQuietChrome(game), shared dialog focus isolation
  * Inputs: the SphereSweeper game API. Outputs: DOM chrome, live region.
  * A11y: 48px targets, aria-pressed on Flag, polite announcements, keyboard
  *   focusable, honours prefers-reduced-motion via CSS.
@@ -186,4 +186,75 @@
   }
 
   global.initQuietChrome = initQuietChrome;
+})(typeof window !== "undefined" ? window : globalThis);
+
+/*
+ * File Purpose: Keep keyboard and assistive focus inside Sphere's existing dialogs.
+ * Primary Components: Dynamic Tab boundary, background isolation, nested-dialog cleanup.
+ * Inputs/Outputs: Existing dialog and focus targets in; reversible DOM state out.
+ * Copyright (c) 2026 Luke Steuber. MIT; see ../LICENSE.
+ */
+(function (global) {
+  "use strict";
+
+  function open(overlay, options) {
+    options = options || {};
+    const document = overlay.ownerDocument;
+    const saved = new Map();
+    overlay.inert = false;
+    overlay.removeAttribute("aria-hidden");
+    const initial = options.initialFocus || overlay;
+    initial.focus();
+    function isolate() {
+      for (const node of document.body.children) {
+        if (node === overlay || node.contains(overlay) || /^(SCRIPT|STYLE|LINK)$/.test(node.tagName)) continue;
+        if (!saved.has(node)) saved.set(node, { inert: node.inert, aria: node.getAttribute("aria-hidden") });
+        node.inert = true;
+        node.setAttribute("aria-hidden", "true");
+      }
+    }
+    isolate();
+    // Include background elements inserted while a dialog is open.
+    const observer = new global.MutationObserver(isolate);
+    observer.observe(document.body, { childList: true });
+    function onKey(event) {
+      if (options.blockBackgroundShortcuts) event.stopPropagation();
+      if (event.key === "Escape" && options.onEscape) {
+        event.preventDefault();
+        event.stopPropagation();
+        options.onEscape();
+      }
+      if (event.key !== "Tab") return;
+      const nodes = [...overlay.querySelectorAll(
+        'button, a[href], input, select, textarea, summary, [tabindex]'
+      )].filter(node => !node.disabled && node.tabIndex >= 0
+        && !node.closest("[hidden], [inert]") && node.getClientRects().length);
+      if (!nodes.length) { event.preventDefault(); initial.focus(); return; }
+      const index = nodes.indexOf(document.activeElement);
+      if (event.shiftKey ? index <= 0 : index < 0 || index === nodes.length - 1) {
+        event.preventDefault();
+        nodes[event.shiftKey ? nodes.length - 1 : 0].focus();
+      }
+    }
+    overlay.addEventListener("keydown", onKey);
+    let closed = false;
+    return () => {
+      if (closed) return;
+      closed = true;
+      observer.disconnect();
+      overlay.removeEventListener("keydown", onKey);
+      // Hide the closing fade from focus/AT immediately; its visual transition stays.
+      overlay.inert = true;
+      overlay.setAttribute("aria-hidden", "true");
+      for (const [node, prior] of saved) {
+        node.inert = prior.inert;
+        if (prior.aria == null) node.removeAttribute("aria-hidden");
+        else node.setAttribute("aria-hidden", prior.aria);
+      }
+      const target = typeof options.returnFocus === "function" ? options.returnFocus() : options.returnFocus;
+      if (target && target.isConnected && !target.disabled && target.getClientRects().length) target.focus();
+    };
+  }
+
+  global.SphereDialogFocus = { open };
 })(typeof window !== "undefined" ? window : globalThis);
