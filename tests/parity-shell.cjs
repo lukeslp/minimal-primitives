@@ -142,7 +142,7 @@ for(const [size,viewport] of Object.entries({phone:{width:390,height:844},tablet
   const index=JSON.parse(fs.readFileSync(path.join(h.ROOT,'index.json'))),tiles=index.tiles.filter(x=>!x.notBundled);
   const drawn=Object.fromEntries(tiles.map(x=>[x.name,x.lines?x.lines.file.split('/').pop():x.svg?'svg':x.art.file.split('/').pop()]));
   const art=Object.fromEntries(tiles.map(x=>[x.name,x.svg?'svg':x.art.file.split('/').pop()]));
-  assert.deepEqual(tiles.filter(x=>!x.lines&&!x.svg).map(x=>x.name),['Hexsweeper','Spiral Galaxies'],'only these keep their pictures in Dark and Light');
+  assert.deepEqual(tiles.filter(x=>!x.lines&&!x.svg).map(x=>x.name),['Hexsweeper','Spiral Galaxies','Tangles'],'only these keep their pictures in Dark and Light');
   const ctx=await h.context(await getBrowser(),viewport);t.after(()=>ctx.close());
   let page=await library(ctx);
   const choose=async theme=>{await page.locator('#gear').click();await page.locator('#set-look').selectOption(theme);await page.locator('#settings .sheet-x').click();};
@@ -279,6 +279,37 @@ test('a scripted open (the app shells, the capture tools) ends the opening and g
   assert.equal((await intro(page)).shown,true);
   await page.locator('[data-open="cube-maze"]').evaluate(a=>a.click());
   await page.waitForSelector('#player iframe');assert.equal(await intro(page),null);
+  assert.deepEqual(ctx.parity.errors,[]);
+});
+// Signs of life: a tile takes its color when every board of its game is finished (the game's own record, read from its
+// namespace), and a still library gets a passing shine after ten seconds, then every twenty.
+const LIFE=JSON.parse(fs.readFileSync(path.join(h.ROOT,'index.json'))),done=n=>JSON.stringify({completed:Array.from({length:n},(_,i)=>'b'+i)});
+const seen={[OPENING_KEY]:'1'};
+test('a finished game colors its tile; one board short does not; reduced motion keeps the color',async t=>{
+  const sets=Object.fromEntries(LIFE.tiles.filter(x=>x.set).map(x=>[x.name,x]));
+  assert.deepEqual([sets.Slant.set,sets.Cast.set,sets.Horologist.set],[['slant',54],['cast-3d',50],['horologist-plate',50]],"the index's own table");
+  const ctx=await h.context(await getBrowser(),{width:390,height:844},{seed:{localStorage:{...seen,
+    'lukesteuber.minimal.slant:slant.progress.v1':done(54),'lukesteuber.minimal.tilt:tilt.progress.v1':done(39),
+    'lukesteuber.minimal.cast:cast-3d.v1':JSON.stringify({finished:Array.from({length:50},(_,i)=>i)}),'lukesteuber.minimal.towers:slant.progress.v1':done(99)}}});t.after(()=>ctx.close());
+  const page=await library(ctx);
+  assert.deepEqual(await page.locator('#tiles .tile.won').evaluateAll(n=>n.map(e=>e.dataset.game)),['slant','cast'],'only whole sets, each from its own game\'s record');
+  const slant=await page.locator('#tiles .tile.won').first().evaluate(e=>({win:e.style.getPropertyValue('--win'),ground:getComputedStyle(e.querySelector('.art')).backgroundColor,blend:getComputedStyle(e.querySelector('.art img')).mixBlendMode,dark:e.classList.contains('on-dark')}));
+  assert.deepEqual(slant,{win:LIFE.life.onDark[0],ground:'rgb(23, 104, 255)',blend:'multiply',dark:true});
+  assert.equal(await page.locator('#tiles .tile.glint').count(),0);assert.deepEqual(ctx.parity.errors,[]);
+});
+test('a still library shines once after ten seconds and again every twenty; input, a sheet or reduced motion holds it',async t=>{
+  const ctx=await h.context(await getBrowser(),{width:390,height:844},{scheme:'dark',motion:'no-preference',seed:{localStorage:seen}});t.after(()=>ctx.close());
+  const page=await library(ctx,{clock:true});const glint=()=>page.locator('#tiles .tile.glint').count();
+  assert.equal(await intro(page),null);
+  await page.clock.runFor(9500);assert.equal(await glint(),0,'nothing before ten seconds');
+  await page.clock.runFor(900);assert.ok(await glint()>0,'the shine starts at the first tiles');
+  await page.clock.runFor(6000);assert.equal(await glint(),0,'and passes');
+  await page.clock.runFor(14500);assert.ok(await glint()>0,'again twenty seconds later');
+  await page.clock.runFor(6000);
+  await page.keyboard.press('Shift');await page.clock.runFor(9500);assert.equal(await glint(),0,'a key starts the wait again');
+  await page.locator('#gear').click();await page.clock.runFor(12000);assert.equal(await glint(),0,'not behind Settings');
+  await page.locator('#set-motion').selectOption('reduce');await page.locator('#settings .sheet-x').click();
+  await page.clock.runFor(30000);assert.equal(await glint(),0,'not with the library\'s Reduced motion');
   assert.deepEqual(ctx.parity.errors,[]);
 });
 test('the opening plays in the Checkerboard look too',async t=>{

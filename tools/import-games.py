@@ -30,13 +30,24 @@ NEW = [
     ('delve', 'Delve', 'delve'),
     # Reached from the Tilt tile's card ("Also 3D · Cube Maze") since the index at luke-portfolio 3bb4e4e.
     ('cube-maze', 'Cube Maze', 'cube-maze'),
+    # Tangles (game-riffs loop/) has its own tile on the index; its Experiments open from its Settings and Help.
+    ('tangles', 'Tangles', 'loop'),
+    # The Weaves tile on the index (game-riffs weave-minimal/; weave/ is Quipu, a different game, and stays out).
+    ('weaves', 'Weaves', 'weave-minimal'),
 ]
 # Games moved past --games-ref one at a time, each to a commit whose page the
 # build's transforms and adapters were checked against.
-REPIN = {}  # Every game moved to --games-ref 2ba8a67 in 0.5.5 (endings and free play).
+REPIN = {}  # Every game moved to --games-ref c965c4f in 0.5.7 (the Settings standard).
 # Web-only files a newer runtime.json lists: home-screen installs and the site's privacy page.
 WEB_ONLY = ('manifest.webmanifest', 'sw.js', 'pwa.js', 'privacy.html')
 WEB_ONLY_DIRS = ('icons/',)
+# Pages a game keeps only as addresses to share on the web. No page in the package links to them, and they
+# lead to one another by folder addresses (../squares/), which a packaged copy cannot be relied on to serve.
+# Tangles' six tiling sets play inside the package on experiments.html, reached from Settings and Help.
+WEB_ONLY_PAGES = {
+    'tangles': ('squares/index.html', 'triangles/index.html', 'octagons/index.html', 'dodecagons/index.html',
+                'hexagons-squares/index.html', 'hexagons-triangles/index.html'),
+}
 # The motor-accessible puzzles open from the last tile, not from the main grid.
 ACCESSIBLE = [
     ('glance', 'Glance', 'glance', 'glance-74c875a48ff7.png'),
@@ -65,8 +76,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--games', type=Path, default=ROOT.parent / 'game-riffs')
     parser.add_argument('--hex', type=Path, default=ROOT.parent / 'hexsweeper')
-    parser.add_argument('--games-ref', default='2ba8a67')
-    parser.add_argument('--new-ref', default='2ba8a67')
+    parser.add_argument('--games-ref', default='c965c4f')
+    parser.add_argument('--new-ref', default='c965c4f')
     parser.add_argument('--hex-ref', default='e61a79f')
     parser.add_argument('--accessible-art', type=Path, default=None, help="defaults to the games checkout's accessible/art")
     args = parser.parse_args()
@@ -97,6 +108,10 @@ def main():
         sha = git(args.games, 'rev-parse', sha + '^{commit}').decode().strip()
         manifest = json.loads(git(args.games, 'show', f'{sha}:{folder}/runtime.json'))
         manifest['files'] = [f for f in manifest['files'] if f not in WEB_ONLY and not f.startswith(WEB_ONLY_DIRS)]
+        share_pages = WEB_ONLY_PAGES.get(ident, ())
+        if set(share_pages) - set(manifest['files']):
+            raise ValueError(f'{ident}: runtime.json no longer lists {sorted(set(share_pages) - set(manifest["files"]))}')
+        manifest['files'] = [f for f in manifest['files'] if f not in share_pages]
         paths = sorted(set(manifest['files'] + ['runtime.json']))
         files = [capture(args.games, sha, f'{folder}/{safe(p)}', f'{ident}/{p}') for p in paths]
         variants = []

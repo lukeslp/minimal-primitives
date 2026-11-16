@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <script src="./pwa.js?v=74f99d61" defer></script><link rel="stylesheet" href="./balance.css?v=5f85ce45">
-<link rel="stylesheet" href="./controls.css?v=4568a846">
+<link rel="stylesheet" href="./controls.css?v=97b7114c">
 <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
 <meta name="description" content="Fill the grid with black and white: never three alike in a row, and as many of one as the other in every row and column.">
 <meta property="og:title" content="Balance">
@@ -28,12 +28,13 @@
 <body><header><button id="restart-btn" class="ib" aria-label="Restart puzzle"></button><h1 class="sr-only">Balance</h1><div id="readout" class="readout"></div></header><main id="board-shell" aria-label="Balance puzzle"><div class="board-stage"><div id="board" class="board" role="grid" aria-label="Balance board"></div><div id="completion" class="completion" hidden><button id="next-btn" class="ib" aria-label="Next puzzle"></button></div></div></main><p id="feedback" role="status" aria-live="polite"></p>
 <nav aria-label="Game controls"><div class="toolbar"><div><button id="undo-btn" class="ib" aria-label="Undo"></button><button id="hint-btn" class="ib" aria-label="Hint"></button></div><div><button id="settings-btn" class="ib" aria-label="Settings"></button><button id="help-btn" class="ib" aria-label="Help"></button></div></div></nav>
 <dialog id="settings" class="sheet" aria-labelledby="settings-title"><div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
-<label class="row">Campaign <select id="campaign"></select></label><div class="row"><button id="previous">Previous</button><button id="following">Next</button></div><label class="row">Theme <select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label class="row">Motion <select id="motion"><option value="system">System</option><option value="reduce">Reduced</option></select></label><div class="row"><span>Current board</span><button id="reset">Clear</button></div></div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
+<h3 class="group">This board</h3><label class="row">Campaign <select id="campaign"></select></label><div class="row"><button id="previous">Previous</button><button id="following">Next</button></div><div class="row"><span>Current board</span><button id="reset">Restart</button></div>
+<h3 class="group">Display</h3><label class="row">Theme <select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label class="row">Motion <select id="motion"><option value="system">System</option><option value="reduce">Reduced</option></select></label></div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
 <dialog id="help" class="sheet" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">How to play</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
 <p>Make every square black or white. Never three alike in a row, across or down. Every row and column holds as many black as white.</p>
 <p><button id="replay-opening" class="text-action">Play the opening boards again</button></p>
 <div class="controls"><p>Tap — black → white → empty. A square with sharp corners is fixed. The ones you place have rounded corners.</p><p>A small x past the end of a row or column marks a broken rule there: three alike, or too many of one shade.</p><p>Hint shows a square the rules force. Press it again to fill it.</p><p>Keys — arrows move, <kbd>Enter</kbd> or <kbd>Space</kbd> changes a square, <kbd>Z</kbd> undoes, <kbd>H</kbd> hints.</p></div>
 </div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
 <script src="./engine.js?v=d979f320"></script><script src="./levels.js?v=943faa2f"></script><script src="./balance.js?v=09356771"></script>
-<script defer src="./controls.js?v=6e595e5c"></script>
+<script defer src="./controls.js?v=5014fffd"></script>
 </body></html>

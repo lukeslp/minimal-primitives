@@ -96,7 +96,8 @@ def transform(game, path, text):
             other = '../akari-light/index.html' if path.startswith('akari/') else '../akari/index.html'
             text = re.sub(r'data-other="[^"]*"', 'data-other="' + other + '"', text)
             # The Share row (a web link, and on the dark board a picture share too) has no place in the package.
-            text = replace_once(text, '<div class="row"><span>Share</span><button id="share">', '<div class="row" hidden><span>Share</span><button id="share">', path)
+            # Since the Settings standard (game-riffs 622445b) the row sits under its own Share heading.
+            text = replace_once(text, '<h3 class="group">Share</h3><div class="row"><span>This puzzle</span><button id="share">', '<h3 class="group" hidden>Share</h3><div class="row" hidden><span>This puzzle</span><button id="share">', path)
             if path == 'akari/index.html':
                 text = replace_or_absorbed(text, 'Smooth squares are lit; hatched squares still need light.', 'Lighter panels are lit; darker panels still need light.', path)
     # Pure-white lamp cores with a tight halo over a moderately lit floor.
@@ -131,6 +132,11 @@ def transform(game, path, text):
         text = replace_once(text,'window.location.href = wheelHref;', 'window.open(new URL(wheelHref,"https://dr.eamer.dev/games/hexsweeper/sphere/index.html").href,"_blank","noopener,noreferrer");',path)
     if path == 'hexsweeper/sphere/index.html':
         text = replace_once(text,'window.location.href = window.HEXSWEEPER_WHEEL_HREF || "../wheel/";', 'window.open(new URL(window.HEXSWEEPER_WHEEL_HREF || "../wheel/","https://dr.eamer.dev/games/hexsweeper/sphere/index.html").href,"_blank","noopener,noreferrer");',path)
+    if path == 'tangles/experiments.js':
+        # Experiments and New Game+ lead back to Tangles by its folder ('./'). The package names the page, since a
+        # host need not serve a folder's index.html, and hands on the collection's handshake so Home works there.
+        text = replace_once(text, "ROOT = STANDALONE ? '../' : './';",
+                            "ROOT = (STANDALONE ? '../' : './') + 'index.html' + (window.MinimalBridge && MinimalBridge.nonce ? '?minimal=' + MinimalBridge.nonce : '');", path)
     text = transform_camera(game,path,transform_access(game,path,transform_scores(game,path,transform_hex(game,path,inject(game,path,text)))))
     if path.endswith(('.html', '.js', '.mjs')):
         text = open_outside(text, path)

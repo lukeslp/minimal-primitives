@@ -7,7 +7,7 @@
 <meta name="description" content="Tip a glass cube and turn its slices until the marble rolls out of the spout.">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://stats.dr.eamer.dev; worker-src 'self'; connect-src ws://127.0.0.1:47913 'self' https://stats.dr.eamer.dev; img-src 'self' data: https://stats.dr.eamer.dev; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'">
 <title>Cube Maze</title><link rel="icon" href="./favicon.svg"><link rel="stylesheet" href="./cube-maze.css?v=eb9cd96b">
-<link rel="stylesheet" href="./controls.css?v=4568a846">
+<link rel="stylesheet" href="./controls.css?v=97b7114c">
 <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
 </head>
 <body>
@@ -16,16 +16,15 @@
 <p id="announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
 <nav class="toolbar" aria-label="Game controls"><div><button id="undo-btn" class="ib" type="button" aria-label="Undo"></button><button id="hint-btn" class="ib" type="button" aria-label="Hint" aria-pressed="false"></button></div><div><button id="settings-btn" class="ib" type="button" aria-label="Settings"></button><button id="help-btn" class="ib" type="button" aria-label="Help"></button></div></nav>
 <dialog id="settings" class="sheet" aria-labelledby="settings-title"><div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
-<label class="row">Motion <select id="motion"><option value="system">System</option><option value="reduce">Reduced</option></select></label>
-<label class="row">Board <select id="board-select"></select></label>
-<div class="row"><span>This board</span><button id="restart-row" type="button">Restart</button></div>
-</div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">Luke Steuber</a></footer></dialog>
+<h3 class="group">This board</h3><label class="row">Campaign <select id="board-select"></select></label><div class="row"><span>Current board</span><button id="restart-row" type="button">Restart</button></div>
+<h3 class="group">Display</h3><label class="row">Motion <select id="motion"><option value="system">System</option><option value="reduce">Reduced</option></select></label>
+</div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
 <dialog id="help" class="sheet" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">How to play</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
 <p>Bring the marble out through the double ring.</p>
 <p>Drag the cube to turn a layer, or swipe beside it to roll the whole cube.</p>
 <p>Drag with two fingers (or right-drag) to look around; pinch or scroll to zoom.</p>
 <details class="help-more"><summary>More controls</summary><p>The marble falls straight down after every move and leaves only when the double ring faces down. The top line shows the board, then moves made and par.</p><p>Hint shows a next move; press it again to play it.</p><p>The arrow keys roll the cube toward that side of the screen. F, B, L, R, U and D turn the front, back, left, right, top and bottom layers; on a three-cubie cube M, C and S turn the middle ones. Shift turns the other way. Q and E turn the view, + and − zoom, and 0 resets it. Z or Backspace undoes; H asks for a hint.</p></details>
-</div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">Luke Steuber</a></footer></dialog>
+</div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
 <script src="./engine.js?v=cfe746da"></script><script src="./boards.js?v=5e5107c1"></script><script src="./feet.js?v=cc200edc"></script><script type="module" src="./cube-maze.js?v=c530037d"></script>
-<script defer src="./controls.js?v=ac99a267"></script>
+<script defer src="./controls.js?v=1c5ca024"></script>
 </body></html>

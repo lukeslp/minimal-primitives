@@ -2,11 +2,25 @@
   "schema": 1,
   "repository": "lukeslp/luke-portfolio",
   "page": "minimal/index.html",
-  "commit": "9721093d5685ecf60a32a94f6371ce73efb943d2",
-  "styleSha256": "bc138fb30159d018d6041789957116b1f895e6ad6c0da8f8f37a584e506eecaf",
+  "commit": "8f5dd84996790c84e1a9fcee7c203b0971043041",
+  "styleSha256": "b172095f04405efc1d05c5583d2ec1f864cef494e965517cd82c262e550f8038",
   "opening": "<div class=\"intro\" id=\"intro\" aria-hidden=\"true\" hidden>\n    <p>minimal primitives</p>\n    <ul><li>get</li><li>put</li><li>push</li><li>turn</li><li>join</li><li>split</li><li>bend</li><li>switch</li></ul>\n  </div>",
   "header": "<header class=\"top\">\n    <h1 class=\"masthead\" id=\"masthead\"><span id=\"masthead-text\">minimal primitives</span></h1>\n    <button type=\"button\" class=\"gear\" id=\"gear\" aria-label=\"Settings\" aria-haspopup=\"dialog\" aria-controls=\"settings\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"/></svg></button>\n  </header>",
   "settings": "<dialog id=\"settings\" class=\"sheet\" aria-labelledby=\"settings-title\">\n    <div class=\"sheet-head\"><h2 id=\"settings-title\">Settings</h2><form method=\"dialog\"><button class=\"sheet-x\" aria-label=\"Close Settings\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M6 6l12 12M18 6 6 18\"/></svg></button></form></div>\n    <div class=\"sheet-body\">\n      <h3 class=\"group\">Display</h3>\n      <label class=\"row\">Look <select id=\"set-look\"><option value=\"system\">Follow phone</option><option value=\"checkerboard\">Checkerboard</option><option value=\"light\">Light</option><option value=\"dark\">Dark</option></select></label>\n      <label class=\"row\">Motion <select id=\"set-motion\"><option value=\"system\">Follow phone</option><option value=\"reduce\">Reduced</option></select></label>\n      <div class=\"row\"><span>Opening</span><button type=\"button\" id=\"set-opening\">Play</button></div>\n      <h3 class=\"group\">Access</h3>\n      <label class=\"row\">Access <select id=\"set-access\"><option value=\"off\">Off</option><option value=\"switch\">One switch</option><option value=\"look\">Look and hold</option></select></label>\n      <p class=\"note\">The starting choice for each game here, until you set one in that game.</p>\n      <h3 class=\"group\">About</h3>\n      <p>Simple machines are what machines are made of: levers, wheels, ramps, wedges, screws, pulleys. Primitives are what doing is made of: push, pull, tilt, turn, fold, connect, toggle, point. Each game here is built on one or two of them.</p>\n      <p>They started as a sneaky way to run motor assessments for eye gaze, head pointing and switch users. Turns out they're also just fun.</p>\n      <p><a href=\"https://github.com/lukeslp/minimal-primitives\">Source on GitHub</a>, MIT.</p>\n    </div>\n  </dialog>",
+  "life": {
+    "onDark": [
+      "#1768ff",
+      "#ffe000",
+      "#ed6500",
+      "#da5cce"
+    ],
+    "onLight": [
+      "#1768ff",
+      "#a86400",
+      "#ed6500",
+      "#b0339f"
+    ]
+  },
   "tiles": [
     {
       "classes": [
@@ -28,7 +42,11 @@
       "lines": {
         "file": "assets/tiles/slant-lines.svg",
         "sha256": "19f714db5a59e9aeb9f322e3fc45be3256bcbbdbd200284c0d0dbdaa4aa592c1"
-      }
+      },
+      "set": [
+        "slant",
+        54
+      ]
     },
     {
       "classes": [
@@ -51,7 +69,8 @@
       "lines": {
         "file": "assets/tiles/notan-lines.svg",
         "sha256": "7c945c23b5dd5ee7259b0fb6819a69fabfb45883cc4ac5b9cad6d45c4e0daf12"
-      }
+      },
+      "set": null
     },
     {
       "classes": [
@@ -85,7 +104,8 @@
       ],
       "game": "hexsweeper",
       "mode": "sphere",
-      "lines": null
+      "lines": null,
+      "set": null
     },
     {
       "classes": [
@@ -115,7 +135,11 @@
       "lines": {
         "file": "assets/tiles/bridges-lines.svg",
         "sha256": "38debdbc72ec0cc3245c7adcc635a9fc0fe9207e57adbbee28c62864b0ac2dd2"
-      }
+      },
+      "set": [
+        "bridges",
+        50
+      ]
     },
     {
       "classes": [
@@ -137,7 +161,11 @@
       "lines": {
         "file": "assets/tiles/akari-lines.svg",
         "sha256": "583df57dde35296a656869261634d4705709531a9202b633052e33c16ab1241d"
-      }
+      },
+      "set": [
+        "akari",
+        50
+      ]
     },
     {
       "classes": [
@@ -157,7 +185,11 @@
       "also": [],
       "game": "galaxies",
       "mode": null,
-      "lines": null
+      "lines": null,
+      "set": [
+        "galaxies",
+        50
+      ]
     },
     {
       "classes": [
@@ -183,11 +215,31 @@
       "lines": {
         "file": "assets/tiles/cast-lines.svg",
         "sha256": "354582d32e2c35979858641370e4b7e6da5c291f0820c40ed30f167d6083490e"
-      }
+      },
+      "set": [
+        "cast-3d",
+        50
+      ]
     },
     {
+      "classes": [
+        "loop"
+      ],
       "name": "Tangles",
-      "notBundled": "Tangles is not in the package yet"
+      "label": "Tangles",
+      "line": "Turn the tiles until every line closes.",
+      "href": "https://lukesteuber.com/games/loop/",
+      "art": {
+        "file": "assets/tiles/loop-274224256493.png",
+        "sha256": "9c4e5067f07b2f399f9b3bb54555454bad335dc2f47060734727f54ffede638f"
+      },
+      "artWide": null,
+      "svg": null,
+      "also": [],
+      "game": "tangles",
+      "mode": null,
+      "lines": null,
+      "set": null
     },
     {
       "classes": [
@@ -209,7 +261,11 @@
       "lines": {
         "file": "assets/tiles/fold-lines.svg",
         "sha256": "e8669dd2986f024ca488820bddd60254dca80e2378b20a7948b71434e3d65c3b"
-      }
+      },
+      "set": [
+        "fold",
+        50
+      ]
     },
     {
       "classes": [
@@ -232,7 +288,8 @@
       "lines": {
         "file": "assets/tiles/bending-lines.svg",
         "sha256": "a665b70545e1331e42acf83ed140ddb7dd09da4cc371c79d12ebf6dc47b7160c"
-      }
+      },
+      "set": null
     },
     {
       "classes": [
@@ -254,11 +311,34 @@
       "lines": {
         "file": "assets/tiles/towers-lines.svg",
         "sha256": "c58c8a01eb4a9f6b6a00a9ef807905c36f486d5a71bca57811b84887ea1c0aff"
-      }
+      },
+      "set": [
+        "towers",
+        35
+      ]
     },
     {
+      "classes": [
+        "weave"
+      ],
       "name": "Weaves",
-      "notBundled": "Weaves is not in the package yet"
+      "label": "Weaves",
+      "line": "Pass each thread over or under. None may float past two crossings.",
+      "href": "https://lukesteuber.com/games/weave-minimal/",
+      "art": {
+        "file": "assets/tiles/weave-4cfacf5e45d4.png",
+        "sha256": "4cfacf5e45d46b84adbb406269c799df066c5d1e43824a85c8c6e706b519a4c5"
+      },
+      "artWide": null,
+      "svg": null,
+      "also": [],
+      "game": "weaves",
+      "mode": null,
+      "lines": {
+        "file": "assets/tiles/weave-lines.svg",
+        "sha256": "357aae39265ce1650f42badbfbdd87463a2eb89c23870216b3d3b76a800b50fd"
+      },
+      "set": null
     },
     {
       "classes": [
@@ -296,7 +376,11 @@
       "lines": {
         "file": "assets/tiles/tilt-lines.svg",
         "sha256": "15e6aa5146f00ea02ddf004bcf869b232340db9dd835777f3c2e6c73f8508c50"
-      }
+      },
+      "set": [
+        "tilt",
+        40
+      ]
     },
     {
       "classes": [
@@ -318,7 +402,11 @@
       "lines": {
         "file": "assets/tiles/horologist-lines.svg",
         "sha256": "f603d7fc853bbd56b97992509fedaaeb958749f8b50034468083bdc9c9a0dc27"
-      }
+      },
+      "set": [
+        "horologist-plate",
+        50
+      ]
     },
     {
       "classes": [
@@ -340,7 +428,11 @@
       "lines": {
         "file": "assets/tiles/tents-lines.svg",
         "sha256": "518b723a39eebb3d1a05c011fd7f791032a7a798f4857207b0299e693c1836f6"
-      }
+      },
+      "set": [
+        "tents",
+        30
+      ]
     },
     {
       "classes": [
@@ -362,7 +454,11 @@
       "lines": {
         "file": "assets/tiles/shoo-lines.svg",
         "sha256": "d010e3047cc96d35f19ad2532739b0ea6b55d32d984f252aed5577e84e67f781"
-      }
+      },
+      "set": [
+        "shoo-minimal",
+        80
+      ]
     },
     {
       "classes": [
@@ -384,7 +480,11 @@
       "lines": {
         "file": "assets/tiles/balance-lines.svg",
         "sha256": "835db91641a94785f5173c356c9bff98e9c55189b959a8112e60ccd33cab61b1"
-      }
+      },
+      "set": [
+        "balance",
+        30
+      ]
     },
     {
       "classes": [
@@ -407,7 +507,8 @@
       "lines": {
         "file": "assets/tiles/delve-lines.svg",
         "sha256": "05125aa1f48a6365b64bb5fd95b280fa2d1df15b959acbf848cb99b02b03a3b7"
-      }
+      },
+      "set": null
     },
     {
       "name": "Harmonies",
@@ -431,7 +532,8 @@
       "also": [],
       "game": "accessible",
       "mode": null,
-      "lines": null
+      "lines": null,
+      "set": null
     }
   ],
   "notBundled": [
@@ -440,16 +542,6 @@
       "on": "Notan",
       "href": "https://lukesteuber.com/games/quipu-nonogram/",
       "reason": "Quipu (game-riffs weave/) has no shared control frame (switch and Look and hold access) and no runtime.json yet"
-    },
-    {
-      "name": "Tangles",
-      "href": "https://lukesteuber.com/games/loop/",
-      "reason": "Tangles is not in the package yet"
-    },
-    {
-      "name": "Weaves",
-      "href": "https://lukesteuber.com/games/weave-minimal/",
-      "reason": "Weaves is not in the package yet"
     },
     {
       "name": "Harmonies",

@@ -643,7 +643,7 @@
     colours();
   }
   for (const id of ['theme', 'motion']) $('#' + id).onchange = e => { prefs[id] = e.target.value; applyPrefs(); save(); announce(id === 'theme' ? 'Theme changed.' : 'Motion setting changed.'); };
-  $('#rewards').onchange = e => { prefs.rewards = e.target.value; save(); announce(prefs.rewards === 'colour' ? 'Colour rewards on.' : 'Calm: paper and ink only.'); };
+  $('#rewards').onchange = e => { prefs.rewards = e.target.value; save(); announce(prefs.rewards === 'colour' ? 'Color rewards on.' : 'Calm: paper and ink only.'); };
   // Sound is made only once it is turned on, in the gesture that turns it on.
   $('#sound').onchange = e => { prefs.sound = e.target.value; save(); if (prefs.sound === 'on') audio.start(); announce(prefs.sound === 'on' ? 'Sound on.' : 'Sound off.'); };
   motionQuery.addEventListener('change', applyPrefs); darkQuery.addEventListener('change', applyPrefs);

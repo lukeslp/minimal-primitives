@@ -12,7 +12,7 @@ browser build makes it, like the Android app. Builds go out through TestFlight a
   refused.
 - The camera, for Look and hold by head or eyes, is offered only to the bundled
   collection, and iOS asks the player first (`NSCameraUsageDescription`).
-- Identity: `com.oneimpossiblethingatatime.minimalprimitives`, version 0.5.6 (build 22; Android is at 0.5.5),
+- Identity: `com.oneimpossiblethingatatime.minimalprimitives`, version 0.5.7 (build 25), matching Android,
   team 596T7J7FB6, iPhone and iPad.
 
 ## Build

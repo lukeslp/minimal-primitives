@@ -249,6 +249,23 @@
     "directional control"
    ]
   },
+  "tangles": {
+   "primitives": [
+    "turn",
+    "connect"
+   ],
+   "exercises": [
+    "target acquisition"
+   ]
+  },
+  "weaves": {
+   "primitives": [
+    "toggle"
+   ],
+   "exercises": [
+    "target acquisition"
+   ]
+  },
   "glance": {
    "primitives": [
     "flip",

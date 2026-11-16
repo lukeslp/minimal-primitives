@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <script src="./pwa.js?v=74f99d61" defer></script><link rel="stylesheet" href="./tents.css?v=216391a7">
-<link rel="stylesheet" href="./controls.css?v=4568a846">
+<link rel="stylesheet" href="./controls.css?v=97b7114c">
 <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
 <meta name="description" content="Give every tree its own tent, keep the tents apart, and match the numbers on each row and column.">
 <meta property="og:title" content="Tents">
@@ -30,12 +30,9 @@
 <p id="feedback" role="status" aria-live="polite"></p>
 <nav class="toolbar" aria-label="Game controls"><div><button id="undo-btn" class="ib" aria-label="Undo"></button><button id="hint-btn" class="ib" aria-label="Hint"></button></div><div><button id="settings-btn" class="ib" aria-label="Settings"></button><button id="help-btn" class="ib" aria-label="Help"></button></div></nav>
 <dialog id="settings" class="sheet" aria-labelledby="settings-title"><div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
-<label class="row">Campaign <select id="campaign"></select></label>
-<div class="row"><button id="previous">Previous</button><button id="following">Next</button></div>
-<div id="free-row" class="row" hidden><span>Generated boards</span><button id="new-game">New board</button></div>
-<label class="row">Theme <select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
-<label class="row">Motion <select id="motion"><option value="system">System</option><option value="reduce">Reduced</option></select></label>
-<div class="row"><span>Current board</span><button id="reset">Clear</button></div>
+<h3 class="group">This board</h3><label class="row">Campaign <select id="campaign"></select></label><div class="row"><button id="previous">Previous</button><button id="following">Next</button></div><div class="row"><span>Current board</span><button id="reset">Restart</button></div>
+<h3 class="group">New Game+</h3><div id="free-row" class="row" hidden><span>New Game+</span><button id="new-game">New board</button></div>
+<h3 class="group">Display</h3><label class="row">Theme <select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label class="row">Motion <select id="motion"><option value="system">System</option><option value="reduce">Reduced</option></select></label>
 </div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
 <dialog id="help" class="sheet" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">How to play</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
 <p>Pitch one tent beside every tree. Each tent belongs to one tree. Tents never touch, not even at a corner.</p>
@@ -45,5 +42,5 @@
 <details class="help-more"><summary>More controls</summary><p>Hint shows the next cell that can be worked out and says why. Tap it again to apply.</p><p>Arrows move. Enter or Space cycles a cell. <kbd>Z</kbd> or Backspace undoes. <kbd>H</kbd> hints. Restart clears the board; Undo brings it back.</p></details>
 </div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
 <script src="./engine.js?v=bb17cc8c"></script><script src="./levels.js?v=982a37f7"></script><script src="./tents.js?v=f69f0b50"></script>
-<script defer src="./controls.js?v=e634f076"></script>
+<script defer src="./controls.js?v=7847229b"></script>
 </body></html>

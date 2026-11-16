@@ -9,10 +9,10 @@ const manifest=JSON.parse(readFileSync(new URL('sources.json',root),'utf8'));
 const canonical=value=>JSON.stringify(value,(_,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v);
 const digest=value=>createHash('sha256').update(canonical(value)).digest('hex');
 const same=(a,b)=>canonical(a)===canonical(b);
-const fields={akari:['w','h','cells'],galaxies:['w','h','centres'],bridges:['w','h','islands'],slant:['w','h','clues'],fold:['w','h','pairs'],horologist:['W','H','drive','clocks','pillars','tray'],tilt:['levels'],cast:['n','maxH','left','right','plan','cubes'],'shoo-minimal':['cells','walls'],'tilt-3d':['levels'],'cube-maze':['n','masks','spout','marble','g']};
+const fields={akari:['w','h','cells'],galaxies:['w','h','centres'],bridges:['w','h','islands'],slant:['w','h','clues'],fold:['w','h','pairs'],horologist:['W','H','drive','clocks','pillars','tray'],tilt:['levels'],cast:['n','maxH','left','right','plan','cubes'],'shoo-minimal':['cells','walls'],'tilt-3d':['levels'],'cube-maze':['n','masks','spout','marble','g'],tangles:['tiles','start','links','rings','offsets'],weaves:['rows','cols','pins']};
 // Games scored by a count, and the file that holds each game's boards.
-const POLICY={horologist:'hits-v1',tilt:'moves-v1',fold:'folds-v1',cast:'hits-v1','shoo-minimal':'hits-v1','tilt-3d':'moves-v1','cube-maze':'moves-v1'};
-const BOARDS={horologist:'boards.js',cast:'boards.js','shoo-minimal':'boards.js','cube-maze':'boards.js'};
+const POLICY={horologist:'hits-v1',tilt:'moves-v1',fold:'folds-v1',cast:'hits-v1','shoo-minimal':'hits-v1','tilt-3d':'moves-v1','cube-maze':'moves-v1',tangles:'hits-v1',weaves:'hits-v1'};
+const BOARDS={horologist:'boards.js',cast:'boards.js','shoo-minimal':'boards.js','cube-maze':'boards.js',tangles:'boards.js',weaves:'boards.js'};
 const cache=new Map();
 function load(game,path){
   const key=game+'/'+path;
@@ -112,6 +112,40 @@ function cubeMazeValue(E,p,proof){
   }
   return state.out?moves.length:null;
 }
+// Tangles: a move turns a tile with its linked group ([tile, steps], one hit whatever the steps) or a ring
+// (['ring', k, steps], a hit for every step). No move follows the one that closes every line.
+function tanglesValue(E,p,proof){
+  const moves=proof.moves;
+  if(!bounded(moves,2048)||!moves.length)return null;
+  let rots=p.start.slice(),offsets=p.rings?p.offsets.slice():undefined,hits=0;
+  const closed=()=>E.solved(E.arrange(p,offsets),rots);
+  for(const m of moves){
+    if(closed()||!Array.isArray(m))return null;
+    if(m.length===3){
+      const [kind,k,steps]=m;
+      if(kind!=='ring'||!(p.rings||[]).includes(k)||!Number.isInteger(steps)||!steps||Math.abs(steps)>36)return null;
+      ({rots,offsets}=E.turnRing(p,rots,offsets,k,steps));hits+=Math.abs(steps);
+    }else if(m.length===2){
+      const [i,steps]=m;
+      if(!Number.isInteger(i)||!p.tiles[i]||!Number.isInteger(steps)||steps<1||steps>6)return null;
+      rots=E.turnUnit(p,rots,i,steps);hits++;
+    }else return null;
+  }
+  return closed()?hits:null;
+}
+// Weaves: every hit flips one free crossing, and flipping one back counts too; the cloth must hold at the end.
+// The fifty fixed boards are the only ones: the game makes no boards of its own, so any other id finds no board.
+function weavesValue(E,p,proof){
+  const moves=proof.moves;
+  if(!bounded(moves,4096)||!moves.length)return null;
+  let grid=E.start(p);
+  for(const m of moves){
+    if(!Array.isArray(m)||m.length!==2||!Number.isInteger(m[0])||!Number.isInteger(m[1]))return null;
+    grid=E.flip(p,grid,m[0],m[1]);
+    if(!grid)return null;
+  }
+  return E.solved(p,grid)?moves.length:null;
+}
 function generated(E,game,g,levels){
   if(!g||!Number.isInteger(g.seed)||g.seed<0||g.seed>4294967295||!['Easy','Normal','Hard'].includes(g.difficulty)||g.version!==E.VERSION)return null;
   if(game==='akari'||game==='galaxies')return E.generate(g.seed,g.difficulty,{pool:levels});
@@ -144,7 +178,8 @@ export async function validateProof(request){
       puzzleLayout=p;
     }else{
       E=load(i.game,'engine.js');
-      const L=load(i.game,BOARDS[i.game]||'levels.js');
+      // Tangles' fifty boards are its first twelve (boards.js) and the campaign's thirty-eight (campaign.js).
+      const L=i.game==='tangles'?[...load('tangles','boards.js'),...load('tangles','campaign.js')]:load(i.game,BOARDS[i.game]||'levels.js');
       if(i.game==='notan'){
         const lists=i.mode==='plus'?load('notan','plus-levels.js'):L;
         const entry=lists.find(p=>p.id===i.puzzleId);
@@ -166,6 +201,8 @@ export async function validateProof(request){
         else if(i.game==='shoo-minimal')value=shooValue(E,p,proof);
         else if(i.game==='tilt-3d')value=tilt3dValue(E,p,proof);
         else if(i.game==='cube-maze')value=cubeMazeValue(E,p,proof);
+        else if(i.game==='tangles')value=tanglesValue(E,p,proof);
+        else if(i.game==='weaves')value=weavesValue(E,p,proof);
         else if(!E.stateValid(p,proof.cells)||!E.inspect(p,proof.cells).solved)return{valid:false};
       }
     }
@@ -174,4 +211,4 @@ export async function validateProof(request){
   }catch{return{valid:false};}
 }
 
-export const validatorInternals={canonical,digest,layout,load,horologistValue,tiltValue,castValue,shooValue,tilt3dValue,cubeMazeValue,POLICY};
+export const validatorInternals={canonical,digest,layout,load,horologistValue,tiltValue,castValue,shooValue,tilt3dValue,cubeMazeValue,tanglesValue,weavesValue,POLICY};

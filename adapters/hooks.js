@@ -12,7 +12,8 @@
         bridge.emit('snapshot', { request, source: bridge.config.source, state });
       } else if (type === 'restore') {
         if (!window.MinimalAdapter) throw new Error('This game’s resume adapter is not ready.');
-        if (payload.source !== bridge.config.source) throw new Error('Saved game uses another source version.');
+        // A save from an earlier source commit is tried too: each adapter's restore checks the state and throws on
+        // what it cannot read, and the library then leaves the game as new.
         await window.MinimalAdapter.restore(payload.state);
         bridge.emit('restored', { request });
       }
@@ -43,6 +44,9 @@
     if (settings && window.MinimalAdapter) {
       const scores = document.createElement('button'); scores.type='button'; scores.textContent='Collection scores';
       scores.className=settings.id==='help-panel-settings'?'help-pack is-text':'text-action'; scores.dataset.minimalCollection='scores'; scores.addEventListener('click',()=>bridge.emit('scores'));settings.append(scores);
+      // Games whose stylesheet has no .text-action rule would show the browser's gray button. :where() adds no
+      // specificity, so a game's own rule still wins.
+      if(scores.className==='text-action'){const look=document.createElement('style');look.textContent=':where(button.text-action[data-minimal-collection]){min-height:44px;padding:8px 12px;border:1px solid currentColor;border-radius:0;background:none;color:inherit;font:inherit;cursor:pointer}';document.head.append(look);}
     }
   }
   const ready = () => { collectionControls(); bridge.emit('ready', { resumable: !!window.MinimalAdapter }); };

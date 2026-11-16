@@ -39,7 +39,7 @@ puzzle=board(at);if(at==='generated')prefs.difficulty=generated.difficulty;const
 S.locks=locksFor(S.cells,at==='generated'?store.generated.locks:store.locks?.[at]);
 // Optional public scores: nothing is sent until the player opens Scores and chooses to share.
 const answers=new WeakMap();function solution(p){if(!answers.has(p))answers.set(p,E.count(p,2).answer);return answers.get(p);}
-const scoreSession=window.BridgesScores?BridgesScores.create({game:'slant',saveName:'slant.scores.v1',layout:p=>({w:p.w,h:p.h,clues:p.clues}),campaign:p=>ids.has(p.id),describe:c=>(c.campaign?'Puzzle '+(L.findIndex(p=>p.id===c.puzzle)+1):'Generated puzzle')+' · '+(c.mode==='slant-v1'?'Hard':'Standard')}):null;
+const scoreSession=window.BridgesScores?BridgesScores.create({game:'slant',saveName:'slant.scores.v1',layout:p=>({w:p.w,h:p.h,clues:p.clues}),campaign:p=>ids.has(p.id),describe:c=>(c.campaign?'Puzzle '+(L.findIndex(p=>p.id===c.puzzle)+1):'Generated puzzle')+' · '+(c.mode==='slant-v1'?'Classic':'Standard')}):null;
 function startScore(restored=false){if(!(ids.has(at)||at==='generated'))return;scoreSession?.load(puzzle,{mode:prefs.mode==='Hard'?'slant-v1':'slant-standard-v1',restored:restored||at==='generated'||Object.hasOwn(store.boards,at)||progress.completed.includes(at)});}
 // Every tenth board solved in this visit earns one quiet line. Opening boards never count; a board counts once.
 const solves=new Set(),tens=['','ten','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety','a hundred'];

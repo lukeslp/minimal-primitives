@@ -40,7 +40,7 @@ and What Color pick up the same fix.
   game ran in, and the parity check's seeded `Math.random` was lost: Delve's
   Random mode drew a different dungeon.
 
-Why the frame is shaped from outside: all 26 games size their boards from the
+Why the frame is shaped from outside: all 29 games size their boards from the
 viewport (CSS `dvh` and `innerHeight`), so one change to the frame's size moves
 every board off the fold without touching the pinned game sources.
 

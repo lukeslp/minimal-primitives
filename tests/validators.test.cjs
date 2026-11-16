@@ -42,7 +42,7 @@ test('replay move counts cannot be supplied independently of the moves',async()=
  assert.equal(tiltValue(T,b,{states:[{...T.start(b),moves:0,solved:false},{level:1,row:1,col:1,moves:1,solved:true}]}),null);
 });
 
-test('Cast, Shoo · Minimal, Tilt · 3D and Cube Maze are scored by their counts from replayed proofs',async()=>{
+test('Cast, Shoo · Minimal, Tilt · 3D, Cube Maze, Tangles and Weaves are scored by their counts from replayed proofs',async()=>{
  const {validateProof,validatorInternals:{digest,layout}}=await import('../adapters/validators.mjs');
  const rules=game=>sources.games.find(g=>g.id===game).files.find(f=>f.path===game+'/engine.js').sha256.slice(0,16);
  const identity=(game,p,policy)=>({game,mode:'campaign',puzzleId:p.id,layoutHash:digest(layout(game,p)),rulesVersion:rules(game),scoringPolicy:policy});
@@ -79,5 +79,52 @@ test('Cast, Shoo · Minimal, Tilt · 3D and Cube Maze are scored by their counts
   assert.equal((await validateProof({identity:identity('cube-maze',p,'moves-v1'),proof:{board:p.id,moves:[...moves,moves[0]]},elapsedMs:5000})).valid,false,'no move after the marble leaves');
   assert.equal((await validateProof({identity:identity('cube-maze',p,'time-v1'),proof:{board:p.id,moves},elapsedMs:5000})).valid,false);count++;
  }
- assert.ok(count>=170);
+ // Tangles: the engine's one answer gives a par replay for every board: each ring to its turn the short way round,
+ // then one turn for each tile or linked group off its answer. Hits are counted from the replay, never supplied.
+ const G=require('../imports/tangles/engine.js'),tangles=[...require('../imports/tangles/boards.js'),...require('../imports/tangles/campaign.js')];
+ assert.equal(tangles.length,50);
+ for(const p of tangles){
+  const special=!!(p.links||p.rings),moves=[];
+  if(special){
+   const {solution}=G.solveAll(p,p.start,p.offsets,1);
+   for(const k of p.rings||[]){const s=((solution.offsets[k]||0)-(p.offsets[k]||0)+6)%6;if(s)moves.push(['ring',k,s<=3?s:s-6]);}
+   for(const u of solution.units)if(!u.turns.includes(0))moves.push([u.tiles[0],Math.min(...u.turns)]);
+   assert.equal(moves.reduce((n,m)=>n+(m.length===3?Math.abs(m[2]):1),0),G.parAll(p),'tangles '+p.id+' replay is par');
+  }else{
+   const {solution}=G.solve(p,1);
+   p.tiles.forEach((t,i)=>{const s=Math.min(...solution[i].map(r=>(r-p.start[i]+6)%6));if(s)moves.push([i,s]);});
+   assert.equal(moves.length,G.par(p),'tangles '+p.id+' replay is par');
+  }
+  const value=moves.reduce((n,m)=>n+(m.length===3?Math.abs(m[2]):1),0),id=identity('tangles',p,'hits-v1');
+  assert.deepEqual(await validateProof({identity:id,proof:{board:p.id,moves},elapsedMs:5000}),{valid:true,value},'tangles '+p.id);
+  assert.equal((await validateProof({identity:id,proof:{board:p.id,moves:moves.slice(0,-1)},elapsedMs:5000})).valid,false,'an unfinished replay is refused');
+  assert.equal((await validateProof({identity:id,proof:{board:p.id,moves:[...moves,[0,1]]},elapsedMs:5000})).valid,false,'no move after every line closes');
+  assert.equal((await validateProof({identity:id,proof:{board:p.id,moves:[[0,6],...moves]},elapsedMs:5000})).value,value+1,'a full turn changes nothing and still counts');
+  assert.equal((await validateProof({identity:id,proof:{board:p.id,moves:[[0,0],...moves]},elapsedMs:5000})).valid,false,'a turn of no steps is not a move');
+  assert.equal((await validateProof({identity:id,proof:{board:p.id,moves:[['ring',99,1],...moves]},elapsedMs:5000})).valid,false,'only a turning ring turns');
+  assert.equal((await validateProof({identity:identity('tangles',p,'time-v1'),proof:{board:p.id,moves},elapsedMs:5000})).valid,false);count++;
+ }
+ // Weaves: the hits from the unwoven start to the one answer are the board's par; every hit is replayed.
+ const W=require('../imports/weaves/engine.js'),weaves=require('../imports/weaves/boards.js');
+ assert.equal(weaves.length,50);
+ for(const p of weaves){
+  const start=W.start(p),answer=W.solve(p,1).solution,moves=[];
+  for(let r=0;r<p.rows;r++)for(let c=0;c<p.cols;c++)if(start[r][c]!==answer[r][c])moves.push([r,c]);
+  const id=identity('weaves',p,'hits-v1'),check=async proof=>validateProof({identity:id,proof,elapsedMs:5000});
+  assert.equal(moves.length,W.par(p),'weaves '+p.id+' par');
+  assert.deepEqual(await check({board:p.id,moves}),{valid:true,value:moves.length},'weaves '+p.id);
+  assert.deepEqual(await check({board:p.id,moves:[moves[0],moves[0],...moves]}),{valid:true,value:moves.length+2},'flipping back counts too');
+  assert.equal((await check({board:p.id,moves:moves.slice(0,-1)})).valid,false,'an unfinished cloth is refused');
+  assert.equal((await check({board:p.id,moves:[...moves,moves[0]]})).valid,false,'a cloth unwoven again is refused');
+  assert.equal((await check({board:p.id,moves:[p.pins[0].slice(0,2),...moves]})).valid,false,'a pinned crossing cannot be flipped');
+  assert.equal((await check({board:p.id,moves:[[p.rows,0],...moves]})).valid,false,'a crossing off the cloth is refused');
+  assert.equal((await check({board:p.id,moves:[]})).valid,false);
+  assert.equal((await check({board:p.id,moves,hits:1})).value,moves.length,'a count sent beside the moves is ignored');
+  assert.equal((await validateProof({identity:identity('weaves',p,'time-v1'),proof:{board:p.id,moves},elapsedMs:5000})).valid,false);
+  // Weaves has no free play: a board that is not one of the fifty has no lane, whatever its layout hash says.
+  for(const puzzleId of ['generated','w51'])assert.equal((await validateProof({identity:{...id,puzzleId},proof:{board:puzzleId,moves,generated:{seed:1,difficulty:'Easy'}},elapsedMs:5000})).valid,false,puzzleId);
+  assert.equal((await validateProof({identity:{...id,mode:'free'},proof:{board:p.id,moves},elapsedMs:5000})).valid,false,'no free-play mode');
+  count++;
+ }
+ assert.ok(count>=220);
 });

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" width="1200" height="1200">
+  <rect width="1200" height="1200" fill="#000"/>
+  <defs><pattern id="h" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="14" stroke="#fff" stroke-width="3"/></pattern></defs>
+  <g fill="none" stroke="#fff" stroke-linejoin="round">
+    <rect x="322" y="216" width="44" height="768" fill="#000" stroke-width="3"/>
+    <rect x="450" y="216" width="44" height="768" fill="#000" stroke-width="3"/>
+    <rect x="578" y="216" width="44" height="768" fill="#000" stroke-width="3"/>
+    <rect x="706" y="216" width="44" height="768" fill="#000" stroke-width="3"/>
+    <rect x="834" y="216" width="44" height="768" fill="#000" stroke-width="3"/>
+    <path d="M300 312 H880 A96 96 0 0 1 880 504 H320 A96 96 0 0 0 320 696 H880 A96 96 0 0 1 880 888 H300" stroke-width="48" stroke-linecap="round"/>
+    <path d="M300 312 H880 A96 96 0 0 1 880 504 H320 A96 96 0 0 0 320 696 H880 A96 96 0 0 1 880 888 H300" stroke="#000" stroke-width="36" stroke-linecap="round"/>
+    <rect x="450" y="284.0" width="44" height="56" fill="#000" stroke="none"/>
+    <line x1="450" y1="284.0" x2="450" y2="340.0" stroke-width="3"/>
+    <line x1="494" y1="284.0" x2="494" y2="340.0" stroke-width="3"/>
+    <rect x="706" y="284.0" width="44" height="56" fill="#000" stroke="none"/>
+    <line x1="706" y1="284.0" x2="706" y2="340.0" stroke-width="3"/>
+    <line x1="750" y1="284.0" x2="750" y2="340.0" stroke-width="3"/>
+    <rect x="322" y="476.0" width="44" height="56" fill="#000" stroke="none"/>
+    <line x1="322" y1="476.0" x2="322" y2="532.0" stroke-width="3"/>
+    <line x1="366" y1="476.0" x2="366" y2="532.0" stroke-width="3"/>
+    <rect x="578" y="476.0" width="44" height="56" fill="#000" stroke="none"/>
+    <line x1="578" y1="476.0" x2="578" y2="532.0" stroke-width="3"/>
+    <line x1="622" y1="476.0" x2="622" y2="532.0" stroke-width="3"/>
+    <rect x="834" y="476.0" width="44" height="56" fill="#000" stroke="none"/>
+    <line x1="834" y1="476.0" x2="834" y2="532.0" stroke-width="3"/>
+    <line x1="878" y1="476.0" x2="878" y2="532.0" stroke-width="3"/>
+    <rect x="450" y="668.0" width="44" height="56" fill="#000" stroke="none"/>
+    <line x1="450" y1="668.0" x2="450" y2="724.0" stroke-width="3"/>
+    <line x1="494" y1="668.0" x2="494" y2="724.0" stroke-width="3"/>
+    <rect x="706" y="668.0" width="44" height="56" fill="#000" stroke="none"/>
+    <line x1="706" y1="668.0" x2="706" y2="724.0" stroke-width="3"/>
+    <line x1="750" y1="668.0" x2="750" y2="724.0" stroke-width="3"/>
+    <rect x="322" y="860.0" width="44" height="56" fill="#000" stroke="none"/>
+    <line x1="322" y1="860.0" x2="322" y2="916.0" stroke-width="3"/>
+    <line x1="366" y1="860.0" x2="366" y2="916.0" stroke-width="3"/>
+    <rect x="578" y="860.0" width="44" height="56" fill="#000" stroke="none"/>
+    <line x1="578" y1="860.0" x2="578" y2="916.0" stroke-width="3"/>
+    <line x1="622" y1="860.0" x2="622" y2="916.0" stroke-width="3"/>
+    <rect x="834" y="860.0" width="44" height="56" fill="#000" stroke="none"/>
+    <line x1="834" y1="860.0" x2="834" y2="916.0" stroke-width="3"/>
+    <line x1="878" y1="860.0" x2="878" y2="916.0" stroke-width="3"/>
+  </g>
+</svg>

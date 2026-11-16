@@ -841,7 +841,7 @@
     if (!busy) rest(); else draw();
     if (solved()) paintWash(washOrigin ?? hivesOf(board)[0], false); else clearRewards();
   }
-  for (const id of ['theme', 'motion', 'buzz', 'rewards']) $('#' + id).onchange = e => { prefs[id] = e.target.value; applyPrefs(); save(); announce(id === 'theme' ? 'Theme changed.' : id === 'motion' ? 'Motion setting changed.' : id === 'rewards' ? (prefs.rewards === 'calm' ? 'Rewards in paper and ink only.' : 'Rewards in colour.') : prefs.buzz === 'calm' ? 'The bees hold still.' : 'The bees buzz.'); };
+  for (const id of ['theme', 'motion', 'buzz', 'rewards']) $('#' + id).onchange = e => { prefs[id] = e.target.value; applyPrefs(); save(); announce(id === 'theme' ? 'Theme changed.' : id === 'motion' ? 'Motion setting changed.' : id === 'rewards' ? (prefs.rewards === 'calm' ? 'Rewards in paper and ink only.' : 'Rewards in color.') : prefs.buzz === 'calm' ? 'The bees hold still.' : 'The bees buzz.'); };
   // Sound: the first sound after it is turned on makes the audio context, inside this gesture.
   $('#sound').onchange = e => { prefs.sound = e.target.value; save(); if (prefs.sound === 'on') audio.tick(0); else audio.close(); announce(prefs.sound === 'on' ? 'Sound on.' : 'Sound off.'); };
   motionQuery.addEventListener('change', applyPrefs); darkQuery.addEventListener('change', applyPrefs);
