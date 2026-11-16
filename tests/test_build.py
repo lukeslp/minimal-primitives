@@ -102,7 +102,7 @@ class CameraFreeVariantTests(unittest.TestCase):
         for game in ['glance', 'glyph', 'shoo', 'nod', 'pursuit']:
             page = self.texts[f'games/{game}/index.html']
             self.assertIn("Object.defineProperty(navigator,'mediaDevices',{configurable:true,value:undefined});", page)
-            self.assertIn('<label class="row" hidden>Input <select id="input"><option value="pointer">Pointer</option></select></label>', page)
+            self.assertIn('<label class="row" hidden>Look with <select id="input"><option value="pointer">Pointer</option></select></label>', page)
             self.assertNotIn('Camera frames', page)
             self.assertNotIn('<option value="head">', page)
             self.assertIn('#camera-btn,#camera-start,#camera{display:none!important}', page)
@@ -215,6 +215,39 @@ class LibraryIndexTests(unittest.TestCase):
         self.assertNotIn('quipu', ids)
         self.assertIn('cube-maze', ids)
 
+    def test_tangles_opens_from_its_tile_and_keeps_its_experiments_inside(self):
+        # The Tangles tile opens the bundled game. Its Experiments play on a second page of the same game, with
+        # the collection's handshake carried both ways; the web's six share-only tiling pages are not imported.
+        tile = next(t for t in self.tiles if t['name'] == 'Tangles')
+        self.assertEqual((tile['game'], tile['mode'], tile['href']), ('tangles', None, 'https://lukesteuber.com/games/loop/'))
+        self.assertNotIn('Tangles', [n['name'] for n in self.index['notBundled']])
+        game = next(g for g in self.sources if g['id'] == 'tangles')
+        paths = {f['path'] for f in game['files']}
+        self.assertLessEqual({'tangles/index.html', 'tangles/experiments.html', 'tangles/experiments.js', 'tangles/experiments-list.js'}, paths)
+        self.assertEqual([p for p in paths if p.endswith('.html') and p not in {'tangles/index.html', 'tangles/experiments.html'}], [])
+        source = (ROOT / 'imports/tangles/experiments.js').read_text()
+        built = transform(game, 'tangles/experiments.js', source)
+        self.assertNotIn("ROOT = STANDALONE ? '../' : './';", built)
+        self.assertIn("+ 'index.html' + (window.MinimalBridge && MinimalBridge.nonce ? '?minimal=' + MinimalBridge.nonce : '')", built)
+        # Every link Tangles makes to its Experiments names the page, which the adapter's click handler matches.
+        listing = (ROOT / 'imports/tangles/experiments-list.js').read_text()
+        self.assertGreaterEqual(listing.count('./experiments.html?'), 3)
+        self.assertEqual(listing.count('experiments.html'), listing.count('./experiments.html?'))
+        self.assertIn("url.pathname.endsWith('/experiments.html')", (ROOT / 'adapters/private/tangles.js').read_text())
+
+    def test_weaves_opens_from_its_own_tile(self):
+        # Weaves is game-riffs weave-minimal/, bundled as `weaves`; Quipu (game-riffs weave/) is a different game.
+        tile = next(t for t in self.tiles if t['name'] == 'Weaves')
+        self.assertEqual((tile['game'], tile['mode'], tile['href'], tile['also']), ('weaves', None, 'https://lukesteuber.com/games/weave-minimal/', []))
+        self.assertNotIn('Weaves', [n['name'] for n in self.index['notBundled']])
+        game = next(g for g in self.sources if g['id'] == 'weaves')
+        self.assertEqual((game['title'], game['runtime']['id'], game['entry']), ('Weaves', 'weave-minimal', 'weaves/index.html'))
+        page = (ROOT / 'build/html/games/weaves/index.html').read_text()
+        self.assertIn('<title>Weaves</title>', page)
+        built = (ROOT / 'build/html/games/weaves/weave.js').read_text()
+        for call in ['MinimalAdapter?.committed()', 'MinimalAdapter?.undo()', 'MinimalAdapter?.restart()', 'MinimalAdapter?.assist()', "scoringPolicy:'hits-v1'"]:
+            self.assertEqual(built.count(call), 1, call)
+
     def test_themes_and_opening_are_the_index_s_without_its_previews(self):
         # The library opens Dark like the index, with Light and Checkerboard as the other themes; its line drawings
         # replace the pictures in Dark and Light, and its opening is the index's markup. The index's color look
@@ -227,7 +260,7 @@ class LibraryIndexTests(unittest.TestCase):
                 self.assertRegex(selector, r'^html\[data-(?:look|color)', selector)
         shell = '\n'.join((ROOT / path).read_text() for path in ['web/index.html', 'web/collection.js', 'web/collection.css', 'web/library-theme.js',
                                                                  'web/duo-layout.js', 'adapters/bootstrap.js', 'adapters/hooks.js'])
-        for word in ['data-color', "'won'", "'glint'", 'on-dark', 'minimal.index.theme.v1', "'minimal.opening'"]:
+        for word in ['data-color', 'minimal.index.theme.v1', "'minimal.opening'"]:
             self.assertFalse(word in shell, word)
         self.assertIsNone(re.search(r'''get\(\s*["'](?:look|intro|life)["']\s*\)|[?&](?:look|intro|life)=''', shell), 'no address switches')
         theme = (ROOT / 'web/library-theme.js').read_text()
@@ -239,8 +272,8 @@ class LibraryIndexTests(unittest.TestCase):
         self.assertIn('<option value="system">Follow phone</option><option value="checkerboard">Checkerboard</option><option value="light">Light</option><option value="dark">Dark</option>', self.index['settings'])
         self.assertEqual(page.count('<!--index:header-->'), 1)
         self.assertEqual(page.count('<!--index:settings-->'), 1)
-        # The drawings: every tile the index's script swaps has one; Hexsweeper and Spiral Galaxies keep their pictures.
-        self.assertEqual({t['name'] for t in self.tiles if not t.get('lines') and not t['svg']}, {'Hexsweeper', 'Spiral Galaxies'})
+        # The drawings: every tile the index's script swaps has one; Hexsweeper, Spiral Galaxies and Tangles keep their pictures.
+        self.assertEqual({t['name'] for t in self.tiles if not t.get('lines') and not t['svg']}, {'Hexsweeper', 'Spiral Galaxies', 'Tangles'})
         for tile in self.tiles:
             if tile.get('lines'):
                 self.assertTrue(tile['lines']['file'].endswith('-lines.svg'), tile['name'])

@@ -6,8 +6,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<script src="./pwa.js?v=74f99d61" defer></script><link rel="stylesheet" href="./towers.css?v=6947c928">
-<link rel="stylesheet" href="./controls.css?v=4568a846">
+<script src="./pwa.js?v=74f99d61" defer></script><link rel="stylesheet" href="./towers.css?v=a7034b23">
+<link rel="stylesheet" href="./controls.css?v=97b7114c">
 <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
 <meta name="description" content="Raise a block of towers so every row and column holds each height once and each edge number counts the towers seen from there.">
 <meta property="og:title" content="Towers">
@@ -28,8 +28,9 @@
 <body><header><button id="restart-btn" class="ib" aria-label="Restart puzzle"></button><h1 class="sr-only">Towers</h1><div id="readout" class="readout"></div></header><main id="board-shell" aria-label="Towers puzzle"><div class="board-stage"><div id="board" class="board"></div><div id="completion" class="completion" hidden><p id="ending" class="ending" aria-hidden="true" hidden></p><button id="next-btn" class="ib" aria-label="Next puzzle"></button></div></div></main><p id="feedback" role="status" aria-live="polite"></p><p id="announce" class="sr-only" role="status"></p>
 <nav class="toolbar" aria-label="Game controls"><div><button id="undo-btn" class="ib" aria-label="Undo"></button><button id="hint-btn" class="ib" aria-label="Hint"></button><button id="turn-btn" class="ib" aria-label="Turn the board a quarter"></button></div><div><button id="settings-btn" class="ib" aria-label="Settings"></button><button id="help-btn" class="ib" aria-label="Help"></button></div></nav>
 <dialog id="settings" class="sheet" aria-labelledby="settings-title"><div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
-<label class="row">Campaign <select id="campaign"></select></label><div class="row"><button id="previous">Previous</button><button id="following">Next</button></div><div id="free-row" class="row" hidden><span>Generated boards</span><button id="new-game">New board</button></div>
-<label class="row">View <select id="view"><option value="iso">Isometric</option><option value="flat">Flat</option></select></label><label class="row">Theme <select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label class="row">Motion <select id="motion"><option value="system">System</option><option value="reduce">Reduced</option></select></label><div class="row"><span>Current board</span><button id="reset">Clear</button></div></div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
+<h3 class="group">This board</h3><label class="row">Campaign <select id="campaign"></select></label><div class="row"><button id="previous">Previous</button><button id="following">Next</button></div><div class="row"><span>Current board</span><button id="reset">Restart</button></div>
+<h3 class="group">New Game+</h3><div id="free-row" class="row" hidden><span>New Game+</span><button id="new-game">New board</button></div>
+<h3 class="group">Display</h3><label class="row">Theme <select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label class="row">Motion <select id="motion"><option value="system">System</option><option value="reduce">Reduced</option></select></label><label class="row">View <select id="view"><option value="iso">Isometric</option><option value="flat">Flat</option></select></label></div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
 <dialog id="help" class="sheet" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">How to play</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
 <p>Raise a tower on every square. Each row and each column holds every height once.</p>
 <p>A number at the edge counts the towers seen from there. A taller tower hides the shorter ones behind it.</p>
@@ -38,5 +39,5 @@
 <details class="help-more"><summary>More controls</summary><p>On a solved board, tap a number to see from there: the towers it counts stay lit and the ones behind a taller tower fall into shadow. <kbd>V</kbd> walks round the numbers; Escape rests.</p><p><kbd>[</kbd> and <kbd>]</kbd> turn the board. Arrows move as it now faces. Enter or Space raises a tower. A digit sets a height; 0 or Delete clears. Z or Backspace undoes. H hints.</p><p>Restart clears this puzzle; Undo restores it.</p><p>Settings has a flat view: the same board as a plain grid of numbers.</p></details>
 </div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
 <script src="./engine.js?v=e3c5b89a"></script><script src="./levels.js?v=d05370fd"></script><script src="./towers.js?v=f79e8818"></script>
-<script defer src="./controls.js?v=b23f979c"></script>
+<script defer src="./controls.js?v=2260b773"></script>
 </body></html>

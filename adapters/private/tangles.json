@@ -1,0 +1,32 @@
+{
+  "script": "loop.js",
+  "engine": "engine.js",
+  "policy": "hits-v1",
+  "append": false,
+  "hooks": [
+    [
+      "rots = E.turnUnit(current, rots, i, steps); hits++; }",
+      "rots = E.turnUnit(current, rots, i, steps); hits++; window.MinimalAdapter?.committed(); }"
+    ],
+    [
+      "({ rots, offsets } = E.turnRing(current, rots, offsets, k, steps)); hits += Math.abs(steps); }",
+      "({ rots, offsets } = E.turnRing(current, rots, offsets, k, steps)); hits += Math.abs(steps); window.MinimalAdapter?.committed(); }"
+    ],
+    [
+      "  function undo() { clearInput();",
+      "  function undo() { window.MinimalAdapter?.undo(); clearInput();"
+    ],
+    [
+      "  function restart() { clearInput();",
+      "  function restart() { window.MinimalAdapter?.restart(); clearInput();"
+    ],
+    [
+      "    if (action.type === 'hint') {\n      if (!hint) {",
+      "    if (action.type === 'hint') {\n      if (!E.solved(arranged(), rots)) window.MinimalAdapter?.assist();\n      if (!hint) {"
+    ],
+    [
+      "else if (hint) announce(`Hint marks tile ${hint.tile + 1}. Press Hint again to turn it.`); else announce('Every line is closed.');\n        return;",
+      "else if (hint) announce(`Hint marks tile ${hint.tile + 1}. Press Hint again to turn it.`); else announce('Every line is closed.');\n        window.MinimalAdapter?.changed();\n        return;"
+    ]
+  ]
+}

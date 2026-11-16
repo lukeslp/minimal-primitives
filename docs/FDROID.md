@@ -17,7 +17,7 @@ version.
   Up and down rows, and their camera help and privacy lines. Their pages see no
   camera API, so they start on pointer. Every page's own policy drops the
   camera's WebAssembly and the gaze bridge.
-- Every game stays: all 26, with the motor-accessible set in its own grid, and
+- Every game stays: all 29, with the motor-accessible set in its own grid, and
   every switch, touch, keyboard and pointer mode unchanged.
 - Android: no CAMERA permission (it lives in `android/app/src/full/`), page
   permission requests are refused, and VIBRATE is the only permission.

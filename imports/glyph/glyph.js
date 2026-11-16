@@ -750,7 +750,7 @@
     $('meta[name="theme-color"]').content = dark() ? '#000000' : '#ffffff';
     if (reduced()) finishMotion(); else { draw(); chrome(); }
   }
-  $('#rewards').onchange = e => { prefs.rewards = e.target.value; if (prefs.rewards === 'calm') { blooms = []; wave = wave && { ...wave, done: true }; } save(); draw(); announce(prefs.rewards === 'calm' ? 'Calm: paper and ink only.' : 'Colour rewards on.'); };
+  $('#rewards').onchange = e => { prefs.rewards = e.target.value; if (prefs.rewards === 'calm') { blooms = []; wave = wave && { ...wave, done: true }; } save(); draw(); announce(prefs.rewards === 'calm' ? 'Calm: paper and ink only.' : 'Color rewards on.'); };
   // Sound makes its audio context only now, when it is turned on, and ticks once to say so.
   $('#sound').onchange = e => { prefs.sound = e.target.value; save(); if (prefs.sound === 'on') { const s = sound(); try { s.tick(0); } catch (_) {} } announce(prefs.sound === 'on' ? 'Sound on.' : 'Sound off.'); };
   for (const id of ['theme', 'motion']) $('#' + id).onchange = e => { prefs[id] = e.target.value; applyPrefs(); save(); announce(id === 'theme' ? 'Theme changed.' : 'Motion setting changed.'); };

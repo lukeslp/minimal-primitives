@@ -666,7 +666,7 @@
     else startCamera(mode);
   };
   $('#select').onchange = e => { prefs.select = e.target.value; save(); setPhase(phase); announce(prefs.select === 'dwell' ? 'Choose by looking and holding.' : 'Choose by tapping.'); };
-  $('#rewards').onchange = e => { prefs.rewards = e.target.value; save(); if (prefs.rewards === 'calm') stopShow(); if (!busy) rest(); announce(prefs.rewards === 'calm' ? 'Calm: paper and ink only.' : 'Colour rewards.'); };
+  $('#rewards').onchange = e => { prefs.rewards = e.target.value; save(); if (prefs.rewards === 'calm') stopShow(); if (!busy) rest(); announce(prefs.rewards === 'calm' ? 'Calm: paper and ink only.' : 'Color rewards.'); };
   $('#sound').onchange = e => { prefs.sound = e.target.value; save(); if (prefs.sound === 'on') { sound.start(); sound.tick(4); } announce(prefs.sound === 'on' ? 'Sound on.' : 'Sound off.'); };
   $('#dwell').onchange = e => { prefs.dwell = +e.target.value; dwell.time = prefs.dwell; save(); announce(`Hold for ${prefs.dwell / 1000} seconds.`); };
   $('#calibrate').onclick = () => { $('#settings').close(); if (prefs.input === 'pointer') return; if (phase === 'camera' || phase === 'calibrating') beginCalibration(true); else startCamera(prefs.input, { full: true }); };

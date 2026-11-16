@@ -65,5 +65,5 @@ built archive. All game-riffs games now share one pin, so every game has the
 same Access frame. Inside the collection that frame's own in-app Home key is
 turned off, because the collection adds its own.
 
-Harmonies, Simple Machines, Cast 3D, Loop and Weave stay on the web and are
+Harmonies, Simple Machines, Cast 3D and Weave stay on the web and are
 linked from the release page.

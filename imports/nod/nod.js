@@ -788,7 +788,7 @@
     $('meta[name="theme-color"]').content = dark() ? '#000000' : '#ffffff';
     if (reduced()) finishMotion();
   }
-  $('#rewards').onchange = e => { prefs.rewards = e.target.value; if (prefs.rewards === 'calm') unpaint(); save(); announce(prefs.rewards === 'calm' ? 'Rewards calm: paper and ink only.' : 'Rewards in colour.'); };
+  $('#rewards').onchange = e => { prefs.rewards = e.target.value; if (prefs.rewards === 'calm') unpaint(); save(); announce(prefs.rewards === 'calm' ? 'Rewards calm: paper and ink only.' : 'Rewards in color.'); };
   // The AudioContext is made here, in the player's own gesture, and never before Sound is on.
   $('#sound').onchange = e => { prefs.sound = e.target.value; if (prefs.sound === 'on') audio.wake(); save(); announce(prefs.sound === 'on' ? 'Sound on.' : 'Sound off.'); };
   for (const id of ['theme', 'motion']) $('#' + id).onchange = e => { prefs[id] = e.target.value; applyPrefs(); save(); refresh(); announce(id === 'theme' ? 'Theme changed.' : 'Motion setting changed.'); };

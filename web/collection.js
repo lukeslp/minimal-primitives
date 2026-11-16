@@ -102,6 +102,7 @@
       const also = spec.also.map(link => { const other = find(link.game, link.mode); return {label: link.label, aria: resume(link.aria, other.game, other.mode), key: keyFor(other.game, other.mode?.id), run: () => launch(other.game, other.mode)}; });
       const tile = tileFor({...spec, label: resume(spec.label, game, mode), also}, keyFor(game, mode?.id), () => launch(game, mode));
       tile.dataset.game = game.id; if (mode) tile.dataset.mode = mode.id;
+      tile._set = spec.set || null;
       $('tiles').append(tile);
     }
     for (const game of catalog.filter(accessible)) {
@@ -109,7 +110,53 @@
       tile.dataset.game = game.id;
       $('access-tiles').append(tile);
     }
+    dressTiles(); markTiles();
   }
+  // Signs of life, the Minimal index's own (its styles, colors, set sizes and timings): a game whose every board is
+  // finished keeps its tile in one of Slant's colors, and a library that has sat still for ten seconds gets one pass
+  // of the same color across its tiles, then another every twenty. Each bundled game keeps its own record under its
+  // own namespace (adapters/bootstrap.js); the library only reads it. Color is a reward and a greeting: nothing is
+  // told by it alone. Reduced motion, the system's or the library's, stops the shine and keeps the color.
+  let life = {onDark: [], onLight: []}, shineTimer = null;
+  const lifeTiles = () => [...$('tiles').querySelectorAll('.tile')];
+  const finishedCount = value => !value || typeof value !== 'object' ? 0
+    : Math.max(...['completed', 'solved', 'finished', 'done'].map(k => Array.isArray(value[k]) ? value[k].length : 0));
+  function beaten(game, [name, total]) {
+    const prefix = 'lukesteuber.minimal.' + game + ':';
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const full = localStorage.key(i);
+        if (!full.startsWith(prefix)) continue;
+        const key = full.slice(prefix.length);
+        if ((key === name + '.v1' || key.startsWith(name + '.progress.')) && finishedCount(JSON.parse(localStorage.getItem(full))) >= total) return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+  function dressTiles() {
+    const cols = getComputedStyle($('tiles')).gridTemplateColumns.split(' ').length || 1;
+    lifeTiles().forEach((tile, i) => {
+      const dark = getComputedStyle(tile).backgroundColor === 'rgb(0, 0, 0)', wave = Math.floor(i / cols) + i % cols;
+      tile.classList.toggle('on-dark', dark); tile.classList.toggle('on-light', !dark);
+      tile.style.setProperty('--win', (dark ? life.onDark : life.onLight)[wave % 4] || 'transparent');
+      tile._wave = wave;
+    });
+  }
+  function markTiles() { for (const tile of lifeTiles()) tile.classList.toggle('won', !!tile._set && !!tile.querySelector('.art img') && beaten(tile.dataset.game, tile._set)); }
+  const stillLibrary = () => matchMedia('(prefers-reduced-motion: reduce)').matches || settings.motion === 'reduce';
+  function shine() {
+    if (stillLibrary()) return;
+    if (document.hidden || active || $('library').hidden || $('intro') || document.querySelector('dialog[open]')) { waitShine(10000); return; }
+    for (const tile of lifeTiles()) {
+      if (!tile.querySelector('.art img')) continue;
+      setTimeout(() => { tile.classList.add('glint'); setTimeout(() => tile.classList.remove('glint'), 1250); }, tile._wave * 110);
+    }
+    waitShine(20000);
+  }
+  function waitShine(ms) { clearTimeout(shineTimer); if (!stillLibrary()) shineTimer = setTimeout(shine, ms); }
+  for (const type of ['pointermove', 'pointerdown', 'keydown', 'scroll', 'touchstart', 'visibilitychange']) addEventListener(type, () => waitShine(10000), {passive: true, capture: true});
+  addEventListener('resize', dressTiles);
+  waitShine(10000);
   document.addEventListener('click', event => { if (!event.target.closest?.('.tile')) hideCard(); });
   // The opening, the Minimal index's own (its markup, styles and timings): the name, then the eight primitives one at a
   // time in two rows of four, then the name moves up to become the title. It plays the first time the app is opened,
@@ -309,7 +356,9 @@
       active.resumable = !!data.payload.resumable;
       const saved = active.restorePending&&data.payload.resumable?active.initialSave:null;
       if(data.payload.resumable)active.restorePending=false;
-      if (saved && saved.source === active.game.commit) { try { await request('restore', saved); if (attempt) attempt.practice = true; } catch (error) { notice(error.message); } }
+      // A save made by an earlier build of the game (another source commit) is offered to the game too: its
+      // restore checks the state and refuses what it cannot read, and then the game simply starts as new.
+      if (saved) { try { await request('restore', saved); if (attempt) attempt.practice = true; } catch (error) { if (saved.source === active.game.commit) notice(error.message); } }
       frame?.contentWindow.focus();
     } else if (data.type === 'library') library();
     else if (data.type === 'scores') openScores();
@@ -359,7 +408,7 @@
   }
   $('scores-button').onclick=openScores;$('score-category').onchange=showScores;
   $('access-back').onclick=()=>{showList('library');$('access-open')?.focus({preventScroll:true});};
-  Promise.all([fetch('catalog.json').then(r => r.json()), fetch('settings.json').then(r => r.ok ? r.json() : {}).catch(() => ({})), fetch('tiles.json').then(r => r.json())]).then(([games, settings, index]) => { catalog = games; tiles = index;if(typeof settings.apiBase==='string'&&settings.apiBase){const url=new URL(settings.apiBase,location.href);if(url.protocol==='https:'||url.protocol==='http:'&&['127.0.0.1','localhost','[::1]'].includes(url.hostname))apiBase=url.href.replace(/\/?$/,'/');} renderLibrary();
+  Promise.all([fetch('catalog.json').then(r => r.json()), fetch('settings.json').then(r => r.ok ? r.json() : {}).catch(() => ({})), fetch('tiles.json').then(r => r.json()), fetch('life.json').then(r => r.ok ? r.json() : null).catch(() => null)]).then(([games, settings, index, colors]) => { catalog = games; tiles = index; if (colors) life = colors;if(typeof settings.apiBase==='string'&&settings.apiBase){const url=new URL(settings.apiBase,location.href);if(url.protocol==='https:'||url.protocol==='http:'&&['127.0.0.1','localhost','[::1]'].includes(url.hostname))apiBase=url.href.replace(/\/?$/,'/');} renderLibrary();
     const hash=new URLSearchParams(location.hash.slice(1));
     if(hash.get('view')==='accessible')showList('accessible');
     let selected=hash.get('game');

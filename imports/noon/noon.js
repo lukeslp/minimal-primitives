@@ -520,7 +520,7 @@
     $('#readout').setAttribute('aria-label', `${end ? ENDING + ' ' : ''}Board ${n} of ${boards.length}; ${hits} presses; par ${par()}; speed ${prefs.speed + 1} of ${E.STEPS.length}`);
     const clues = (list, word) => list.map((c, k) => `${word} ${k + 1}: ${clueText(c).join(' ')}`).join('; ');
     $('#board').setAttribute('aria-label', `Board ${n} of ${boards.length}: ${g.R} rows by ${g.C} columns, ${state.filled.length} cells filled. ${clues(g.rows, 'row')}. ${clues(g.cols, 'column')}. ${finishedNow ? 'Picture finished.' : state.view >= 0 ? `Zoomed into row ${state.view + 1}.` : 'Press any key or tap as a clock\'s hand reaches the top.'}`);
-    $('#speed').setAttribute('aria-valuetext', `${prefs.speed + 1} of ${E.STEPS.length}, ${(E.STEPS[prefs.speed] / 1000).toFixed(1)} seconds a turn`);
+    $('#speed-value').textContent = '· ' + (E.STEPS[prefs.speed] / 1000).toFixed(1) + ' s'; $('#speed').setAttribute('aria-valuetext', `${prefs.speed + 1} of ${E.STEPS.length}, ${(E.STEPS[prefs.speed] / 1000).toFixed(1)} seconds a turn`);
     $('#undo-btn').disabled = state.history.length === 0;
     $('#hint-btn').disabled = finishedNow;
     $('#next-btn').hidden = !finishedNow; labelNext();
@@ -630,7 +630,7 @@
     // A new way of choosing starts the current choice afresh, on the board.
     if (k === 'choose' && mode() !== before) { state = { ...state, view: -1 }; zoom = { from: 0, to: 0, start: 0, row: -1 }; begin(); fade = new Map(); fit(); }
     chrome(); save();
-    announce({ theme: 'Theme changed.', motion: 'Motion setting changed.', rewards: colourOn() ? 'Colour rewards.' : 'Calm: paper and ink only.', choose: `Choosing by ${mode()}${prefs.choose === 'auto' ? ', chosen for this board and speed' : ''}. Par ${par()}.`, adapt: prefs.adapt === 'on' ? 'Adapting to your timing.' : 'Using the starting timing.', sound: prefs.sound === 'on' ? 'Sound on.' : 'Sound off.', hold: prefs.hold === 'off' ? 'Hold to take back off.' : `Hold ${Number(prefs.hold) / 1000} seconds to take back a step.`, release: prefs.release === 'off' ? 'Release time off.' : `Presses within ${Number(prefs.release) / 1000} seconds of a release are ignored.` }[k]);
+    announce({ theme: 'Theme changed.', motion: 'Motion setting changed.', rewards: colourOn() ? 'Color rewards.' : 'Calm: paper and ink only.', choose: `Choosing by ${mode()}${prefs.choose === 'auto' ? ', chosen for this board and speed' : ''}. Par ${par()}.`, adapt: prefs.adapt === 'on' ? 'Adapting to your timing.' : 'Using the starting timing.', sound: prefs.sound === 'on' ? 'Sound on.' : 'Sound off.', hold: prefs.hold === 'off' ? 'Long press: take back off.' : `Hold ${Number(prefs.hold) / 1000} seconds to take back a step.`, release: prefs.release === 'off' ? 'Release time off.' : `Presses within ${Number(prefs.release) / 1000} seconds of a release are ignored.` }[k]);
   });
   $('#speed').addEventListener('input', e => setSpeed(Number(e.target.value), false));
   motionQuery.addEventListener('change', applyPrefs); darkQuery.addEventListener('change', applyPrefs);

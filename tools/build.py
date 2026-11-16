@@ -67,6 +67,8 @@ def library_tiles(index, games, output):
                       'imageWide': versioned(tile['artWide']) if tile['artWide'] else None,
                       # The Dark and Light themes show the index's line drawing instead, where it has one.
                       'drawing': versioned(tile['lines']) if tile.get('lines') else None,
+                      # Where the game keeps its record and how many boards make its whole set (finished-tile color).
+                      'set': tile.get('set'),
                       'also': [{'label': l['label'], 'aria': l['aria'], 'game': l['game'], 'mode': l['mode']} for l in tile['also']]})
     if ids - reached:
         raise ValueError(f'Games with no tile on the index: {sorted(ids - reached)}')
@@ -145,6 +147,7 @@ def build(variant='full', make_zip=True):
         # An outside link leaves the app: it opens in a new tab, as every shipped page's links do.
         page = page.replace(mark, index[part].replace('<a href="https://', '<a target="_blank" rel="noopener noreferrer" href="https://'), 1)
     (output / 'index.html').write_text(page.replace('<body>', '<body>\n' + index['opening'], 1))
+    (output / 'life.json').write_text(json.dumps(index['life'], separators=(',', ':')) + '\n')
     (output / 'tiles.json').write_text(json.dumps(tiles, separators=(',', ':'), ensure_ascii=False) + '\n')
     # Catalog order is the library's: each tile's game, then the games on its card (Tilt, then Tilt · 3D and Cube Maze).
     order = [game for t in tiles if 'game' in t for game in [t['game']] + [l['game'] for l in t['also']]]

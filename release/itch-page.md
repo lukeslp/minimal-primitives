@@ -6,7 +6,7 @@ I think the purpose of technology is to reduce the latency between intent and ou
 
 Interaction primitives are to doing what [simple machines](https://en.wikipedia.org/wiki/Simple_machine) are to building: push, pull, lift, release, tilt, turn, fold, connect, toggle, point. Each game here is built on one or two of them.
 
-Twenty-seven small puzzle games in black and white.
+Twenty-nine small puzzle games in black and white.
 
 **Hexsweeper.** Find the mines on hex tiles: on a sphere, on a classic board, or on a board with no end.
 **Notan.** Fill the squares each row and column asks for, and a small picture appears.
@@ -26,6 +26,8 @@ Twenty-seven small puzzle games in black and white.
 **Cast.** Stack cubes until three shadows match.
 **Tilt · 3D.** Tip a stack of glass trays so the marble drops through the right holes.
 **Cube Maze.** Tip a glass cube and turn its slices until the marble rolls out of the spout.
+**Tangles.** Turn tiles until every line closes into a loop, on hexagons and six other tilings.
+**Weaves.** Pass each thread over or under. None may float past two crossings.
 **Delve.** Descend through a dungeon of squares. Dodge attacks, fight and find the stairs.
 
 The last tile opens eight Motor Accessibility Puzzles, made for one switch, your eyes or a tilt of the head:
@@ -45,7 +47,7 @@ Progress stays in your browser. No account.
 
 More on the web:
 - [Android download](https://lukesteuber.com/downloads/apps/minimal-primitives/)
-- [The Minimal board](https://lukesteuber.com/minimal/), with [Harmonies](https://datapoems.io/datavis/poems/music.html), [Simple Machines](https://lukesteuber.com/games/simplemachines-minimal/), [Loop](https://lukesteuber.com/games/loop/) and [Weave](https://lukesteuber.com/games/weave-minimal/)
+- [The Minimal board](https://lukesteuber.com/minimal/), with [Harmonies](https://datapoems.io/datavis/poems/music.html) and [Simple Machines](https://lukesteuber.com/games/simplemachines-minimal/)
 
 ---
 
@@ -118,6 +120,8 @@ rewrites this list.
 31. `31-sweep.png`: Sweep, phone (1170x2532)
 32. `32-ticker.png`: Ticker, phone (1170x2532)
 33. `33-cube-maze.png`: Cube Maze, phone (1170x2532)
+34. `34-tangles.png`: Tangles, phone (1170x2532)
+35. `35-weaves.png`: Weaves, phone (1170x2532)
 <!-- /screenshots -->
 
 Play clips, one per board, in `release/clips/`: a 480 px looping GIF (about

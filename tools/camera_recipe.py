@@ -25,20 +25,22 @@ NO_CAMERA_GAME = 'cameraGame=false;'
 INLINE_FRAMES = {'hexsweeper/bounded.html', 'hexsweeper/infinite.html'}
 
 # Camera games: each plays by pointer as well, so it keeps everything else.
-INPUT_ROW = ('<label class="row">Input <select id="input"><option value="head">Head</option>'
+INPUT_ROW = ('<label class="row">Look with <select id="input"><option value="head">Head</option>'
              '<option value="eyes">Eyes</option><option value="pointer">Pointer</option></select></label>')
-POINTER_INPUT = ('<label class="row" hidden>Input <select id="input">'
+POINTER_INPUT = ('<label class="row" hidden>Look with <select id="input">'
                  '<option value="pointer">Pointer</option></select></label>')
 CALIBRATION = '<div class="row">{label} <button id="calibrate" class="text-btn" type="button">Calibrate</button></div>'
 PRIVACY = ('<p>Camera frames never leave this device and nothing is stored; '
            'the camera stops when you leave or choose Pointer.</p>')
-HIDE = '<style>#camera-btn,#camera-start,#camera{display:none!important}</style></head>'
+# A Settings group left with only hidden rows (Pursuit's Play: Look with and Calibration) loses its heading too.
+HIDE = ('<style>#camera-btn,#camera-start,#camera{display:none!important}'
+        'h3.group:has(+ [hidden] + [hidden] + h3.group){display:none}</style></head>')
 CAMERA_GAMES = {
     'glance': ('Calibration', [
         ('content="A small board of tiles, turned over by looking."',
          'content="A small board of tiles to turn dark."'),
-        ('<p>Look at a tile until its ring fills, or tap it, to turn it and its neighbours over.</p>',
-         '<p>Tap a tile, or rest the pointer on it until its ring fills, to turn it and its neighbours over.</p>'),
+        ('<p>Look at a tile until its ring fills, or tap it, to turn it and its neighbors over.</p>',
+         '<p>Tap a tile, or rest the pointer on it until its ring fills, to turn it and its neighbors over.</p>'),
     ]),
     'glyph': ('Calibration', [
         ('content="A faint figure on a square of points, traced from corner to corner by looking."',
@@ -61,7 +63,7 @@ CAMERA_GAMES = {
         ('<p>Tilt your head toward a side and hold, or drag, swipe or press an arrow, to tip the trays; come back to level before the next tip.</p>',
          '<p>Drag, swipe or press an arrow to tip the trays.</p>'),
     ]),
-    'pursuit': ('Gaze dot', [
+    'pursuit': ('Calibration', [
         ('content="Choose by following: the ring your eyes, head or pointer follows comes to rest in the picture."',
          'content="Choose by following: the ring your pointer follows comes to rest in the picture."'),
         ('<p>Follow a ring with your eyes, your head or a pointer until its trail fills, and it comes to rest in the picture.</p>',

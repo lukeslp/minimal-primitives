@@ -2,9 +2,9 @@ These games started as UX experiments. I wanted to see whether a simple, iconic 
 
 Interaction primitives are to doing what simple machines are to building: push, pull, lift, release, tilt, turn, fold, connect, toggle, point. Each game here is built on one or two of them.
 
-Twenty-six small puzzle games in black and white, in one app that plays offline. Most also play with one switch or by looking. No account, no ads, no tracking. Unfinished boards, Undo and settings are kept when you go Home, so you can move between games and pick up where you left off.
+Twenty-nine small puzzle games in black and white, in one app that plays offline. Most also play with one switch or by looking. No account, no ads, no tracking. Unfinished boards, Undo and settings are kept when you go Home, so you can move between games and pick up where you left off.
 
-Eighteen games on the main board:
+Twenty-one games on the main board:
 • Hexsweeper: find the mines on hex tiles, on a sphere, a classic board or a board with no end
 • Notan: fill the squares each row and column asks for, and a small picture appears
 • Akari: light every open square; lamps must never shine on each other
@@ -22,6 +22,9 @@ Eighteen games on the main board:
 • Balance: fill the grid with black and white, never three alike in a row
 • Cast: stack cubes until three shadows match
 • Tilt · 3D: tip a stack of glass trays so the marble drops through the right holes
+• Cube Maze: tip a glass cube and turn its slices until the marble rolls out of the spout
+• Tangles: turn tiles until every line closes into a loop, on hexagons and six other tilings
+• Weaves: pass each thread over or under; none may float past two crossings
 • Delve: descend a dungeon of squares, dodge attacks, fight and find the stairs
 
 Behind the last tile, eight Motor Accessibility Puzzles, made for one switch, your eyes or a tilt of the head: Glance, Glyph, Pursuit, Shoo, Nod, Noon, Sweep and Ticker.

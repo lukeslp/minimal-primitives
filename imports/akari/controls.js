@@ -202,7 +202,15 @@
     calName.textContent='Calibration';calButton.type='button';calButton.id='access-calibrate';calButton.className=picker?'access-action':anchor.className||'access-action';calButton.textContent='Calibrate';cal.append(calName,calButton);
     calButton.addEventListener('click',()=>{if(sheet.open&&sheet.close)sheet.close();ensure(e=>e.calibrate());});
     const secs=v=>v?v/1000+' s':'Off';
-    row0.after(row('mode','Access',MODES.map(m=>[m,names[m]])),row('speed','Speed',[['slowest','Slowest (6 s)'],['slower','Slower (3 s)'],['slow','Slow'],['normal','Normal'],['fast','Fast']]),
+    // A sheet grouped under headings (h3.group) takes the Access rows as a
+    // section of their own, after the section the anchor row is in; any other
+    // sheet keeps them straight after the anchor row, with no heading.
+    let last=row0,head=null;
+    if(sheet.querySelector('h3.group')){
+      while(last.nextElementSibling&&!last.nextElementSibling.matches('h3,section,[role="status"]'))last=last.nextElementSibling;
+      head=document.createElement('h3');head.className='group access-group';head.textContent='Access';
+    }
+    last.after(row('mode','Access',MODES.map(m=>[m,names[m]])),row('speed','Speed',[['slowest','Slowest (6 s)'],['slower','Slower (3 s)'],['slow','Slow'],['normal','Normal'],['fast','Fast']]),
       row('scan','Scan',[['groups','Groups'],['keys','Keys']]),row('press','Press time',CHOICES.press.map(v=>[String(v),secs(v)])),
       row('release','Release time',CHOICES.release.map(v=>[String(v),secs(v)])),row('long','Long press',CHOICES.long.map(v=>[String(v),secs(v)])),
       row('rest','Rest after',[['0','Never'],['2','2 passes'],['4','4 passes'],['8','8 passes']]),row('highlight','Highlight',[['invert','Invert'],['outline','Outline']]),
@@ -212,7 +220,7 @@
     // the Access rows show their values but cannot be changed here.
     const locked=()=>{try{return localStorage.getItem('minimal-access.v1:locked')==='1';}catch(_){return false;}};
     const lockNote=document.createElement('p');lockNote.className='access-row access-locked';lockNote.dataset.access='locked';lockNote.textContent='Set by your clinician.';lockNote.hidden=true;
-    rows.mode.node.before(lockNote);
+    rows.mode.node.before(lockNote);if(head)lockNote.before(head);
     // Why a look is greyed out, said beside it rather than left to guess.
     const lookNote=document.createElement('p');lookNote.className='access-row access-note';lookNote.dataset.access='look-note';
     lookNote.textContent=[!camOK&&'Head and Eyes need the camera, which this page does not allow.',!trackOK&&'Eye tracker needs the gaze bridge on this computer, which this page cannot reach.'].filter(Boolean).join(' ');
