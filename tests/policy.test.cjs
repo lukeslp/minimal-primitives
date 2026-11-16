@@ -19,7 +19,7 @@ async function setup(sharing){
   if(!file.startsWith(root+path.sep))return route.abort();
   try{return route.fulfill({path:file,contentType:({'.js':'text/javascript','.mjs':'text/javascript','.html':'text/html','.json':'application/json','.css':'text/css','.woff2':'font/woff2'})[path.extname(file)]});}catch{return route.fulfill({status:404,body:''});}
  });
- const page=await context.newPage();await page.goto(origin+'/');await page.getByRole('button',{name:'Notan',exact:true}).click();const frame=page.frames()[1];await frame.waitForFunction(()=>!!window.__notan&&!!window.MinimalAdapter);await page.waitForTimeout(100);
+ const page=await context.newPage();await page.goto(origin+'/');await page.locator('[data-open="notan"]').evaluate(a=>a.click());const frame=page.frames()[1];await frame.waitForFunction(()=>!!window.__notan&&!!window.MinimalAdapter);await page.waitForTimeout(100);
  return{context,page,frame,requests};
 }
 async function cell(f,n){await f.locator('#board .cell').nth(n).focus();await f.page().keyboard.press('Enter');}

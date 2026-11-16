@@ -40,8 +40,8 @@ collection snapshot alone. Document-scoped handshakes permit that navigation
 without replaying a stale snapshot over a manual theme change. Home does not
 change the board's input mode or replace its saved native focus.
 
-Luke requested pure-white lamp cores with a tighter halo in the charcoal Akari
-look, then a floor brightness halfway between the first bright version and the
+The charcoal Akari look has pure-white lamp cores with a tighter halo, and a
+floor brightness halfway between the first bright version and the
 dimmer correction. The .585 light ceiling is the approximate visual midpoint of
 .31 and .96 after gamma encoding. Standalone visual references apply that ceiling
 and the tighter lamp shadow before comparison. Source hashes, floor falloff,

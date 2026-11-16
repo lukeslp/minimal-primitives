@@ -1,0 +1,14 @@
+{
+  "script": "cube-maze.js",
+  "engine": "engine.js",
+  "policy": "moves-v1",
+  "append": true,
+  "hooks": [
+    ["  clearHint(); save(); updateUI(); announceMove(move, r.trace);", "  window.MinimalAdapter?.committed();\n  clearHint(); save(); updateUI(); announceMove(move, r.trace);"],
+    ["if (item.kind === 'undo') { if (!history.length) return; history.pop();", "if (item.kind === 'undo') { if (!history.length) return; window.MinimalAdapter?.undo(); history.pop();"],
+    ["function restart() { queue = [];", "function restart() { window.MinimalAdapter?.restart(); queue = [];"],
+    ["function pressHint() {\n  if (state.out || busy()) return;\n", "function pressHint() {\n  if (state.out || busy()) return;\n  window.MinimalAdapter?.assist();\n"],
+    ["if (move === 'undo') { announce('Undo is the way back.'); return; }", "if (move === 'undo') { announce('Undo is the way back.'); window.MinimalAdapter?.changed(); return; }"],
+    ["  announce('Hint shown; press Hint again to play it.'); kick();\n}", "  announce('Hint shown; press Hint again to play it.'); kick(); window.MinimalAdapter?.changed();\n}"]
+  ]
+}

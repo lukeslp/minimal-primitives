@@ -3,7 +3,10 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const {chromium}=require(process.env.MINIMAL_PLAYWRIGHT||'/Users/luke/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright-core');
 const chrome=process.env.MINIMAL_CHROME||'/Users/luke/Library/Caches/ms-playwright/chromium-1228/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
 const root=path.resolve(__dirname,'..'),prefix='/html/4815162/';
-const mainTiles=JSON.parse(fs.readFileSync(path.join(root,'sources.json'))).games.filter(g=>g.group!=='accessible').reduce((n,g)=>n+(g.modes?g.modes.length:1),0);
+// The library's tiles are the Minimal index's (index.json); the last one opens the accessible puzzles and has an icon, not a picture.
+const mainTiles=JSON.parse(fs.readFileSync(path.join(root,'index.json'))).tiles.filter(t=>!t.notBundled).length;
+// These pages run with normal motion, so the library's opening would play over them; it has its own tests (parity-shell.cjs).
+const quiet=page=>page.addInitScript(()=>{try{localStorage.setItem('lukesteuber.minimal.collection.v1:opening','1');}catch(_){}});
 const types={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.woff2':'font/woff2','.png':'image/png','.svg':'image/svg+xml','.webp':'image/webp','.jpg':'image/jpeg'};
 
 test('archive runs every title inside an itch-style embed without outside requests', {timeout:180000},async()=>{
@@ -37,7 +40,7 @@ test('archive runs every title inside an itch-style embed without outside reques
   let collection=await (await page.locator('#collection').elementHandle()).contentFrame();await collection.waitForSelector('.tile');
   assert.equal(await collection.locator('#tiles .tile').count(),mainTiles);assert.equal(await collection.locator('#access-tiles .tile').count(),8);
   assert.equal(await collection.locator('.collection-bar,#modes').count(),0);
-  assert.equal(await collection.locator('#library header,.tile-title,.tile-resume').count(),0);
+  assert.equal(await collection.locator('#library header:not(.top),.tile-title,.tile-resume').count(),0);
   const assertTileArtwork=async collection=>{
    const scroll=await collection.locator('#library').evaluate(e=>e.scrollTop);
    for(const image of await collection.locator('#tiles .tile img').all())await image.evaluate(async i=>{
@@ -49,7 +52,7 @@ test('archive runs every title inside an itch-style embed without outside reques
    await collection.evaluate(()=>new Promise(requestAnimationFrame));
    await collection.waitForFunction(()=>[...document.querySelectorAll('#tiles .tile img')].every(i=>i.complete&&i.naturalWidth>0),{},{timeout:4000}).catch(async()=>{throw new Error('Tile images failed: '+JSON.stringify(await collection.locator('#tiles .tile img').evaluateAll(imgs=>imgs.map(i=>({src:i.src,complete:i.complete,width:i.naturalWidth})))));});
    const images=await collection.locator('#tiles .tile img').evaluateAll(imgs=>imgs.map(i=>i.currentSrc));
-   assert.equal(images.length,mainTiles,'every title/mode has artwork');
+   assert.equal(images.length,mainTiles-1,'every game tile has artwork');
    for(const src of images){
     const url=new URL(src),file=decodeURIComponent(url.pathname.slice(prefix.length));
     assert.equal(url.searchParams.get('v'),manifest[file].slice(0,12),'artwork URL carries its content hash');
@@ -84,7 +87,7 @@ test('archive runs every title inside an itch-style embed without outside reques
   for(const game of catalog){
    for(const mode of game.modes.length?game.modes:[null]){
     console.log('Embed:',game.id,mode?.id||'campaign');
-    await collection.locator('.tile[data-game="'+game.id+'"]'+(mode?'[data-mode="'+mode.id+'"]':'')).click();
+    await collection.locator('[data-open="'+game.id+(mode?':'+mode.id:'')+'"]').evaluate(a=>a.click());
     let child=collection.childFrames()[0];await child.waitForFunction(()=>!!window.MinimalAdapter);
     await child.waitForTimeout(150);
     const play=child.getByRole('button',{name:'Play',exact:true});if(await play.isVisible())await play.click();
@@ -117,7 +120,7 @@ test('archive runs every title inside an itch-style embed without outside reques
    await collection.locator('#access-back').click();await collection.locator('#library:visible').waitFor();
   }
   // Reload itch's outer page: the new iframe src has no selected-game fragment.
-  await collection.locator('.tile[data-game="hexsweeper"][data-mode="classic"]').click();
+  await collection.locator('[data-open="hexsweeper:classic"]').evaluate(a=>a.click());
   await collection.childFrames()[0].locator('#minimal-home').waitFor();
   await page.reload();collection=await (await page.locator('#collection').elementHandle()).contentFrame();
   await collection.waitForSelector('#player iframe');
@@ -134,7 +137,7 @@ test('archive runs every title inside an itch-style embed without outside reques
   const shots=path.join('/Users/luke/craft/reports/by-date/2026-10-14/minimal-build','release');fs.mkdirSync(shots,{recursive:true});
   await page.screenshot({path:path.join(shots,'minimal-embed.png')});
   for(const viewport of [{width:390,height:844},{width:844,height:390}]){
-   const embed=await browser.newPage({viewport,hasTouch:true,isMobile:true});
+   const embed=await browser.newPage({viewport,hasTouch:true,isMobile:true});await quiet(embed);
    await embed.goto(`http://localhost:${port}/`);
    const mobileCollection=await (await embed.locator('#collection').elementHandle()).contentFrame();await mobileCollection.waitForSelector('.tile');
    await scrollLibrary(embed,mobileCollection,true);
@@ -142,15 +145,18 @@ test('archive runs every title inside an itch-style embed without outside reques
    await embed.screenshot({path:path.join(shots,'minimal-scroll-'+viewport.width+'.png')});
    await mobileCollection.locator('#scores-button').tap();await mobileCollection.locator('#scores').waitFor({state:'visible',timeout:4000});
    await mobileCollection.locator('#scores .close').click();
-   await mobileCollection.locator('.tile[data-game="horologist"]').click();
+   await mobileCollection.locator('[data-open="horologist"]').evaluate(a=>a.click());
    await mobileCollection.childFrames()[0].locator('#minimal-home').click();await mobileCollection.locator('#library:visible').waitFor();
    assert.ok(await mobileCollection.locator('#library').evaluate(e=>e.scrollTop>0),'Home retains library scroll position');
    await embed.close();
-   const phone=await browser.newPage({viewport,hasTouch:true,isMobile:true});await phone.goto(`http://127.0.0.1:${port}${prefix}index.html`);await phone.waitForSelector('.tile');
+   const phone=await browser.newPage({viewport,hasTouch:true,isMobile:true});await quiet(phone);await phone.goto(`http://127.0.0.1:${port}${prefix}index.html`);await phone.waitForSelector('.tile');
    assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
    await phone.screenshot({path:path.join(shots,'minimal-'+viewport.width+'.png')});
    for(const game of catalog)for(const mode of game.modes.length?game.modes:[null]){
-    await phone.locator('.tile[data-game="'+game.id+'"]'+(mode?'[data-mode="'+mode.id+'"]':'')).click();
+    // On touch the first tap shows the tile's card and the second opens it; Flat and Endless sit on Hexsweeper's card.
+    const link=phone.locator('[data-open="'+game.id+(mode?':'+mode.id:'')+'"]'),tile=link.locator('xpath=ancestor::div[contains(@class,"tile")]');
+    if(await link.evaluate(a=>a.classList.contains('go'))){await link.tap();assert.ok(await tile.evaluate(t=>t.classList.contains('show')),'first tap shows the card');assert.equal(phone.frames().length,1,'the first tap opens nothing');await link.tap();}
+    else{await tile.locator('.go').tap();await link.tap();}
     const child=phone.frames()[1];await child.locator('#minimal-home').waitFor();
     const geometry=await child.evaluate(()=>{
      const home=document.querySelector('#minimal-home').getBoundingClientRect(),reset=(document.querySelector('#qc-reset')||document.querySelector('#restart-btn,#restart,#reset-btn,#control-restart')||document.querySelector('#undo-btn')||document.querySelector('#new-btn')).getBoundingClientRect();

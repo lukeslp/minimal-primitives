@@ -44,7 +44,7 @@ def inject(game, path, text):
         restore += "store=d.store;progress=d.progress;Object.assign(prefs,d.prefs);write(K.settings,prefs);generated=d.generated;"
         if ident=='bridges': restore += "circuitMode=!!d.circuitMode;document.documentElement.classList.toggle('circuit-study',circuitMode);__minimalCircuitHelp();"
         if ident=='slant': restore += "Object.assign(free,d.free);freePuzzle=d.freePuzzle;lockTool=d.lockTool;$('#free-size').value=String(free.size);"
-        restore += "switchBoard(d.at,true);Object.assign(S,d.state);"
+        restore += "switchBoard(d.at,true);Object.assign(S,d.state);if(!('finale' in d.state))delete S.finale;"
         if ident!='fold': restore += "mode=d.mode;"
         if ident=='fold': restore += 'S.state=replay(puzzle,S.path);S.busy=false;'
         if ident in {'galaxies','bridges','slant'} or alternate: restore += 'lesson=d.lesson??0;resetPractice();Object.assign(P,d.practice);practiceDraw();'

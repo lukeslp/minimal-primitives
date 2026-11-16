@@ -155,6 +155,19 @@
     const v = clamp(kv * (look.ay + cal.v.b / cal.v.k), -1.25, 1.25);
     return { u: clamp(cal.u.b + cal.u.k * look.ax, -1.25, 1.25), v: invertY ? -v : v };
   }
+  // A typical reach, for a player whose five-dot calibration did not take
+  // twice: made from the five places as an average sitter reaches them (a
+  // quarter radian of head turn, or the look's same share), then recentred on
+  // one held dot. In image terms, as the readings are: the screen's left is
+  // the image's right, so a look left reads positive across, and a look up
+  // reads negative. Marked rough, so the next start asks for the five dots
+  // again.
+  function typical(kind) {
+    const T = { head: [{ yaw: 0, pitch: 0, roll: 0 }, { yaw: .25, pitch: 0, roll: 0 }, { yaw: -.25, pitch: 0, roll: 0 }, { yaw: 0, pitch: -.15, roll: 0 }, { yaw: 0, pitch: .15, roll: 0 }],
+      eyes: [{ ax: 0, ay: 0 }, { ax: .6, ay: 0 }, { ax: -.6, ay: 0 }, { ax: 0, ay: -.5 }, { ax: 0, ay: .5 }] };
+    const made = kind === 'head' ? headCalibration(T.head) : kind === 'eyes' ? eyesCalibration(T.eyes) : null;
+    return made && { ...made, rough: true };
+  }
   // Holding still: every recent reading lies close to their mean.
   function stillness(window, keys, tolerance) {
     if (!window.length) return { still: false };
@@ -165,7 +178,8 @@
   // An eyes calibration made before the eyes' up and down were measured from
   // the corners (no `e: 2`) still loads, but asks for a full calibration
   // again; a head calibration is unchanged.
-  const current = c => !!c && (c.kind !== 'eyes' || c.e === 2);
+  // A rough (typical) calibration also asks for the five dots again.
+  const current = c => !!c && !c.rough && (c.kind !== 'eyes' || c.e === 2);
   // Head yaw, pitch and roll in radians. From the facial transformation
   // matrix (column-major, as MediaPipe gives it): the face's forward axis is
   // its third column and its sideways axis its first, whose slope in the
@@ -306,5 +320,5 @@
       reset(fresh = false) { phase = 'spent'; reason = 'start'; dir = null; fired = null; last = null; missing = null; if (fresh) offset = { x: 0, y: 0 }; shown = { dir: null, value: 0 }; }
     };
   }
-  return { clamp, oneEuro, dwell, MESH, headPose, landmarkPose, irisOffset, lookAngles, SPOTS, headCalibration, headMap, eyesCalibration, eyesMap, recentre, stillness, validCalibration, current, headPoint, zoneOf, gesture };
+  return { clamp, oneEuro, dwell, MESH, headPose, landmarkPose, irisOffset, lookAngles, SPOTS, headCalibration, headMap, eyesCalibration, eyesMap, recentre, typical, stillness, validCalibration, current, headPoint, zoneOf, gesture };
 });

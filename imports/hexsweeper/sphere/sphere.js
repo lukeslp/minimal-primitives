@@ -516,23 +516,6 @@
     label: "rgba(255,255,255,0.85)",
     labelStroke: "rgba(0,0,0,0.85)",
   });
-  const THEME_GILDED_RIBBON = reflectionTheme({
-    id: "gilded-ribbon",
-    name: "Gilded Ribbon",
-    material: "gilded-ribbon",
-    warn: { count: "numerals", relief: "extruded", seams: false },
-    accent: "#dfa35f",
-    fallbackBg: "#080510",
-    fallbackBgGlow: "#4d3449",
-    fallbackCore: "#020103",
-    coveredEdge: "rgba(223,163,95,0.24)",
-    pentagonEdge: "rgba(240,200,140,0.32)",
-    hoverRing: "#f4cf9a",
-    activeRing: "#dfa35f",
-    revealGlow: "#dfa35f",
-    text: { 1: "#fff4e4", 2: "#f4cf9a", 3: "#dfa35f", 4: "#e0b8ff", 5: "#ff9f8f", 6: "#ff7180" },
-    label: "#fff4e4",
-  });
   const THEME_HEAT_LIGHTNING = reflectionTheme({
     id: "heat-lightning",
     name: "Heat Lightning",
@@ -567,7 +550,6 @@
     THEME_ION_STORM,
     THEME_AURORA,
     THEME_GALAXY,
-    THEME_GILDED_RIBBON,
     THEME_HEAT_LIGHTNING,
   ].filter((t) => {
     // Native app builds ship without the globe-map themes. Their daymaps are
@@ -911,8 +893,6 @@
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M6.5 13.5c1.5-3 3-3 4.5 0s3 3 4.5 0" opacity="0.9"></path><path d="M7.5 9.5c1.2-2 2.4-2 3.6 0s2.4 2 3.6 0" opacity="0.5"></path></svg>',
     galaxy:
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 12c-3-2.5-1.5-6 2-6.2" opacity="0.9"></path><path d="M12 12c3 2.5 1.5 6-2 6.2" opacity="0.9"></path><circle cx="12" cy="12" r="1.2" fill="currentColor"></circle></svg>',
-    "gilded-ribbon":
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M7 15c2-6 4-6 6 0s4 6 4-1" opacity="0.9"></path></svg>',
     "heat-lightning":
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12.5 6.5 9 12h3l-1.5 5.5" opacity="0.95"></path><path d="M15.5 9.5l-1.6 2.6h1.8l-1.2 2.4" opacity="0.5"></path></svg>',
   };
@@ -1630,7 +1610,7 @@
       if (themeBtn) {
         themeBtn.setAttribute(
           "aria-label",
-          `Theme: ${t.name}. Activate to cycle Light, Shell, Dark, Ink, Float, Card, Earth, Moon, Glow, Mercury, Stratosphere, Ion Storm, Aurora, Galaxy, Gilded Ribbon, Heat Lightning.`
+          `Theme: ${t.name}. Activate to cycle Light, Shell, Dark, Ink, Float, Card, Earth, Moon, Glow, Mercury, Stratosphere, Ion Storm, Aurora, Galaxy, Heat Lightning.`
         );
         themeBtn.innerHTML = THEME_ICONS[t.id] || THEME_ICONS.light;
       }
@@ -1839,10 +1819,10 @@
         } catch (_) {}
       }
       if (fromWelcome) markWelcomeSeen = true;
-      helpFocusReturn =
+      helpFocusReturn = document.getElementById("qc-help") || (
         document.activeElement && document.activeElement !== document.body
           ? document.activeElement
-          : helpBtn;
+          : helpBtn);
       helpOverlay.hidden = false;
       document.body.classList.add("help-open");
       // Deferred a frame so the opacity transition runs; closeHelp cancels it
@@ -1854,8 +1834,15 @@
         helpOverlay.classList.add("open");
       });
       if (releaseFocusTrap) releaseFocusTrap();
-      releaseFocusTrap = trapFocus(helpOverlay);
-      (helpPanel || helpOverlay).focus?.();
+      if (global.SphereDialogFocus) {
+        releaseFocusTrap = global.SphereDialogFocus.open(helpOverlay, {
+          initialFocus: helpPanel || helpOverlay,
+          onEscape: closeHelp,
+        });
+      } else {
+        releaseFocusTrap = trapFocus(helpOverlay);
+        (helpPanel || helpOverlay).focus?.();
+      }
     }
 
     function closeHelp() {
@@ -4177,7 +4164,7 @@
       const T = state.theme;
       if (!T || !T.reflectionSurface) return null;
       // Per-face cores: view-locked metal decals (Mercury's liquid metal is
-      // the reference; Ion Storm cobalt, Gilded Ribbon gold) and two light
+      // the reference; Ion Storm cobalt) and two light
       // surfaces (Stratosphere porcelain, Heat Lightning ivory). Galaxy's
       // cleared faces are holes onto the black hole painted once per frame
       // by drawInteriorEffect; Aurora clears to a plain well.
@@ -4192,15 +4179,14 @@
       return state.reduceMotion ? 0 : now * 0.001;
     }
     /** Galaxy: indigo dust with a fixed star field that twinkles. */
-    // Mercury (liquid metal), Galaxy (black hole), and the three dark metals
-    // (Ion Storm cobalt, Gilded Ribbon gold, Heat Lightning copper) clear to a
+    // Mercury (liquid metal), Galaxy (black hole), and the two dark metals
+    // (Ion Storm cobalt, Heat Lightning copper) clear to a
     // continuous interior with depth and no seams. Stratosphere and Aurora
     // clear to mono wells with depth and seams, on the Light/Dark model.
     const CORE_PROFILES = {
       mercury: "metal",
       galaxy: "blackhole",
       "ion-storm": "cobalt",
-      "gilded-ribbon": "gold",
       "heat-lightning": "copper",
     };
     // Whole-sphere effects seen through the cleared faces (one paint per frame).
@@ -5193,8 +5179,6 @@
       "ion-storm": { stops: ["#2c1150", "#7a3fbf", "#f0d8ff", "#9a5be0", "#1a0a33"], stroke: "#e2c4f5" },
       aurora: { stops: ["#083b3a", "#1f8a7c", "#dcfff6", "#38b39a", "#052625"], stroke: "#b9f0ee" },
       galaxy: { stops: ["#4a2033", "#b0606f", "#ffe1e4", "#c47b88", "#2a1220"], stroke: "#f0cdd0" },
-      // Gold flags vanished on the gold ribbon; lacquer red reads against it.
-      "gilded-ribbon": { stops: ["#3a0508", "#a3151c", "#ffb3a7", "#c8202a", "#2b0407"], stroke: "#ffd0c4" },
       // Ember flags vanished in the heat; cold steel-blue reads against it.
       "heat-lightning": { stops: ["#0c2a4a", "#2f6fa8", "#e6f4ff", "#4a8fd0", "#071a30"], stroke: "#cfe6ff" },
     };
@@ -5795,8 +5779,31 @@
 
     function canvasPoint(e) {
       const rect = canvas.getBoundingClientRect();
-      const t = e.touches && e.touches[0] ? e.touches[0] : e;
+      const own = ownTouches(e);
+      const t = own && own[0] ? own[0] : e;
       return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+    }
+
+    /**
+     * Fingers that started on the canvas. `touches` also lists fingers resting
+     * on the chrome (a thumb on the bar), which used to count as a pinch
+     * partner and as the pressed point.
+     */
+    function ownTouches(e) {
+      return e.targetTouches || e.touches || null;
+    }
+
+    /** Drop the gesture in progress without acting on it. */
+    function cancelGesture() {
+      clearTimeout(longPressTimer);
+      pinching = false;
+      pinchStartDist = 0;
+      touchMoved = false;
+      state.dragging = false;
+      state.dragStart = null;
+      state.pressed = -1;
+      state.hovered = -1;
+      scheduleFrame();
     }
 
     let longPressTimer = null;
@@ -5807,13 +5814,75 @@
     let pinchStartDist = 0;
     let pinchStartZoom = 1;
 
+    /*
+     * Rim taps. Perspective squeezes faces toward the sphere's edge to slivers
+     * a finger cannot hit reliably, so a touch tap on a face foreshortened
+     * past RIM_SQUEEZE (narrowest on-screen width over widest) turns that face
+     * to the front instead of digging or flagging it; the next tap acts on it.
+     * Mouse clicks are precise enough and keep acting directly. Web only by
+     * default: the native payload (HEXSWEEPER_SPHERE_APP) keeps its shipped
+     * input until it opts in with boot({ rimTapTurns: true }).
+     */
+    const RIM_SQUEEZE = 0.5;
+    const rimTapTurns =
+      opts.rimTapTurns !== undefined ? !!opts.rimTapTurns : !global.HEXSWEEPER_SPHERE_APP;
+
+    function faceSqueeze(idx) {
+      const face = getProjected().find((p) => p.index === idx);
+      if (!face || face.boundary.length < 3) return 1;
+      let narrow = Infinity;
+      let wide = 0;
+      for (let step = 0; step < 12; step++) {
+        const a = (step * Math.PI) / 12;
+        const c = Math.cos(a);
+        const s = Math.sin(a);
+        let lo = Infinity;
+        let hi = -Infinity;
+        for (const pt of face.boundary) {
+          const d = pt.x * c + pt.y * s;
+          if (d < lo) lo = d;
+          if (d > hi) hi = d;
+        }
+        narrow = Math.min(narrow, hi - lo);
+        wide = Math.max(wide, hi - lo);
+      }
+      return wide > 0 ? narrow / wide : 1;
+    }
+
+    /** Ease a face to the front along the shorter of the two turns that get it there. */
+    function turnFaceToFront(idx) {
+      const tile = state.tiles[idx];
+      if (!tile) return;
+      stopAmbientSpin();
+      const c = tile.centerPoint;
+      const len = Math.hypot(c.x, c.y, c.z) || 1;
+      const x = c.x / len, y = c.y / len, z = c.z / len;
+      const yaw = Math.atan2(-x, z);
+      const pitch = Math.atan2(y, Math.hypot(x, z));
+      // (yaw + π, π − pitch) reaches the same face with the sphere upside
+      // down; it is the short way round once a drag has tumbled past a pole.
+      const options = [
+        [yaw, pitch],
+        [yaw + Math.PI, Math.PI - pitch],
+      ].map(([ty, tx]) => {
+        const dy = angleDelta(state.rotY, ty);
+        const dx = angleDelta(state.rotX, tx);
+        return { dy, dx, cost: Math.abs(dy) + Math.abs(dx) };
+      });
+      const best = options[0].cost <= options[1].cost ? options[0] : options[1];
+      state.targetRotY = state.rotY + best.dy;
+      state.targetRotX = state.rotX + best.dx;
+      scheduleFrame();
+    }
+
     function onPointerDown(e) {
       stopAmbientSpin();
       // Block iOS/Android long-press selection / callout on the canvas.
       if (e.type === "touchstart") {
         e.preventDefault();
       }
-      if (e.type === "touchstart" && e.touches && e.touches.length >= 2) {
+      const downTouches = e.type === "touchstart" ? ownTouches(e) : null;
+      if (downTouches && downTouches.length >= 2) {
         if (state.menuRotateOnly) {
           touchMoved = true;
           state.dragging = false;
@@ -5827,7 +5896,7 @@
         state.dragging = false;
         state.dragStart = null;
         state.pressed = -1;
-        pinchStartDist = touchDistance(e.touches);
+        pinchStartDist = touchDistance(downTouches);
         pinchStartZoom = state.zoomFactor;
         return;
       }
@@ -5864,21 +5933,28 @@
     }
 
     function onPointerMove(e) {
-      if (e.type === "touchmove" && e.touches && e.touches.length >= 2) {
+      const moveTouches = e.type === "touchmove" ? ownTouches(e) : null;
+      if (moveTouches && moveTouches.length >= 2) {
         e.preventDefault();
         if (state.menuRotateOnly) return;
         if (!pinching) {
           pinching = true;
-          pinchStartDist = touchDistance(e.touches);
+          pinchStartDist = touchDistance(moveTouches);
           pinchStartZoom = state.zoomFactor;
           clearTimeout(longPressTimer);
           state.pressed = -1;
         }
-        const dist = touchDistance(e.touches);
+        const dist = touchDistance(moveTouches);
         if (pinchStartDist > 0) {
           setZoomFactor(pinchStartZoom * (dist / pinchStartDist));
         }
         return;
+      }
+      // The button came up where no mouseup could reach us (another window,
+      // a frame, the system). Without this the sphere keeps following the
+      // pointer with nothing held.
+      if (e.type === "mousemove" && state.dragging && e.buttons === 0) {
+        cancelGesture();
       }
       const p = canvasPoint(e);
       if (state.dragging && state.dragStart) {
@@ -5923,7 +5999,8 @@
     function onPointerUp(e) {
       clearTimeout(longPressTimer);
       if (pinching) {
-        if (e.touches && e.touches.length >= 2) return;
+        const left = ownTouches(e);
+        if (left && left.length >= 2) return;
         pinching = false;
         pinchStartDist = 0;
         state.dragging = false;
@@ -5960,7 +6037,15 @@
           const face = state.cells[idx];
           const tapAt = performance.now();
           const again = idx === lastTapIdx && tapAt - lastTapAt < CHORD_TAP_MS;
-          if (again && face && face.revealed) {
+          if (
+            rimTapTurns &&
+            e.type === "touchend" &&
+            faceSqueeze(idx) < RIM_SQUEEZE
+          ) {
+            turnFaceToFront(idx);
+            lastTapIdx = -1;
+            lastTapAt = 0;
+          } else if (again && face && face.revealed) {
             chordAt(idx);
             lastTapIdx = -1;
             lastTapAt = 0;
@@ -5977,6 +6062,8 @@
       state.dragging = false;
       state.dragStart = null;
       state.pressed = -1;
+      // A finger leaves nothing hovering; the last touched face stayed lit.
+      if (e.type === "touchend") state.hovered = -1;
       touchMoved = false;
       schedulePersist();
       scheduleFrame();
@@ -5984,7 +6071,15 @@
 
     canvas.addEventListener("mousedown", onPointerDown);
     canvas.addEventListener("mousemove", onPointerMove);
+    // A drag that leaves the canvas (over the bar, the readout) keeps turning.
+    window.addEventListener("mousemove", (e) => {
+      if (state.dragging && e.target !== canvas) onPointerMove(e);
+    });
     window.addEventListener("mouseup", onPointerUp);
+    // The system took the touch (a call, an edge swipe, palm rejection): the
+    // hold timer must not flag or dig after it, and the drag must end.
+    canvas.addEventListener("touchcancel", cancelGesture);
+    window.addEventListener("blur", cancelGesture);
     canvas.addEventListener("touchstart", onPointerDown, { passive: false });
     canvas.addEventListener("touchmove", (e) => {
       e.preventDefault();

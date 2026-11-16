@@ -5,16 +5,20 @@
 [![F-Droid repository](https://img.shields.io/badge/F--Droid-LocalType_releases_repo-1976D2?style=flat-square)](https://dr.eamer.dev/downloads/fdroid/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
-Small puzzle games, collected into one offline package for the browser and
-Android.
+Small puzzle games, collected into one offline package for the browser,
+Android and iOS.
 
 ## The games
 
-The library has one artwork tile per game, with a tile for each Hexsweeper mode:
+The library is the [Minimal index](https://lukesteuber.com/minimal/), imported
+(`tools/import-index.py`): the same tiles in the same order, in the index's
+Dark theme by default (Light and Checkerboard are in the library's settings),
+with the games a tile's card names under "Also" opening from that card:
 
-- Hexsweeper (Sphere, Classic, Infinite), Notan, Akari, Spiral Galaxies,
-  Bridges, Slant, Fold, Bending, Tilt, Horologist, Towers, Tents,
-  Constellations, Shoo · Minimal, Balance, Cast, Tilt · 3D and Delve.
+- Slant, Notan, Hexsweeper (Sphere; Flat and Endless on its card), Bridges
+  (Constellations on its card), Akari, Spiral Galaxies, Cast, Fold, Bending,
+  Towers, Tilt (Tilt · 3D and Cube Maze on its card), Horologist, Tents, Shoo ·
+  Minimal, Balance and Delve.
 - A motor-accessible set: Glance, Glyph, Pursuit, Shoo and Nod, which can be
   played with head or eye pointing through the front camera, and Noon, Sweep
   and Ticker, which are played with one switch.
@@ -29,10 +33,10 @@ sentence, which `npm test` checks against that list.
 
 | Build | Command | Output | Used for |
 | --- | --- | --- | --- |
-| Full | `python3 tools/build.py` | `build/html`, `build/minimal-primitives-browser.zip` | Browser, desktop, direct-download Android app |
+| Full | `python3 tools/build.py` | `build/html`, `build/minimal-primitives-browser.zip` | Browser, desktop, the direct-download and Google Play Android app, the iOS app |
 | Camera-free | `python3 tools/build.py --variant fdroid` (`--no-zip` for Android) | `build/html-fdroid`, `build/minimal-primitives-fdroid.zip` | F-Droid |
 
-The full build adds camera input to the 26 games: head and eye pointing through
+The full build adds camera input to the 27 games: head and eye pointing through
 MediaPipe Face Landmarker, which runs in the page, and frames never leave the
 device. The camera-free build is defined in `variants.json`. It leaves out
 MediaPipe and the camera and eye-tracker inputs and keeps every game and every
@@ -53,6 +57,13 @@ bridge.
 `python3 tools/android.py` builds the full flavor and `python3 tools/android.py
 --fdroid` the camera-free one. Both play exactly what `tools/build.py` makes. See
 [the Android notes](android/README.md) and [F-Droid notes](docs/FDROID.md).
+
+## iOS
+
+`ios/` is a small native shell for iPhone and iPad that plays the same
+`build/html`, with nothing loaded from the network. Builds go out through
+TestFlight. See [the iOS notes](ios/README.md) and the
+[iPhone Duo layouts](docs/iphone-duo.md).
 
 ## How the package is made
 

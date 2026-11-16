@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" width="1200" height="1200">
+  <rect width="1200" height="1200" fill="#000"/>
+  <defs><pattern id="h" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="14" stroke="#fff" stroke-width="3"/></pattern></defs>
+  <g fill="none" stroke="#fff" stroke-linejoin="round">
+    <rect x="524" y="296" width="76" height="76" stroke-width="3"/>
+    <rect x="600" y="296" width="76" height="76" stroke-width="3"/>
+    <rect x="372" y="372" width="76" height="76" stroke-width="3"/>
+    <rect x="600" y="372" width="76" height="76" stroke-width="3"/>
+    <rect x="296" y="448" width="76" height="76" stroke-width="3"/>
+    <rect x="372" y="448" width="76" height="76" stroke-width="3"/>
+    <rect x="448" y="448" width="76" height="76" stroke-width="3"/>
+    <rect x="524" y="448" width="76" height="76" stroke-width="3"/>
+    <rect x="600" y="448" width="76" height="76" stroke-width="3"/>
+    <rect x="296" y="524" width="76" height="76" stroke-width="3"/>
+    <rect x="372" y="524" width="76" height="76" stroke-width="3"/>
+    <rect x="448" y="524" width="76" height="76" stroke-width="3"/>
+    <rect x="524" y="524" width="76" height="76" stroke-width="3"/>
+    <rect x="752" y="524" width="76" height="76" stroke-width="3"/>
+    <rect x="828" y="524" width="76" height="76" stroke-width="3"/>
+    <rect x="904" y="524" width="76" height="76" stroke-width="3"/>
+    <rect x="296" y="600" width="76" height="76" stroke-width="3"/>
+    <rect x="372" y="600" width="76" height="76" stroke-width="3"/>
+    <rect x="448" y="600" width="76" height="76" stroke-width="3"/>
+    <rect x="524" y="600" width="76" height="76" stroke-width="3"/>
+    <rect x="600" y="600" width="76" height="76" stroke-width="3"/>
+    <rect x="676" y="600" width="76" height="76" stroke-width="3"/>
+    <rect x="752" y="600" width="76" height="76" stroke-width="3"/>
+    <rect x="828" y="600" width="76" height="76" stroke-width="3"/>
+    <rect x="904" y="600" width="76" height="76" stroke-width="3"/>
+    <rect x="220" y="676" width="76" height="76" stroke-width="3"/>
+    <rect x="296" y="676" width="76" height="76" stroke-width="3"/>
+    <rect x="372" y="676" width="76" height="76" stroke-width="3"/>
+    <rect x="448" y="676" width="76" height="76" stroke-width="3"/>
+    <rect x="524" y="676" width="76" height="76" stroke-width="3"/>
+    <rect x="600" y="676" width="76" height="76" stroke-width="3"/>
+    <rect x="676" y="676" width="76" height="76" stroke-width="3"/>
+    <rect x="752" y="676" width="76" height="76" stroke-width="3"/>
+    <rect x="828" y="676" width="76" height="76" stroke-width="3"/>
+    <rect x="904" y="676" width="76" height="76" stroke-width="3"/>
+    <rect x="296" y="752" width="76" height="76" stroke-width="3"/>
+    <rect x="372" y="752" width="76" height="76" stroke-width="3"/>
+    <rect x="448" y="752" width="76" height="76" stroke-width="3"/>
+    <rect x="524" y="752" width="76" height="76" stroke-width="3"/>
+    <rect x="600" y="752" width="76" height="76" stroke-width="3"/>
+    <rect x="296" y="828" width="76" height="76" stroke-width="3"/>
+    <rect x="372" y="828" width="76" height="76" stroke-width="3"/>
+    <circle cx="562.0" cy="334.0" r="17" stroke-width="6"/>
+    <circle cx="486.0" cy="486.0" r="17" stroke-width="6"/>
+    <circle cx="334.0" cy="638.0" r="17" stroke-width="6"/>
+    <circle cx="334.0" cy="714.0" r="17" stroke-width="6"/>
+    <circle cx="410.0" cy="790.0" r="17" stroke-width="6"/>
+    <circle cx="714.0" cy="714.0" r="22" fill="#fff" stroke="none"/>
+  </g>
+</svg>

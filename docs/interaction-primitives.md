@@ -72,7 +72,7 @@ thing. It is not a software operation ("drag", "scroll", "type") and not a goal
 
 | Simple machine | Primitive | Games |
 | --- | --- | --- |
-| Inclined plane | tilt | Tilt, Tilt · 3D, Nod |
+| Inclined plane | tilt | Tilt, Tilt · 3D, Cube Maze, Nod |
 | Wheel and axle | spin | Horologist |
 | Lever, pulley | lift | Towers, Cast |
 | Wedge | divide | Spiral Galaxies |

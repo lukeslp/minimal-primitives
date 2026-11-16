@@ -23,6 +23,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 
 /* The constellation's name, only once its figure is complete, under the readout. */
 .sky-name{position:fixed;top:max(40px,calc(env(safe-area-inset-top) + 38px));left:50%;transform:translateX(-50%);margin:0;color:var(--text);font:15px/1.2 Plex,system-ui,sans-serif;letter-spacing:.02em;white-space:nowrap;z-index:5;pointer-events:none}
+/* The end: one line under the name. */
+.end-line{position:fixed;top:max(60px,calc(env(safe-area-inset-top) + 58px));left:50%;transform:translateX(-50%);margin:0;color:var(--sub);font:500 13px/1.2 Mono,monospace;letter-spacing:.02em;white-space:nowrap;z-index:5;pointer-events:none}
 #stage{position:fixed;inset:max(64px,env(safe-area-inset-top)) 4px max(116px,env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:center}
 #board{position:relative;flex:none;touch-action:pinch-zoom;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #threads{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:1}
@@ -35,6 +37,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .thread.crossing{stroke-dasharray:5 4}
 .thread.pending{stroke:var(--ink);stroke-dasharray:4 4;transition:none}
 .thread.pending.removing{stroke:var(--sub);stroke-dasharray:1 5}
+.thread.leaving{opacity:.3;transition:none}
 .thread.hint-line{stroke:var(--ink);stroke-dasharray:7 5;transition:none}
 .lock-mark{fill:none;stroke:var(--sub);stroke-width:var(--thread,2px);stroke-linecap:round;transition:stroke .3s ease}
 .lock-mark.complete{stroke:var(--ink)}
@@ -54,16 +57,20 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .handle.blocked{fill:none;stroke:var(--route)}
 
 /* A star: a solid disc and one tick for every thread it still needs. Marks around it are shapes:
-   a tight ring for too many threads, a wide ring when chosen, dashed for a hint, a square for keyboard focus. */
+   a tight ring for too many threads, a wide ring when chosen, dashed for a hint, a square for keyboard focus.
+   A star over its need goes hollow: its disc shrinks to a core inside that ring, which closes in on it twice
+   as it appears, or simply appears under reduced motion. */
 .star{position:absolute;width:var(--target);height:var(--target);margin:calc(var(--target)/-2) 0 0 calc(var(--target)/-2);border:0;padding:0;background:none;pointer-events:auto;z-index:2;touch-action:pinch-zoom;color:var(--ink)}
 .star:focus-visible{outline:none}
 .star svg{width:100%;height:100%;overflow:visible;display:block}
-.star .disc{fill:var(--ink)}
+.star .disc{fill:var(--ink);transform-box:fill-box;transform-origin:center;transition:transform .2s ease}
 .star .tick{stroke:var(--ink);stroke-width:var(--tick,1.75px);stroke-linecap:round}
 .star .tick.spent{display:none}
 .star .over-ring,.star .state-ring,.star .focus-mark{fill:none;stroke:var(--ink);display:none}
-.star .over-ring{stroke-width:1.5px}
-.star.overfull .over-ring{display:inline}
+.star .over-ring{stroke-width:2px;transform-box:fill-box;transform-origin:center}
+.star.overfull .over-ring{display:inline;animation:over-close .45s ease-out 2}
+.star.overfull .disc{transform:scale(.45)}
+@keyframes over-close{from{transform:scale(1.9);opacity:0}to{transform:none;opacity:1}}
 .star .state-ring{stroke-width:2px}
 .star.selected .state-ring{display:inline}
 .star.hint-target .state-ring{display:inline;stroke-dasharray:6 4}

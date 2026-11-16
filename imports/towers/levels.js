@@ -3,7 +3,8 @@
 const levels=[
 {"opening":true,"id":"o1","n":1,"clues":{"top":[0],"bottom":[0],"left":[0],"right":[0]},"given":[0]},
 {"opening":true,"id":"o2","n":2,"clues":{"top":[0,0],"bottom":[0,0],"left":[0,0],"right":[0,0]},"given":[1,0,0,0]},
-{"opening":true,"id":"o3","n":3,"clues":{"top":[0,0,0],"bottom":[0,0,0],"left":[3,0,0],"right":[0,0,0]},"given":[0,0,0,2,0,0,0,0,0]},
+{"opening":true,"id":"o2b","n":2,"clues":{"top":[0,0],"bottom":[0,0],"left":[0,1],"right":[0,2]},"given":[0,0,0,0]},
+{"opening":true,"id":"o3","n":3,"clues":{"top":[0,0,0],"bottom":[0,0,0],"left":[3,0,0],"right":[1,0,0]},"given":[0,0,0,2,0,0,0,0,0]},
 {"opening":true,"id":"o4","n":3,"clues":{"top":[0,1,0],"bottom":[1,0,0],"left":[0,0,1],"right":[0,0,3]},"given":[0,0,0,0,0,0,0,0,0],"seed":3004},
 {"id":"t01","n":4,"clues":{"top":[0,0,1,2],"bottom":[0,3,0,1],"left":[2,2,1,4],"right":[2,3,0,0]},"given":[0,0,0,0,0,0,0,0,0,3,0,2,0,0,0,0],"seed":20261116,"level":2},
 {"id":"t02","n":4,"clues":{"top":[3,2,1,2],"bottom":[0,0,0,1],"left":[0,2,1,2],"right":[0,3,0,1]},"given":[0,0,0,3,2,0,0,0,0,0,0,0,0,0,0,0],"seed":20269029,"level":2},

@@ -1,12 +1,12 @@
 {
-  "script": "cast.js",
+  "script": "cast-3d.js",
   "engine": "engine.js",
   "policy": "hits-v1",
+  "append": true,
   "hooks": [
-    ["    if(solved)finished.add(puzzle.id);", "    if(solved)finished.add(puzzle.id);\n    window.MinimalAdapter?.committed();"],
-    ["    if(action.type==='hint') {", "    if(action.type==='hint') { window.MinimalAdapter?.assist();"],
-    ["function restart() {", "function restart() {window.MinimalAdapter?.restart();"],
-    ["function undo() {", "function undo() {window.MinimalAdapter?.undo();"]
-  ],
-  "append": false
+    ["  if (solved && !isFree()) { finished.add(puzzle.id); reached = Math.min(boards.length - 1, Math.max(reached, boards.indexOf(puzzle) + 1)); }\n", "  if (solved && !isFree()) { finished.add(puzzle.id); reached = Math.min(boards.length - 1, Math.max(reached, boards.indexOf(puzzle) + 1)); }\n  window.MinimalAdapter?.committed();\n"],
+    ["  if (action.type === 'hint') {\n", "  if (action.type === 'hint') { window.MinimalAdapter?.assist();\n"],
+    ["function restart() { clearPending();", "function restart() { window.MinimalAdapter?.restart(); clearPending();"],
+    ["function undo() {\n  clearPending();", "function undo() { window.MinimalAdapter?.undo();\n  clearPending();"]
+  ]
 }

@@ -1,15 +1,16 @@
-// Draws the iOS app icon and launch image from the Hexsweeper Sphere tile,
-// the same artwork the Android launcher uses. By Luke Steuber.
+// Draws the iOS app icon from the Hexsweeper Sphere tile, the same artwork
+// the Android launcher uses. By Luke Steuber.
 //   swift ios/tools/draw-icons.swift   (from the repository root)
 // The icon is the tile's black line work on white paper, lines thickened by
-// one pixel so they survive small sizes; the launch image is the same sphere
-// in white on the library's dark ground (#111111), transparent around it.
+// one pixel so they survive small sizes. There is no launch image: the launch
+// screen is the opening's first frame, its ground alone (LaunchBackground,
+// white or black with the phone's appearance), and the web layer plays the rest.
 import CoreImage
 import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
-let tile = URL(fileURLWithPath: "web/assets/hexsweeper-sphere.png")
+let tile = URL(fileURLWithPath: "web/assets/tiles/sphere.png")
 let assets = URL(fileURLWithPath: "ios/MinimalPrimitives/Assets.xcassets")
 let context = CIContext(options: [.workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
 guard let source = CIImage(contentsOf: tile) else { fatalError("missing \(tile.path)") }
@@ -35,6 +36,3 @@ func write(_ image: CIImage, size: CGFloat, to url: URL, opaque: Bool) {
 // Icon: opaque, black on white, the full tile (the sphere fills about two thirds).
 write(thick, size: 1024, to: assets.appendingPathComponent("AppIcon.appiconset/icon-1024.png"), opaque: true)
 
-// Launch: white lines with transparent paper, shown on the dark launch color.
-let white = thick.applyingFilter("CIColorInvert").applyingFilter("CIMaskToAlpha")
-write(white, size: 600, to: assets.appendingPathComponent("LaunchSphere.imageset/launch-sphere.png"), opaque: false)

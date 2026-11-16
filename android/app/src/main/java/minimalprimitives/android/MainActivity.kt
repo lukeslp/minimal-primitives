@@ -205,7 +205,7 @@ class MainActivity : Activity() {
     }
 
     /**
-     * Back follows the collection: it closes the scores dialog, then inside a
+     * Back follows the collection: it skips the library's opening, closes the scores dialog, then inside a
      * game it presses the game's own Home control (which saves the board and
      * Undo before showing the library), from the accessible grid it returns to
      * all games, and from the library it leaves.
@@ -217,7 +217,7 @@ class MainActivity : Activity() {
         }
         webView.evaluateJavascript(BACK_SCRIPT) { result ->
             when (result?.trim('"')) {
-                "dialog", "home", "grid", "loading" -> Unit
+                "opening", "dialog", "home", "grid", "loading" -> Unit
                 "stuck" -> webView.evaluateJavascript(LIBRARY_SCRIPT, null)
                 else -> leaveApp()
             }
@@ -382,6 +382,7 @@ class MainActivity : Activity() {
          * path a tap on Home takes, so the board and Undo are saved first.
          */
         const val BACK_SCRIPT = """(function () {
+  if (window.MinimalOpening && window.MinimalOpening.skip()) return 'opening';
   var open = document.querySelector('dialog[open]');
   if (open) { open.close(); return 'dialog'; }
   var player = document.getElementById('player');

@@ -1,4 +1,4 @@
-"""Guarded Hexsweeper hooks for generated copies of source aa4a93d only.
+"""Guarded Hexsweeper hooks for generated copies of the pinned source (PIN) only.
 
 Wire: import transform as transform_hex from hex_recipe; return
 transform_hex(game, path, inject(game, path, text)) at the end of transforms.py.
@@ -26,7 +26,7 @@ from pathlib import Path
 import re
 
 ROOT = Path(__file__).resolve().parents[1]
-PIN = 'aa4a93d69ce5e8a82a594748a4616f2d3c91e935'
+PIN = 'e61a79fa63a1c0aa2064fae6085e0a51412d950f'
 
 
 def exact(text, anchor, replacement, path):
@@ -44,7 +44,7 @@ def transform(game, path, text):
     if game['id'] != 'hexsweeper':
         return text
     if game['commit'] != PIN:
-        raise ValueError('Hex adapter requires the accepted aa4a93d source pin')
+        raise ValueError('Hex adapter requires the accepted source pin (PIN)')
     sphere = path == 'hexsweeper/sphere/sphere.js'
     flat = path in ('hexsweeper/bounded.html', 'hexsweeper/infinite.html')
     entry = flat or path == 'hexsweeper/sphere/index.html'

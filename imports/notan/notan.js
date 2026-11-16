@@ -628,6 +628,8 @@
     S.solvedAt = performance.now();
     stopClock();
     const p = S.puz;
+    // Every level and New Game+ level solved: said once, on the solve that does it.
+    const all = RAMP.length + PLUS.length, solvedCount = () => RAMP.concat(PLUS).filter((q) => typeof save.solved[q.id] === 'number').length, had = solvedCount();
     if (p.endless) {
       save.endless = { size: p.size, seed: newSeed(), c: '', t: 0 };
     } else {
@@ -649,18 +651,22 @@
     placeCursor();
     board.classList.add('solved');
     capName.textContent = p.name;
-    unlockNotice.hidden = p.endless || p.plus || p.index !== RAMP.length - 1;
+    const allDone = !quiet && !p.endless && had < all && solvedCount() === all;
+    unlockNotice.textContent = allDone ? 'All ' + all + ' boards solved.' : 'New Game+ unlocked';
+    unlockNotice.hidden = !allDone && (p.endless || p.plus || p.index !== RAMP.length - 1);
     shareBtn.hidden = !p.endless;
     shareBtn.textContent = 'Share blank';
-    nextBtn.setAttribute('aria-label', p.endless ? 'Next board' : !p.plus && p.index === RAMP.length - 1 ? 'Start New Game+' : p.index + 1 < sequence(p).length ? 'Next level' : 'Choose what to play next');
+    nextBtn.setAttribute('aria-label', p.endless ? 'Next board' : !p.plus && p.index === RAMP.length - 1 ? 'Start New Game+' : p.index + 1 < sequence(p).length ? 'Next level' : firstUnsolved() ? 'First unsolved level' : 'Choose what to play next');
     caption.hidden = false;
     layout();
     requestAnimationFrame(() => requestAnimationFrame(() => caption.classList.add('show')));
     hud();
-    if (!quiet) announce((!unlockNotice.hidden ? 'New Game+ unlocked. ' : '') + 'Solved: ' + p.name + ', in ' + fmt(S.time) + '. Press Enter for the next one.');
+    if (!quiet) announce((!unlockNotice.hidden ? unlockNotice.textContent.replace(/\.?$/, '. ') : '') + 'Solved: ' + p.name + ', in ' + fmt(S.time) + '. Press Enter for the next one.');
     // Keyboard players land on Next; pointer players just tap anywhere.
     if (S.kbd) nextBtn.focus({ preventScroll: true });
   }
+  // Past the last level, the first level not yet solved, New Game+'s once it is open.
+  function firstUnsolved() { return RAMP.concat(save.plusUnlocked ? PLUS : []).find((q) => typeof save.solved[q.id] !== 'number'); }
   function next() {
     const p = S.puz;
     if (p.endless) open(endless(p.size, save.endless ? save.endless.seed : newSeed()));
@@ -670,6 +676,7 @@
       announce('New Game+ unlocked. ' + label(S.puz) + ', ' + S.puz.w + ' by ' + S.puz.h);
       return;
     }
+    else if (firstUnsolved()) open(firstUnsolved());
     else { openLevels(true); return; }
     announce(label(S.puz) + ', ' + S.puz.w + ' by ' + S.puz.h);
   }

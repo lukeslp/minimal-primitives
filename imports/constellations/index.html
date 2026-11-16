@@ -6,8 +6,15 @@
 <meta name="theme-color" content="#000000"><meta name="color-scheme" content="dark"><title>Constellations</title>
 <link rel="canonical" href="https://lukesteuber.com/games/constellations/">
 
-<link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css?v=a84cb3b1">
-<script src="./engine.js?v=0266be4f" defer></script><script src="./sky-layout.js?v=86f6a657" defer></script><script src="./boards.js?v=28d8c7e9" defer></script><script src="./starfield.js?v=b21e55d8" defer></script><script src="./app.js?v=7edc363d" defer></script>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/icon-180.png">
+<meta name="apple-mobile-web-app-title" content="Constellations">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<script src="./pwa.js?v=74f99d61" defer></script><link rel="stylesheet" href="./style.css?v=aa809ec7">
+<script src="./engine.js?v=0266be4f" defer></script><script src="./sky-layout.js?v=86f6a657" defer></script><script src="./boards.js?v=0ad7dbbf" defer></script><script src="./starfield.js?v=b21e55d8" defer></script><script src="./app.js?v=b5253de0" defer></script>
 <link rel="stylesheet" href="./controls.css?v=4568a846">
 <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
 <meta name="description" content="Join the stars of twelve real constellations until every star has its threads, then see the sky around them.">
@@ -31,6 +38,7 @@
 <button id="restart-btn" class="icon restart" aria-label="Restart board"></button>
 <button id="readout" aria-label="Choose board"></button>
 <p id="sky-name" class="sky-name" hidden></p>
+<p id="end-line" class="end-line" hidden></p>
 <main id="stage" aria-label="Constellation puzzle"><div id="board" role="group" aria-label="Stars"><svg id="threads" aria-hidden="true"></svg><div id="stars"></div></div></main>
 <div id="completion"><button id="next-btn" class="icon" aria-label="Next board" hidden></button></div>
 <nav class="toolbar" aria-label="Game controls"><div class="actions"><button id="undo-btn" class="icon" aria-label="Undo last change" disabled></button><button id="hint-btn" class="icon" aria-label="Hint"></button></div><div class="meta"><button id="settings-btn" class="icon" aria-label="Settings"></button><button id="help-btn" class="icon" aria-label="Help"></button></div></nav>
@@ -39,7 +47,7 @@
 <div class="sheet-body"><h3>Board</h3><div id="boards" role="group" aria-label="Board"></div>
 <label class="setting" for="motion">Motion<select id="motion"><option value="system">System</option><option value="still">Reduced</option></select></label>
 <p id="storage-warning" hidden></p></div><footer><a href="https://lukesteuber.com/minimal/" style="color:inherit">All games</a> · Luke Steuber</footer></dialog>
-<dialog id="help" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">Constellations</h2><form method="dialog"><button class="icon close" aria-label="Close Help"></button></form></div><div class="sheet-body"><p id="help-stars">Each tick on a star is a thread it still needs; a plain dot has all its threads, and a ring means too many.</p><p>Tap a dotted line to join its two stars with a thread; tap again for a second thread, and once more to clear. Threads cannot cross, and separate groups can remain.</p><p>You can also drag from star to star or tap both stars; use arrows to move, Enter or Space to select, Shift + arrow to change a path, and Escape to cancel.</p><p>Hint marks a thread the stars’ needs force, or one that has to go, and says why. Press it again to play it.</p></div><footer><a href="https://lukesteuber.com/minimal/" style="color:inherit">All games</a> · Luke Steuber</footer></dialog>
+<dialog id="help" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">Constellations</h2><form method="dialog"><button class="icon close" aria-label="Close Help"></button></form></div><div class="sheet-body"><p id="help-stars">Each tick on a star is a thread it still needs; a plain dot has all its threads, and a ring means too many.</p><p>Tap a dotted line to join its two stars with a thread; tap again for a second thread if both stars have a tick left, otherwise to clear it. Threads cannot cross, and separate groups can remain.</p><p>You can also drag from star to star or tap both stars; use arrows to move, Enter or Space to select, Shift + arrow to change a path, and Escape to cancel.</p><p>Hint marks a thread the stars’ needs force, or one that has to go, and says why. Press it again to play it.</p></div><footer><a href="https://lukesteuber.com/minimal/" style="color:inherit">All games</a> · Luke Steuber</footer></dialog>
 <p id="status" class="sr-only" role="status" aria-live="polite"></p>
 <script defer src="./controls.js?v=d56ced9e"></script>
 </body></html>

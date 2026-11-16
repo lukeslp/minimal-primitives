@@ -42,7 +42,7 @@ test('replay move counts cannot be supplied independently of the moves',async()=
  assert.equal(tiltValue(T,b,{states:[{...T.start(b),moves:0,solved:false},{level:1,row:1,col:1,moves:1,solved:true}]}),null);
 });
 
-test('Cast, Shoo · Minimal and Tilt · 3D are scored by their counts from replayed proofs',async()=>{
+test('Cast, Shoo · Minimal, Tilt · 3D and Cube Maze are scored by their counts from replayed proofs',async()=>{
  const {validateProof,validatorInternals:{digest,layout}}=await import('../adapters/validators.mjs');
  const rules=game=>sources.games.find(g=>g.id===game).files.find(f=>f.path===game+'/engine.js').sha256.slice(0,16);
  const identity=(game,p,policy)=>({game,mode:'campaign',puzzleId:p.id,layoutHash:digest(layout(game,p)),rulesVersion:rules(game),scoringPolicy:policy});
@@ -69,5 +69,15 @@ test('Cast, Shoo · Minimal and Tilt · 3D are scored by their counts from repla
   assert.deepEqual(await validateProof({identity:identity('tilt-3d',p,'moves-v1'),proof:{board:p.id,moves},elapsedMs:5000}),{valid:true,value:moves.length},'tilt-3d '+p.id);
   assert.equal((await validateProof({identity:identity('tilt-3d',p,'moves-v1'),proof:{board:p.id,moves:moves.slice(0,-1)},elapsedMs:5000})).valid,false,'an unfinished replay is refused');count++;
  }
- assert.ok(count>=80);
+ // Cube Maze stores one shortest answer per board; a move after the marble leaves, or a move list cut short, is refused.
+ const M=require('../imports/cube-maze/engine.js');
+ for(const p of require('../imports/cube-maze/boards.js')){
+  const moves=p.solution;
+  assert.equal(M.run(p,moves).out,true,'cube-maze '+p.id+' stored answer');
+  assert.deepEqual(await validateProof({identity:identity('cube-maze',p,'moves-v1'),proof:{board:p.id,moves},elapsedMs:5000}),{valid:true,value:moves.length},'cube-maze '+p.id);
+  assert.equal((await validateProof({identity:identity('cube-maze',p,'moves-v1'),proof:{board:p.id,moves:moves.slice(0,-1)},elapsedMs:5000})).valid,false,'an unfinished replay is refused');
+  assert.equal((await validateProof({identity:identity('cube-maze',p,'moves-v1'),proof:{board:p.id,moves:[...moves,moves[0]]},elapsedMs:5000})).valid,false,'no move after the marble leaves');
+  assert.equal((await validateProof({identity:identity('cube-maze',p,'time-v1'),proof:{board:p.id,moves},elapsedMs:5000})).valid,false);count++;
+ }
+ assert.ok(count>=170);
 });

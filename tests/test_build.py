@@ -83,10 +83,10 @@ class CameraFreeVariantTests(unittest.TestCase):
         self.assertFalse([n for n in self.names if n.endswith(('.wasm', '.task')) or 'glance/vendor/' in n])
         catalog = json.loads(self.texts['catalog.json'])
         full = json.loads((ROOT / 'sources.json').read_text())['games']
-        self.assertEqual([g['id'] for g in catalog], [g['id'] for g in full])
+        self.assertEqual(sorted(g['id'] for g in catalog), sorted(g['id'] for g in full))
         self.assertEqual(sum(1 for g in catalog if g.get('group') == 'accessible'), 8)
         self.assertNotIn('MediaPipe Face Landmarker', self.texts['NOTICES.txt'])
-        self.assertNotIn(' hidden', self.texts['index.html'].split('id="access-open"')[1][:20])
+        self.assertIn('"game":"accessible"', self.texts['tiles.json'], 'the last tile still opens the accessible puzzles')
 
     def test_no_camera_input_anywhere(self):
         for name, text in self.texts.items():
@@ -165,6 +165,116 @@ class ShippedPageTests(unittest.TestCase):
         self.assertNotIn('akari-preview', akari)
         self.assertIn('href="../../games/akari/index.html?look=dark"', self.files['games/akari-light/index.html'])
 
+
+
+class LibraryIndexTests(unittest.TestCase):
+    """The library is the live Minimal index, imported by tools/import-index.py at a pinned commit.
+    These fail when the two are edited apart; `tools/import-index.py --check` catches the index moving on."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.index = json.loads((ROOT / 'index.json').read_text())
+        cls.tiles = [t for t in cls.index['tiles'] if not t.get('notBundled')]
+        cls.sources = json.loads((ROOT / 'sources.json').read_text())['games']
+
+    def test_pictures_and_stylesheet_are_the_index_s_own(self):
+        style = (ROOT / 'web/index-tiles.css').read_text().split('*/\n', 1)[1]
+        self.assertEqual(hashlib.sha256(style.encode()).hexdigest(), self.index['styleSha256'])
+        used = set()
+        for tile in self.tiles:
+            for key in ('art', 'artWide', 'lines'):
+                if tile[key]:
+                    data = (ROOT / 'web' / tile[key]['file']).read_bytes()
+                    self.assertEqual(hashlib.sha256(data).hexdigest(), tile[key]['sha256'], tile['name'])
+                    used.add(Path(tile[key]['file']).name)
+        self.assertEqual({p.name for p in (ROOT / 'web/assets/tiles').iterdir()}, used, 'no stray tile pictures or drawings')
+        # Main games have no second, hand-kept picture; only the accessible puzzles keep theirs.
+        self.assertEqual({p.stem for p in (ROOT / 'web/assets').glob('*.png')},
+                         {g['id'] for g in self.sources if g.get('group') == 'accessible'})
+
+    def test_one_hexsweeper_tile_with_the_other_boards_through_it(self):
+        hexes = [t for t in self.tiles if t['game'] == 'hexsweeper']
+        self.assertEqual(len(hexes), 1)
+        self.assertEqual((hexes[0]['name'], hexes[0]['mode']), ('Hexsweeper', 'sphere'))
+        self.assertEqual([(l['label'], l['mode']) for l in hexes[0]['also']], [('Flat', 'classic'), ('Endless', 'infinite')])
+
+    def test_card_links_open_bundled_games_or_are_left_off(self):
+        # Every "Also" link on a card the package shows opens a bundled game; a link the package does not
+        # carry is recorded with its reason and drawn nowhere (Quipu on Notan, Hands on on Simple Machines).
+        links = {(t['name'], l['label']): (l['game'], l['mode']) for t in self.tiles for l in t['also']}
+        self.assertEqual(links, {('Hexsweeper', 'Flat'): ('hexsweeper', 'classic'), ('Hexsweeper', 'Endless'): ('hexsweeper', 'infinite'),
+                                 ('Bridges', 'Constellations'): ('constellations', None),
+                                 ('Tilt', '3D'): ('tilt-3d', None), ('Tilt', 'Cube Maze'): ('cube-maze', None)})
+        left_off = {(n['on'], n['name']) for n in self.index['notBundled'] if 'on' in n}
+        self.assertEqual(left_off, {('Notan', 'Quipu'), ('Simple Machines', 'Hands on')})
+        drawn = {l['href'] for t in self.tiles for l in t['also']}
+        for entry in self.index['notBundled']:
+            self.assertTrue(entry['reason'], entry['name'])
+            self.assertNotIn(entry['href'], drawn)
+        ids = {g['id'] for g in self.sources}
+        self.assertNotIn('quipu', ids)
+        self.assertIn('cube-maze', ids)
+
+    def test_themes_and_opening_are_the_index_s_without_its_previews(self):
+        # The library opens Dark like the index, with Light and Checkerboard as the other themes; its line drawings
+        # replace the pictures in Dark and Light, and its opening is the index's markup. The index's color look
+        # (?look=flourish, html[data-color]), its "signs of life" preview (?life=1) and its address switches stay out.
+        style = (ROOT / 'web/index-tiles.css').read_text().split('*/\n', 1)[1]
+        selectors = [s.strip() for block in re.findall(r'([^{}]+)\{[^{}]*\}', re.sub(r'/\*.*?\*/', '', style, flags=re.S))
+                     for s in block.split(',') if not s.strip().startswith('@')]
+        for selector in selectors:
+            if 'data-look' in selector or 'data-color' in selector:
+                self.assertRegex(selector, r'^html\[data-(?:look|color)', selector)
+        shell = '\n'.join((ROOT / path).read_text() for path in ['web/index.html', 'web/collection.js', 'web/collection.css', 'web/library-theme.js',
+                                                                 'web/duo-layout.js', 'adapters/bootstrap.js', 'adapters/hooks.js'])
+        for word in ['data-color', "'won'", "'glint'", 'on-dark', 'minimal.index.theme.v1', "'minimal.opening'"]:
+            self.assertFalse(word in shell, word)
+        self.assertIsNone(re.search(r'''get\(\s*["'](?:look|intro|life)["']\s*\)|[?&](?:look|intro|life)=''', shell), 'no address switches')
+        theme = (ROOT / 'web/library-theme.js').read_text()
+        self.assertIn("const setting = prefs => THEMES.includes(prefs?.theme) ? prefs.theme : 'system'", theme, "the phone's setting is the default")
+        self.assertIn("asks('(prefers-color-scheme: dark)') ? 'dark' : asks('(prefers-color-scheme: light)') ? 'light' : 'checkerboard'", theme)
+        page = (ROOT / 'web/index.html').read_text()
+        self.assertLess(page.index('library-theme.js'), page.index('index-tiles.css'), 'the theme is set before the styles and the first paint')
+        self.assertNotIn(' defer', page[page.index('library-theme.js') - 40:page.index('library-theme.js') + 20])
+        self.assertIn('<option value="system">Follow phone</option><option value="checkerboard">Checkerboard</option><option value="light">Light</option><option value="dark">Dark</option>', self.index['settings'])
+        self.assertEqual(page.count('<!--index:header-->'), 1)
+        self.assertEqual(page.count('<!--index:settings-->'), 1)
+        # The drawings: every tile the index's script swaps has one; Hexsweeper and Spiral Galaxies keep their pictures.
+        self.assertEqual({t['name'] for t in self.tiles if not t.get('lines') and not t['svg']}, {'Hexsweeper', 'Spiral Galaxies'})
+        for tile in self.tiles:
+            if tile.get('lines'):
+                self.assertTrue(tile['lines']['file'].endswith('-lines.svg'), tile['name'])
+        self.assertEqual({p.name for p in (ROOT / 'web/assets/tiles').glob('*-color.svg')}, set(), 'no flourish art')
+        # The opening is the index's own markup, placed in the built page, hidden until collection.js plays it.
+        opening = self.index['opening']
+        self.assertRegex(opening, r'^<div class="intro" id="intro" aria-hidden="true" hidden>')
+        self.assertEqual(re.findall(r'<li>([^<]+)</li>', opening), ['get', 'put', 'push', 'turn', 'join', 'split', 'bend', 'switch'])
+        subprocess.run([sys.executable, str(ROOT / 'tools/build.py'), '--no-zip'], check=True, capture_output=True)
+        built = (ROOT / 'build/html/index.html').read_text()
+        self.assertEqual(built.count(opening), 1)
+        self.assertLess(built.index(opening), built.index('<main id="library">'))
+        for part in ('header', 'settings'):
+            self.assertEqual(built.replace(' target="_blank" rel="noopener noreferrer"', '').count(self.index[part]), 1, part)
+        self.assertNotIn('<!--index:', built)
+        self.assertEqual(self.tiles[-1]['name'], 'Eye, head & switch games')
+
+    def test_every_bundled_game_is_reached_from_exactly_one_place(self):
+        reached = [(t['game'], t['mode']) for t in self.tiles if t['game'] != 'accessible']
+        reached += [(l['game'], l['mode']) for t in self.tiles for l in t['also']]
+        carried = [(g['id'], m['id']) for g in self.sources if not g.get('group') for m in (g.get('modes') or [{'id': None}])]
+        self.assertEqual(sorted(reached, key=str), sorted(carried, key=str))
+        self.assertEqual(self.tiles[-1]['game'], 'accessible', 'the last tile opens the accessible puzzles')
+
+    def test_the_build_serves_the_index_s_tiles_in_order(self):
+        subprocess.run([sys.executable, str(ROOT / 'tools/build.py'), '--no-zip'], check=True, capture_output=True)
+        built = json.loads((ROOT / 'build/html/tiles.json').read_text())
+        self.assertEqual([t.get('name') or t['skip'] for t in built], [t['name'] for t in self.index['tiles']])
+        for made, tile in zip(built, self.index['tiles']):
+            if not tile.get('notBundled'):
+                self.assertEqual((made['line'], made['classes'], made['label']), (tile['line'], tile['classes'], tile['label']))
+        page = (ROOT / 'build/html/index.html').read_text()
+        self.assertLess(page.index('index-tiles.css'), page.index('collection.css'), "the index's stylesheet loads first")
+        self.assertNotIn('--paper:#', (ROOT / 'web/collection.css').read_text().split('#access-tiles')[0], 'tile grounds come from the index')
 
 
 class PrimitivesTests(unittest.TestCase):

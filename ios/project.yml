@@ -10,8 +10,8 @@ settings:
     DEVELOPMENT_TEAM: 596T7J7FB6
     SWIFT_VERSION: "5.9"
     CODE_SIGN_STYLE: Automatic
-    MARKETING_VERSION: "0.5.2"
-    CURRENT_PROJECT_VERSION: "14"
+    MARKETING_VERSION: "0.5.6"
+    CURRENT_PROJECT_VERSION: "22"
 targets:
   MinimalPrimitives:
     type: application
@@ -36,9 +36,10 @@ targets:
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         CFBundleIconName: AppIcon
+        # The launch screen is the opening's first frame: its ground alone, white or black with the phone's
+        # appearance (LaunchBackground). The opening itself plays in the web layer (web/library-theme.js, collection.js).
         UILaunchScreen:
           UIColorName: LaunchBackground
-          UIImageName: LaunchSphere
         UIRequiresFullScreen: false
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false

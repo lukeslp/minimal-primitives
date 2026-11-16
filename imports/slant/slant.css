@@ -21,7 +21,7 @@
 .vertices{z-index:3}
 
 
-@keyframes solved-settle{0%{transform:scale(1)}45%{transform:scale(.985)}100%{transform:scale(1)}}@keyframes next-reveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes solved-settle{0%{transform:scale(1)}45%{transform:scale(.985)}100%{transform:scale(1)}}@keyframes next-reveal{from{opacity:0;translate:0 4px}to{opacity:1;translate:0 0}}
 
 /* Compact lessons follow the same sheet hierarchy as Notan. */
 .sheet-head{padding:8px 16px;gap:12px}.sheet-head h2{margin:0;line-height:1.3}.sheet-x{width:44px;height:44px;min-width:44px;min-height:44px;padding:10px}.sheet-x svg{width:24px;height:24px}

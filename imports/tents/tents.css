@@ -85,7 +85,10 @@ button:focus-visible,select:focus-visible,.sheet summary:focus-visible{outline:2
 .board.solved .ties{border-color:transparent}
 html.woods .clue.met{color:var(--ink);opacity:.55}
 
-.completion{position:fixed;left:50%;bottom:max(64px,calc(env(safe-area-inset-bottom) + 64px));transform:translateX(-50%);display:flex;justify-content:center;animation:next-reveal .45s .15s both}
+.completion{position:fixed;left:50%;bottom:max(64px,calc(env(safe-area-inset-bottom) + 64px));transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;animation:next-reveal .45s .15s both}
+/* With all thirty solved, one line above the arrow says so. The forest keeps clear of it. */
+.ending{margin:0;color:var(--text);font:14px/1.3 var(--sans);text-align:center;white-space:nowrap}
+.ending[hidden]{display:none}
 .completion[hidden]{display:none}
 /* The shared frame clears borders on its icons, so the box is an outline. */
 #next-btn{outline:1px solid var(--ink);outline-offset:-1px}

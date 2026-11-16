@@ -9,10 +9,10 @@ const manifest=JSON.parse(readFileSync(new URL('sources.json',root),'utf8'));
 const canonical=value=>JSON.stringify(value,(_,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v);
 const digest=value=>createHash('sha256').update(canonical(value)).digest('hex');
 const same=(a,b)=>canonical(a)===canonical(b);
-const fields={akari:['w','h','cells'],galaxies:['w','h','centres'],bridges:['w','h','islands'],slant:['w','h','clues'],fold:['w','h','pairs'],horologist:['W','H','drive','clocks','pillars','tray'],tilt:['levels'],cast:['n','maxH','left','right','plan','cubes'],'shoo-minimal':['cells','walls'],'tilt-3d':['levels']};
+const fields={akari:['w','h','cells'],galaxies:['w','h','centres'],bridges:['w','h','islands'],slant:['w','h','clues'],fold:['w','h','pairs'],horologist:['W','H','drive','clocks','pillars','tray'],tilt:['levels'],cast:['n','maxH','left','right','plan','cubes'],'shoo-minimal':['cells','walls'],'tilt-3d':['levels'],'cube-maze':['n','masks','spout','marble','g']};
 // Games scored by a count, and the file that holds each game's boards.
-const POLICY={horologist:'hits-v1',tilt:'moves-v1',fold:'folds-v1',cast:'hits-v1','shoo-minimal':'hits-v1','tilt-3d':'moves-v1'};
-const BOARDS={horologist:'boards.js',cast:'boards.js','shoo-minimal':'boards.js'};
+const POLICY={horologist:'hits-v1',tilt:'moves-v1',fold:'folds-v1',cast:'hits-v1','shoo-minimal':'hits-v1','tilt-3d':'moves-v1','cube-maze':'moves-v1'};
+const BOARDS={horologist:'boards.js',cast:'boards.js','shoo-minimal':'boards.js','cube-maze':'boards.js'};
 const cache=new Map();
 function load(game,path){
   const key=game+'/'+path;
@@ -100,6 +100,18 @@ function tilt3dValue(E,p,proof){
   }
   return solved?moves.length:null;
 }
+// Cube Maze: every tip or turn counts, even one that changes nothing; the marble must leave by the spout.
+function cubeMazeValue(E,p,proof){
+  const moves=proof.moves;
+  if(!bounded(moves,512)||!moves.length)return null;
+  const move=m=>Array.isArray(m)&&(m.length===2?m[0]==='tip'&&Number.isInteger(m[1]):m.length===3&&typeof m[0]==='string'&&Number.isInteger(m[1])&&Number.isInteger(m[2]));
+  let state=E.normalize(p);
+  for(const m of moves){
+    if(state.out||!move(m)||!E.validMove(state,m))return null;
+    state=E.apply(state,m).state;
+  }
+  return state.out?moves.length:null;
+}
 function generated(E,game,g,levels){
   if(!g||!Number.isInteger(g.seed)||g.seed<0||g.seed>4294967295||!['Easy','Normal','Hard'].includes(g.difficulty)||g.version!==E.VERSION)return null;
   if(game==='akari'||game==='galaxies')return E.generate(g.seed,g.difficulty,{pool:levels});
@@ -153,6 +165,7 @@ export async function validateProof(request){
         else if(i.game==='cast')value=castValue(E,p,proof);
         else if(i.game==='shoo-minimal')value=shooValue(E,p,proof);
         else if(i.game==='tilt-3d')value=tilt3dValue(E,p,proof);
+        else if(i.game==='cube-maze')value=cubeMazeValue(E,p,proof);
         else if(!E.stateValid(p,proof.cells)||!E.inspect(p,proof.cells).solved)return{valid:false};
       }
     }
@@ -161,4 +174,4 @@ export async function validateProof(request){
   }catch{return{valid:false};}
 }
 
-export const validatorInternals={canonical,digest,layout,load,horologistValue,tiltValue,castValue,shooValue,tilt3dValue,POLICY};
+export const validatorInternals={canonical,digest,layout,load,horologistValue,tiltValue,castValue,shooValue,tilt3dValue,cubeMazeValue,POLICY};

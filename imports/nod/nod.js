@@ -40,6 +40,21 @@
       finished = new Set(s.finished); prefs = { ...DEFAULTS, ...s.settings }; calibration = { head: s.calibration.head, eyes: s.calibration.eyes }; lastCamera = s.lastCamera;
     }
   } catch (_) { protectSave = true; }
+  // ---- The end, the same in all eight accessible games. Next goes to the
+  // following board and, past the last, to the first unfinished one. Once
+  // every board is finished the readout says so, and on the last board Next
+  // turns into Replay: board 1 again, fresh, with the finished marks kept.
+  const ENDING = `All ${Boards.length} boards solved.`, ARROW = 'M5 12h14m-6-6 6 6-6 6', REPLAY = 'M17 3l3 3-3 3M4 11V9a3 3 0 0 1 3-3h13M7 21l-3-3 3-3M20 13v2a3 3 0 0 1-3 3H4';
+  const allSolved = () => Boards.every(b => finished.has(b.id));
+  const ahead = () => Boards[Boards.indexOf(current) + 1] || Boards.find(b => !finished.has(b.id)) || Boards[0];
+  const replays = () => !Boards[Boards.indexOf(current) + 1] && allSolved();
+  function labelNext() {
+    const n = $('#next-btn'), again = replays(), label = again ? 'Replay from board 1' : 'Next board', d = again ? REPLAY : ARROW;
+    n.dataset.end = again ? 'replay' : 'next';
+    if (n.getAttribute('aria-label') === label && n.querySelector('path')?.getAttribute('d') === d) return;
+    n.setAttribute('aria-label', label);
+    n.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  }
   const pars = new Map(), parOf = b => { if (!pars.has(b.id)) pars.set(b.id, E.par(b)); return pars.get(b.id); };
   const solvedAt = p => p.level === parsed.levels - 1 && parsed.grid[p.level][p.row][p.col] === 'o';
   let solved = solvedAt(place), par = parOf(current), hint = null, busy = false, token = 0;
@@ -180,12 +195,13 @@
   // ---- Chrome.
   function refresh() {
     const i = Boards.indexOf(current);
-    $('#readout').textContent = `${i + 1} / ${Boards.length} · ${hits} / ${par}`;
-    $('#readout').setAttribute('aria-label', `Board ${i + 1} of ${Boards.length}; ${hits} tips; par ${par}`);
+    const end = solved && allSolved();
+    $('#readout').textContent = end ? ENDING : `${i + 1} / ${Boards.length} · ${hits} / ${par}`;
+    $('#readout').setAttribute('aria-label', `${end ? ENDING + ' ' : ''}Board ${i + 1} of ${Boards.length}; ${hits} tips; par ${par}`);
     boardNode.setAttribute('aria-label', describe() + ` ${hits} tips, par ${par}.` + (solved ? ' Finished.' : ''));
     $('#undo-btn').disabled = history.length === 0;
     $('#hint-btn').disabled = solved;
-    $('#next-btn').hidden = !solved || i === Boards.length - 1;
+    $('#next-btn').hidden = !solved; labelNext();
     const on = ['starting', 'calibrating', 'camera'].includes(phase);
     $('#camera-btn').setAttribute('aria-pressed', String(on)); $('#camera-btn').setAttribute('aria-label', on ? 'Stop the camera' : 'Start the camera');
     $('#select').disabled = prefs.input !== 'pointer'; $('#calibrate').disabled = prefs.input === 'pointer';
@@ -297,7 +313,7 @@
     save();
     const drops = result.path.some(c => c.drop);
     pending = { level: place.level, row: place.row, col: place.col, drop: drops, solved, step: hits - 1 };
-    if (solved) announce(`${NAMES[dir]}. ${drops ? 'Drops. ' : ''}Finished in ${hits}, par ${par}. ${Boards.indexOf(current) === Boards.length - 1 ? 'Every board is done.' : 'Next board is ready.'}`);
+    if (solved) announce(`${NAMES[dir]}. ${drops ? 'Drops. ' : ''}Finished in ${hits}, par ${par}. ${allSolved() ? ENDING : 'Next board is ready.'}`);
     else announce(`${NAMES[dir]}. ${drops ? 'Drops to ' : ''}${where(result)}`);
     refresh(); animate(from, result.path);
     return true;
@@ -320,7 +336,7 @@
     save(); placeMarble(centerOf(place.level, place.row, place.col), 1); announce('Restarted.'); refresh(); afterBoardChange();
     return true;
   }
-  // Every board is open: any of the fifty can be chosen, and Next leads to the following one.
+  // Every board is open: any of the fifty can be chosen, and Next leads on (see `ahead`).
   function go(id) {
     const next = Boards.find(b => b.id === id);
     if (!next) return false;
@@ -330,7 +346,7 @@
     announce(`Board ${Boards.indexOf(current) + 1}.`);
     return true;
   }
-  function next() { const b = Boards[Boards.indexOf(current) + 1]; return solved && b ? go(b.id) : false; }
+  function next() { return solved ? go(ahead().id) : false; }
   function armHint() {
     if (solved) return false;
     if (hint) { const dir = hint; hint = null; return tilt(dir); }
@@ -441,7 +457,7 @@
     if (next !== 'camera' && next !== 'calibrating') setFace(false);
     refresh();
   }
-  function setFace(on) { face = on; $('#live').dataset.face = on ? 'seen' : 'none'; }
+  function setFace(on) { face = on; const n = $('#live'), v = on ? 'seen' : 'none'; if (n.dataset.face !== v) { n.dataset.face = v; n.setAttribute('aria-label', on ? 'Camera on, face seen' : 'Camera on, no face seen'); } }
   function showLive(on) { $('#live').hidden = !on; document.body.dataset.camera = on ? 'on' : 'off'; }
   T.onStream = on => showLive(on || virtual);
   T.onResult = (result, t) => processFace(result, t);
@@ -467,14 +483,19 @@
   // Calibration, as in Glance: one dot at a time; hold still on it and its
   // ring fills. The first time, the centre and then the four edges; after
   // that, each start needs only the centre.
-  function beginCalibration(full) {
-    calib = { full, mode: prefs.input, spots: full ? [0, 1, 2, 3, 4] : [0], step: 0, window: [], captured: [], progress: 0, last: null };
-    setPhase('calibrating'); announce(full ? 'Look at each dot in turn and hold still.' : 'Look at the dot and hold still.');
+  // `base`, when given, is a calibration to recentre on one dot: after two
+  // five-dot calibrations that did not take, a typical one (G.typical).
+  function beginCalibration(full, base) {
+    full = full && !base;
+    calib = { full, base: base || null, mode: prefs.input, spots: full ? [0, 1, 2, 3, 4] : [0], step: 0, window: [], captured: [], progress: 0, last: null, dotAt: null };
+    setPhase('calibrating'); announce(base ? 'Calibration did not take. One dot instead: look at it and hold still.' : full ? 'Look at each dot in turn and hold still.' : 'Look at the dot and hold still.');
   }
   function calibrate(t, f) {
     const dt = calib.last === null ? 0 : clamp(t - calib.last, 0, 120), head = calib.mode === 'head';
     const keys = head ? ['yaw', 'pitch', 'roll'] : ['ax', 'ay'], tolerance = head ? .02 : .06, travel = head ? .035 : .06;
     calib.last = t;
+    // A dot not taken in 20 s counts as a calibration that did not take.
+    if (calib.dotAt === null) calib.dotAt = t; else if (t - calib.dotAt > 20000) { calibrationFailed(); return; }
     if (f) { calib.window.push({ t, ...f }); while (t - calib.window[0].t > 400) calib.window.shift(); } else calib.window = [];
     const s = G.stillness(calib.window, keys, tolerance), span = calib.window.length ? t - calib.window[0].t : 0, first = calib.captured[0];
     // Each edge dot needs the look moved its own way: across for the side
@@ -491,19 +512,23 @@
     const moved = calib.step === 0 || (!!s.mean && away(first) && away(calib.captured[calib.captured.length - 1]) && across);
     calib.progress = f && s.still && span >= 250 && moved ? calib.progress + dt / 900 : Math.max(0, calib.progress - dt / 400);
     if (calib.progress >= 1) {
-      calib.captured.push(s.mean); calib.step++; calib.window = []; calib.progress = 0; calib.last = null;
+      calib.captured.push(s.mean); calib.step++; calib.window = []; calib.progress = 0; calib.last = null; calib.dotAt = null;
       if (calib.step >= calib.spots.length) finishCalibration(); else announce(`Dot ${calib.step + 1} of ${calib.spots.length}.`);
     }
     wake();
   }
+  // Twice in a row is enough: a player who cannot hold the five dots is
+  // offered one dot on a typical reach, and one who cannot hold that plays by
+  // pointer. Nobody is kept in calibration for ever.
+  function calibrationFailed() {
+    const mode = calib.mode;
+    if (calib.base) { calFails = 0; T.stop(); virtual = false; showLive(false); calib = null; setPhase('pointer'); announce('Calibration did not take. Play by pointer; the camera button tries again.'); return; }
+    if (++calFails >= 2) { calFails = 0; beginCalibration(false, G.current(calibration[mode]) ? calibration[mode] : G.typical(mode)); return; }
+    beginCalibration(true); announce('Again: look at each dot and hold still.');
+  }
   function finishCalibration() {
-    const { mode, full, captured } = calib, made = full ? (mode === 'head' ? G.headCalibration(captured) : G.eyesCalibration(captured)) : G.recentre(calibration[mode], captured[0]);
-    if (!made) {
-      // Twice in a row is enough: a player who cannot hold the dots is not
-      // kept in calibration for ever.
-      if (++calFails >= 2) { calFails = 0; T.stop(); virtual = false; showLive(false); calib = null; setPhase('pointer'); announce('Calibration did not take. Play by pointer; the camera button tries again.'); return; }
-      beginCalibration(true); announce('Again: look at each dot and hold still.'); return;
-    }
+    const { mode, full, captured } = calib, made = calib.base ? G.recentre(calib.base, captured[0]) : full ? (mode === 'head' ? G.headCalibration(captured) : G.eyesCalibration(captured)) : G.recentre(calibration[mode], captured[0]);
+    if (!made) { calibrationFailed(); return; }
     calFails = 0;
     calibration[mode] = made; calib = null; save();
     [fx, fy] = filters(); gesture.reset(true); setPhase('camera');
@@ -517,7 +542,7 @@
     if (virtual || T.running) { beginCalibration(full || !G.current(calibration[mode])); return; }
     setPhase('starting');
     try { await T.start(); }
-    catch (_) { if (phase === 'starting') fallback(); return; }
+    catch (error) { if (phase === 'starting') fallback(error); return; }
     if (phase !== 'starting') return;
     beginCalibration(full || !G.current(calibration[mode]));
   }
@@ -525,9 +550,9 @@
   // of camera is kept, so the camera button or the next visit picks it up.
   T.onLost = () => { if (phase !== 'camera' && phase !== 'calibrating') return; virtual = false; showLive(false); calib = null; setPhase('pointer'); announce('The camera stopped. Play by pointer; the camera button tries again.'); };
   let calFails = 0;
-  function fallback() {
+  function fallback(error) {
     T.stop(); virtual = false; showLive(false); calib = null; prefs.input = 'pointer'; save(); setPhase('pointer');
-    announce('Camera unavailable. Play by pointer or keys; the camera button tries again.');
+    announce(error && error.code === 'vendor-missing' ? 'This site does not have the camera files. Play by pointer or keys; the camera button tries again.' : 'Camera unavailable. Play by pointer or keys; the camera button tries again.');
   }
   function stopCamera() {
     T.stop(); virtual = false; showLive(false); calib = null; resumeOnShow = false;

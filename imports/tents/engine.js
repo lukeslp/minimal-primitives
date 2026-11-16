@@ -322,7 +322,18 @@
     return null;
   }
 
-  const api = { VERSION, BLANK, TENT, GRASS, rng, topology, valid, stateValid, pairing, inspect, count, unique, simple, contradiction, hint, apply, grade, candidate, generate };
+  /* Free play once all thirty are solved: an 8x8 like the campaign's last size, needing one to five
+     contradiction steps and never a plain search. generate() keeps only boards the solver proves have
+     one answer (unique) and Hint can finish. `avoid` holds tree layouts already in use. */
+  function freePlay(seed, avoid) {
+    for (let k = 0; k < 50; k++) {
+      const p = generate((seed + Math.imul(k, 7919)) >>> 0, 8, { tries: 60, accept: g => g.contradictions >= 1 && g.contradictions <= 5 });
+      if (p && !(avoid && avoid.has(p.cells.join('')))) return p;
+    }
+    return null;
+  }
+
+  const api = { VERSION, BLANK, TENT, GRASS, rng, topology, valid, stateValid, pairing, inspect, count, unique, simple, contradiction, hint, apply, grade, candidate, generate, freePlay };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Tents = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

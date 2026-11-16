@@ -4,10 +4,13 @@
   const E = Towers, ALL = TowersLevels;
   const OPENING = ALL.filter(p => p.opening), L = ALL.filter(p => !p.opening);
   const $ = s => document.querySelector(s);
-  const K = { current: 'towers.current.v1', progress: 'towers.progress.v1', settings: 'towers.settings.v1', primer: 'towers.primer.v1' };
+  const K = { current: 'towers.current.v1', progress: 'towers.progress.v1', settings: 'towers.settings.v1', primer: 'towers.primer.v1', generated: 'towers.generated.v1' };
   const ids = new Set(L.map(p => p.id));
   const openingAt = id => OPENING.findIndex(p => p.id === id);
-  const board = id => L.find(p => p.id === id) || OPENING[openingAt(id)];
+  // Free play: the generated board in hand, kept under its own key so the campaign save keeps its shape.
+  let gen = null;
+  const genBoard = () => gen && { id: 'generated', n: gen.n, clues: gen.clues, given: gen.given, seed: gen.seed };
+  const board = id => id === 'generated' ? genBoard() : L.find(p => p.id === id) || OPENING[openingAt(id)];
 
   // ---- Storage: a save that cannot be read is kept aside, never overwritten.
   const blocked = new Set();
@@ -29,17 +32,23 @@
   let progress = read(K.progress, v => isObject(v) && v.version === 1 && Array.isArray(v.completed) && v.completed.every(id => ids.has(id)), { version: 1, completed: [] });
   const prefs = read(K.settings, v => isObject(v) && v.version === 1 && ['system', 'light', 'dark'].includes(v.theme) && ['system', 'reduce'].includes(v.motion) && ['iso', 'flat'].includes(v.view), { version: 1, theme: 'system', motion: 'system', view: 'iso' });
   const store = read(K.current, v => isObject(v) && v.version === 1 && ids.has(v.at) && isObject(v.boards) && Object.keys(v.boards).every(id => ids.has(id) && E.stateValid(board(id), v.boards[id])), { version: 1, at: L[0].id, boards: {} });
+  const heights = (a, len, n) => Array.isArray(a) && a.length === len && a.every(h => Number.isInteger(h) && h >= 0 && h <= n);
+  gen = read(K.generated, v => isObject(v) && v.version === 1 && Number.isInteger(v.seed) && Number.isInteger(v.n) && v.n >= 2 && v.n <= 6 && typeof v.playing === 'boolean' &&
+    isObject(v.clues) && E.SIDES.every(side => heights(v.clues[side], v.n, v.n)) && heights(v.given, v.n * v.n, v.n) && E.stateValid(v, v.cells), null);
+  const allDone = () => L.every(p => progress.completed.includes(p.id));
 
   const query = new URLSearchParams(location.search);
   let firstVisit = !query.has('level');
   try { firstVisit = firstVisit && localStorage.getItem(K.primer) === null; } catch (_) { firstVisit = false; }
-  let at = firstVisit ? OPENING[0].id : store.at;
+  let at = firstVisit ? OPENING[0].id : gen && gen.playing && !query.has('level') ? 'generated' : store.at;
   if (query.has('level')) { const n = Number(query.get('level')); if (Number.isInteger(n) && n >= 1 && n <= L.length) at = L[n - 1].id; }
   let puzzle = board(at), lastInvoker = null;
-  const S = { cells: (store.boards[at] || E.startCells(puzzle)).slice(), undo: [], focus: 0, hint: null, solved: false, keyboard: false };
+  const cellsOf = id => (id === 'generated' ? gen.cells : store.boards[id]) || E.startCells(board(id));
+  const S = { cells: cellsOf(at).slice(), undo: [], focus: 0, hint: null, solved: false, keyboard: false };
 
   // ---- Icons
-  const paths = { undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12', hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z', next: 'M5 12h14M13 6l6 6-6 6', settings: 'M4 7h16M4 17h16M8 4v6M16 14v6', help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2', reset: 'M5 7a8 8 0 1 1-1 9M5 3v5h5', turn: 'M12 4.5 19 8l-7 3.5L5 8zM4 14.5c1.6 2.6 4.6 4 8 4s6.4-1.4 8-4M20 14.5v3.6M20 14.5h-3.6' };
+  const paths = { undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12', hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z', next: 'M5 12h14M13 6l6 6-6 6', settings: 'M4 7h16M4 17h16M8 4v6M16 14v6', help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2', reset: 'M5 7a8 8 0 1 1-1 9M5 3v5h5', turn: 'M12 4.5 19 8l-7 3.5L5 8zM4 14.5c1.6 2.6 4.6 4 8 4s6.4-1.4 8-4M20 14.5v3.6M20 14.5h-3.6', more: 'M12 5v14M5 12h14' };
+  const icon = name => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + paths[name] + '"/></svg>';
   for (const [id, name] of [['restart-btn', 'reset'], ['undo-btn', 'undo'], ['hint-btn', 'hint'], ['turn-btn', 'turn'], ['next-btn', 'next'], ['settings-btn', 'settings'], ['help-btn', 'help']])
     $('#' + id).innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + paths[name] + '"/></svg>';
   function say(text) { $('#feedback').textContent = text; $('#announce').textContent = ''; }
@@ -256,19 +265,38 @@
     ring.setAttribute('class', 'focus-ring' + (puzzle.given[f] ? ' on-given' : ''));
   }
 
+  // Where Next goes from a solved board: the next board in order; past the last, the first one not yet
+  // solved; with all thirty solved, a new generated board (and the same from a generated board).
+  function nextTarget() {
+    const k = openingAt(at), n = L.findIndex(p => p.id === at);
+    if (k >= 0) return k < OPENING.length - 1 ? OPENING[k + 1].id : store.at;
+    if (n >= 0 && n < L.length - 1) return L[n + 1].id;
+    const open = L.find(p => !progress.completed.includes(p.id));
+    return open ? open.id : 'new';
+  }
+  const ENDING = 'All ' + L.length + ' boards solved.';
   function render() {
     draw();
-    const n = L.findIndex(p => p.id === at);
+    const n = L.findIndex(p => p.id === at), fresh = S.solved && nextTarget() === 'new', ended = S.solved && n >= 0 && allDone();
     $('#undo-btn').disabled = !S.undo.length;
-    $('#readout').textContent = n < 0 ? '' : (n + 1) + ' / ' + L.length + ' · ' + progress.completed.length + ' ✓';
+    $('#readout').textContent = at === 'generated' ? puzzle.n + ' × ' + puzzle.n + ' · ' + progress.completed.length + ' ✓' : n < 0 ? '' : (n + 1) + ' / ' + L.length + ' · ' + progress.completed.length + ' ✓';
     $('#completion').hidden = !S.solved;
-    $('#next-btn').disabled = !S.solved;
-    $('#next-btn').setAttribute('aria-label', n === L.length - 1 ? 'Choose next puzzle' : 'Next puzzle');
+    // The line under a solve that leaves all thirty done; the status line says it to screen readers.
+    $('#ending').hidden = !ended; $('#ending').textContent = ended ? ENDING : '';
+    const next = $('#next-btn');
+    next.disabled = !S.solved;
+    next.setAttribute('aria-label', fresh ? 'New board' : 'Next puzzle');
+    if (next.dataset.icon !== (fresh ? 'more' : 'next')) { next.dataset.icon = fresh ? 'more' : 'next'; next.innerHTML = icon(next.dataset.icon); }
     $('#feedback').classList.toggle('sr-only', S.solved);
     $('#campaign').value = n < 0 ? '' : at;
+    for (const o of $('#campaign').options) o.textContent = optionText(o.value);
     $('#previous').disabled = n <= 0;
     $('#following').disabled = n < 0 || n === L.length - 1;
+    $('#free-row').hidden = !allDone();
+    if (fresh) prepare();
   }
+  // The board list marks a solved board with a check.
+  const optionText = id => { const k = L.findIndex(p => p.id === id); return (k + 1) + ' · ' + L[k].n + ' × ' + L[k].n + (progress.completed.includes(id) ? ' ✓' : ''); };
   function focusCell(i, dom) {
     S.focus = i; draw();
     if (dom) { const node = $('#board').querySelector('.cell[data-i="' + i + '"]'); if (node) node.focus({ preventScroll: true }); }
@@ -277,15 +305,17 @@
   // ---- Play
   function save() {
     if (openingAt(at) >= 0) return;
+    if (at === 'generated') { gen.cells = S.cells.slice(); gen.playing = true; write(K.generated, gen); return; }
     store.at = at; store.boards[at] = S.cells.slice();
     write(K.current, store); write(K.progress, progress);
+    if (gen && gen.playing) { gen.playing = false; write(K.generated, gen); }
   }
   function checkSolved(announce) {
     const was = S.solved, solvedBoard = puzzle;
     S.solved = E.inspect(puzzle, S.cells).solved;
     if (S.solved) {
       if (ids.has(at) && !progress.completed.includes(at)) progress.completed.push(at);
-      if (announce) say('Complete.');
+      if (announce) say(ids.has(at) && allDone() ? ENDING : 'Complete.');
       if (!was && announce) startTour();
       if (!was && announce && S.keyboard) requestAnimationFrame(() => { if (S.solved && puzzle === solvedBoard && !document.querySelector('dialog[open]')) $('#next-btn').focus({ preventScroll: true }); });
     }
@@ -324,27 +354,47 @@
     say(move.text + (move.value ? ' Press Hint again to raise it to ' + move.value + '.' : ' Press Hint again to clear it.'));
     render();
   }
-  function switchBoard(id) {
-    save();
+  function switchBoard(id, alreadySaved) {
+    if (!alreadySaved) save();
     at = id; puzzle = board(id);
-    S.cells = (store.boards[id] || E.startCells(puzzle)).slice();
+    S.cells = cellsOf(id).slice();
     S.undo = []; S.focus = 0; S.hint = null; S.solved = false; S.keyboard = false;
     stopTour(); view = null;
     say(''); checkSolved(false); build(); render(); save();
     if (location.search) history.replaceState(null, '', location.pathname);
   }
+  // A new generated board, from a fresh seed. One takes from a few milliseconds to a few tenths of a
+  // second to find, so while the New board button waits the next one is found ahead (`spare`).
+  let spare = null, sparing = 0;
+  const findBoard = () => { let p = null; for (let k = 0; k < 3 && !p; k++) p = E.freePlay(crypto.getRandomValues(new Uint32Array(1))[0]); return p; };
+  function prepare() {
+    if (spare || sparing) return;
+    sparing = setTimeout(() => { sparing = 0; if (!spare && allDone()) spare = findBoard(); }, 700);
+  }
+  function newGenerated() {
+    if (!allDone()) return false;
+    save();
+    clearTimeout(sparing); sparing = 0;
+    const p = spare || findBoard();
+    spare = null;
+    if (!p) return false;
+    gen = { version: 1, seed: p.seed, n: p.n, clues: p.clues, given: p.given, cells: E.startCells(p), playing: true };
+    switchBoard('generated', true);
+    return true;
+  }
   function advance(event) {
     if (!S.solved) return;
-    const byKeyboard = !event || event.detail === 0, n = L.findIndex(p => p.id === at), k = openingAt(at);
-    if (k >= 0) {
-      if (k === OPENING.length - 1) write(K.primer, 1);
-      switchBoard(k < OPENING.length - 1 ? OPENING[k + 1].id : store.at);
-    } else if (n < L.length - 1) switchBoard(L[n + 1].id);
-    else { openSheet('settings', $('#settings-btn')); return; }
+    const byKeyboard = !event || event.detail === 0, target = nextTarget();
+    if (openingAt(at) === OPENING.length - 1) write(K.primer, 1);
+    if (target === 'new') { if (!newGenerated()) return; }
+    else switchBoard(target);
     if (byKeyboard) focusCell(0, true);
   }
 
   // ---- Input. The nearest tower under the pointer takes the tap: SVG hit-tests front to back.
+  // The tap that solves a board is not also a tap on the solved board, so the light's first visit
+  // (startTour) is not stopped as soon as it is started.
+  let solvingTap = null;
   $('#board').addEventListener('click', e => {
     const node = e.target.closest('.cell');
     if (!node || swiped) return;
@@ -353,6 +403,7 @@
     S.focus = i;
     if (S.solved || puzzle.given[i]) { draw(); return; }
     raise(i);
+    if (S.solved) solvingTap = e;
   });
   $('#board').addEventListener('keydown', e => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -427,7 +478,7 @@
   $('#turn-btn').addEventListener('click', e => { S.keyboard = e.detail === 0; turnTo((Math.round(turn / QUARTER) + 1) * QUARTER, true); });
   // Tap a number on a solved board to see from there; tap it again, or anywhere else on the board, to rest.
   $('#board').addEventListener('click', e => {
-    if (!S.solved) return;
+    if (!S.solved || e === solvingTap) return;
     const clue = e.target.closest && e.target.closest('.clue');
     stopTour();
     if (!clue) { if (view) look(null, true); return; }
@@ -448,7 +499,8 @@
     $('#' + id + '-btn').addEventListener('click', () => openSheet(id, $('#' + id + '-btn')));
     $('#' + id).addEventListener('close', () => { if (!document.activeElement.closest('.board,dialog[open]') && lastInvoker) lastInvoker.focus({ preventScroll: true }); });
   }
-  L.forEach((p, k) => { const o = document.createElement('option'); o.value = p.id; o.textContent = (k + 1) + ' · ' + p.n + ' × ' + p.n; $('#campaign').append(o); });
+  L.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = optionText(p.id); $('#campaign').append(o); });
+  $('#new-game').addEventListener('click', () => { $('#settings').close(); newGenerated(); });
   $('#campaign').addEventListener('change', e => { switchBoard(e.target.value); $('#settings').close(); });
   for (const [id, delta] of [['previous', -1], ['following', 1]]) $('#' + id).addEventListener('click', () => {
     const n = L.findIndex(p => p.id === at) + delta;
@@ -470,7 +522,7 @@
   // For the tests: the state, and where on the page a cell's top face is.
   window.__towers = {
     S, keys: K,
-    get puzzle() { return puzzle; }, get at() { return at; }, get progress() { return progress; },
+    get puzzle() { return puzzle; }, get at() { return at; }, get progress() { return progress; }, get generated() { return gen; },
     get turn() { return { angle: turn, quarters: quarters(), resting: atRest() }; },
     point(i) {
       const box = $('#board svg').getBoundingClientRect(), n = puzzle.n, p = G.P(Math.floor(i / n) + .5, i % n + .5, S.cells[i]);

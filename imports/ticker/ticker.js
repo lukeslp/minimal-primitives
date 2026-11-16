@@ -53,7 +53,21 @@
   const dark = () => prefs.theme === 'dark' || prefs.theme === 'system' && darkQuery.matches;
   const shown = () => prefs.shown === 'on';
   const index = () => boards.indexOf(board);
-  const last = () => index() === boards.length - 1;
+  // ---- The end, the same in all eight accessible games. Next goes to the
+  // following board and, past the last, to the first unfinished one. Once
+  // every board is finished the readout says so, and on the last board Next
+  // turns into Replay: board 1 again, fresh, with the finished marks kept.
+  const ENDING = `All ${boards.length} boards solved.`, ARROW = 'M5 12h14M13 6l6 6-6 6', REPLAY = 'M17 3l3 3-3 3M4 11V9a3 3 0 0 1 3-3h13M7 21l-3-3 3-3M20 13v2a3 3 0 0 1-3 3H4';
+  const allSolved = () => boards.every(b => finished.has(b.id));
+  const ahead = () => boards[boards.indexOf(board) + 1] || boards.find(b => !finished.has(b.id)) || boards[0];
+  const replays = () => !boards[boards.indexOf(board) + 1] && allSolved();
+  function labelNext() {
+    const n = $('#next-btn'), again = replays(), label = again ? 'Replay from board 1' : 'Next board', d = again ? REPLAY : ARROW;
+    n.dataset.end = again ? 'replay' : 'next';
+    if (n.getAttribute('aria-label') === label && n.querySelector('path')?.getAttribute('d') === d) return;
+    n.setAttribute('aria-label', label);
+    n.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  }
   const T = () => E.period(board, prefs.speed);
   const par = () => board.par[prefs.speed];
   const solved = () => E.solved(board, state);
@@ -183,7 +197,7 @@
   function startTune(t0) { playTune(board.melody, t0, 'tune'); }
   function begin(t0) {
     cancelCycle(); mode = 'select';
-    sel = E.selection(E.contention(board, state, last()), T(), t0);
+    sel = E.selection(E.contention(board, state), T(), t0);
     probs = E.probabilities(sel); fade = new Map();
     if (hint !== null && !sel.ids.includes(hint)) hint = null;
     // On board 1 the tune's note sounds louder, and shows a ring, the first two times round.
@@ -342,7 +356,9 @@
       // Access, a switch through some adapters) cannot start the sound. Rather
       // than wait for ever, the board starts silent after a moment, its dots
       // showing the notes, and sound joins at the first tap or key.
-      setTimeout(() => { if (mode === 'wait' && starting) { starting = false; startTune(performance.now() + 200); chrome(); announce('No sound yet: tap or press a key to hear the notes. The dots show them meanwhile.'); } }, 1500);
+      // A player who looks and holds (Access saved as Look and hold) is told
+      // what the browser wants, not asked for a tap they may not make.
+      setTimeout(() => { if (mode === 'wait' && starting) { starting = false; startTune(performance.now() + 200); chrome(); announce(document.body.dataset.access === 'look' ? 'No sound yet: this browser starts sound only after a tap, click or key. The dots show the notes meanwhile.' : 'No sound yet: tap or press a key to hear the notes. The dots show them meanwhile.'); } }, 1500);
       return;
     }
     if (mode !== 'select' || !sel) return;
@@ -360,7 +376,7 @@
   function take(id) {
     const now = performance.now(), k = state.notes.length, L = board.melody.length;
     choices++;
-    if (id === 'next') { const next = boards[index() + 1]; if (next) go(next.id); return; }
+    if (id === 'next') { go(ahead().id); return; }
     if (id === 'replay') { startTune(now + 300); announce('The tune again.'); chrome(); save(); return; }
     state = E.choose(board, state, id); hint = null; sel = null; cancelCycle();
     if (id === 'undo') {
@@ -378,7 +394,7 @@
         [5, 7, 8, 5].forEach((p, i) => voice({ kind: 'chord', at: now + i * 55, hz: E.PITCHES[p].hz * (i === 3 ? 2 : 1), pan: prefs.split === 'on' ? -.4 + i * .27 : 0, dur: 560 - i * 55, level: .2, group: 'cue' }));
         finale = { at: now, origin };
         finished.add(board.id); playTune(state.notes, now + 700, 'finish');
-        announce(`Tune rebuilt in ${hits} presses. Par ${par()}. ${last() ? 'Every board is finished.' : 'Press as the rising sound plays for the next board.'}`);
+        announce(`Tune rebuilt in ${hits} presses. Par ${par()}. ${allSolved() ? ENDING : 'Press as the rising sound plays for the next board.'}`);
       } else { voice({ kind: 'confirm', id, at: now, hz: E.pitch(board, id).hz, pan: E.pan(board, id, prefs.split === 'on'), dur: 320, level: .38, group: 'cue' }); announce(`Right note, ${k + 1} of ${L}.`); begin(now + AFTER); }
     }
     chrome(); save();
@@ -439,13 +455,14 @@
 
   function chrome() {
     const n = index() + 1, done = solved(), L = board.melody.length;
-    $('#readout').textContent = `${n} / ${boards.length} · ${hits} / ${par()}`;
-    $('#readout').setAttribute('aria-label', `Board ${n} of ${boards.length}; ${hits} presses; par ${par()}`);
+    const end = done && allSolved();
+    $('#readout').textContent = end ? ENDING : `${n} / ${boards.length} · ${hits} / ${par()}`;
+    $('#readout').setAttribute('aria-label', `${end ? ENDING + ' ' : ''}Board ${n} of ${boards.length}; ${hits} presses; par ${par()}`);
     const status = mode === 'wait' ? 'Press any key or tap anywhere to start the sound.' : done ? 'Tune rebuilt.' : state.wrong ? 'A wrong note stands; press as the falling sound plays to take it back.' : 'Press any key or tap as each note of the tune comes round.';
     $('#board').setAttribute('aria-label', `Board ${n} of ${boards.length}: a tune of ${L} notes from ${board.notes.length}; ${state.notes.length - (state.wrong ? 1 : 0)} placed. ${status}`);
     $('#undo-btn').disabled = state.notes.length === 0;
     $('#hint-btn').disabled = done;
-    $('#next-btn').hidden = !done || last();
+    $('#next-btn').hidden = !done; labelNext();
     catalog();
   }
   // Settings lists every board as current, completed or available.
@@ -576,7 +593,12 @@
     held.add(code); switchKeys.add(code);
     switchDown(e.timeStamp, 'k' + code);
   });
-  document.addEventListener('keyup', e => { const code = e.code || e.key; held.delete(code); if (switchKeys.delete(code)) { e.preventDefault(); switchUp(e.timeStamp, 'k' + code); } if (starting) wakeAudio(); });
+  // A real key wakes sound still waiting for one, as a tap does: after the
+  // board started silent, a key used to bring no sound although the page
+  // asked for one. A key made by Access is not the player's own and cannot.
+  const soundWaits = () => starting || (ctx && ctx.state === 'suspended' && mode !== 'pause');
+  document.addEventListener('keydown', e => { if (e.isTrusted && soundWaits()) wakeAudio(); }, true);
+  document.addEventListener('keyup', e => { const code = e.code || e.key; held.delete(code); if (switchKeys.delete(code)) { e.preventDefault(); switchUp(e.timeStamp, 'k' + code); } if (soundWaits()) wakeAudio(); });
   const chromeTarget = t => t.closest && t.closest('button,select,a,label,dialog,input,textarea');
   document.addEventListener('pointerdown', e => {
     lastInput = 'pointer';
@@ -587,7 +609,7 @@
   // A pointer the browser takes away ends its press without completing a long press.
   document.addEventListener('pointercancel', e => { if (pressing.delete(e.pointerId)) { cancelHold(); lastRelease = e.timeStamp; } });
   // A touch grants permission to play on its release, so the sound is woken again there.
-  for (const name of ['pointerup', 'touchend', 'click']) document.addEventListener(name, () => { if (starting || (ctx && ctx.state === 'suspended' && mode !== 'pause')) wakeAudio(); });
+  for (const name of ['pointerup', 'touchend', 'click']) document.addEventListener(name, () => { if (soundWaits()) wakeAudio(); });
   for (const name of ['contextmenu', 'dragstart', 'selectstart']) document.addEventListener(name, e => { if (!chromeTarget(e.target) || name !== 'contextmenu') e.preventDefault(); });
   window.addEventListener('blur', () => { held.clear(); cancelHold(); });
   document.addEventListener('visibilitychange', () => { held.clear(); cancelHold(); if (document.hidden) pause(); else resume(); });
@@ -601,7 +623,7 @@
   $('#hint-btn').addEventListener('click', e => { wakeAudio(); hintButton(); handBack(e); });
   $('#replay-btn').addEventListener('click', e => { wakeAudio(); replayButton(); handBack(e); });
   $('#restart-btn').addEventListener('click', e => { wakeAudio(); restart(); handBack(e); });
-  $('#next-btn').addEventListener('click', e => { wakeAudio(); const n = boards[index() + 1]; if (n && solved()) go(n.id); handBack(e); });
+  $('#next-btn').addEventListener('click', e => { wakeAudio(); if (solved()) go(ahead().id); handBack(e); });
   const openedBy = {};
   for (const id of ['settings', 'help']) {
     $('#' + id + '-btn').addEventListener('click', () => { openedBy[id] = lastInput; held.clear(); $('#' + id).showModal(); });

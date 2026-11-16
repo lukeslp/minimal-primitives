@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" width="1200" height="1200">
+  <rect width="1200" height="1200" fill="#000"/>
+  <defs><pattern id="h" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="14" stroke="#fff" stroke-width="3"/></pattern></defs>
+  <g fill="none" stroke="#fff" stroke-linejoin="round" stroke-linecap="round">
+    <polygon points="516.9,648.0 433.7,696.0 433.7,312.0 516.9,264.0" fill="url(#h)" stroke-width="3"/>
+    <polygon points="433.7,696.0 350.6,744.0 350.6,552.0 433.7,504.0" fill="url(#h)" stroke-width="3"/>
+    <polygon points="350.6,744.0 267.4,792.0 267.4,696.0 350.6,648.0" fill="url(#h)" stroke-width="3"/>
+    <polygon points="600.0,600.0 683.1,648.0 683.1,552.0 600.0,504.0" fill="url(#h)" stroke-width="3"/>
+    <polygon points="683.1,648.0 766.3,696.0 766.3,504.0 683.1,456.0" fill="url(#h)" stroke-width="3"/>
+    <polygon points="766.3,696.0 849.4,744.0 849.4,360.0 766.3,312.0" fill="url(#h)" stroke-width="3"/>
+    <polygon points="600.0,216.0 932.6,408.0 932.6,792.0 600.0,984.0 267.4,792.0 267.4,408.0" stroke-width="6"/>
+    <polyline points="600.0,600.0 600.0,216.0" stroke-width="3"/>
+    <polyline points="600.0,600.0 932.6,792.0" stroke-width="3"/>
+    <polyline points="600.0,600.0 267.4,792.0" stroke-width="3"/>
+    <polygon points="516.9,648.0 600.0,696.0 600.0,792.0 516.9,744.0" fill="#000" stroke-width="6"/>
+    <polygon points="683.1,648.0 600.0,696.0 600.0,792.0 683.1,744.0" fill="#000" stroke-width="6"/>
+    <polygon points="600.0,600.0 683.1,648.0 600.0,696.0 516.9,648.0" fill="#000" stroke-width="6"/>
+    <polygon points="600.0,408.0 683.1,456.0 683.1,840.0 600.0,792.0" fill="#000" stroke-width="6"/>
+    <polygon points="766.3,408.0 683.1,456.0 683.1,840.0 766.3,792.0" fill="#000" stroke-width="6"/>
+    <polygon points="683.1,360.0 766.3,408.0 683.1,456.0 600.0,408.0" fill="#000" stroke-width="6"/>
+    <polyline points="600.0,696.0 683.1,744.0 766.3,696.0" stroke-width="3"/>
+    <polyline points="600.0,600.0 683.1,648.0 766.3,600.0" stroke-width="3"/>
+    <polyline points="600.0,504.0 683.1,552.0 766.3,504.0" stroke-width="3"/>
+    <polygon points="433.7,600.0 516.9,648.0 516.9,840.0 433.7,792.0" fill="#000" stroke-width="6"/>
+    <polygon points="600.0,600.0 516.9,648.0 516.9,840.0 600.0,792.0" fill="#000" stroke-width="6"/>
+    <polygon points="516.9,552.0 600.0,600.0 516.9,648.0 433.7,600.0" fill="#000" stroke-width="6"/>
+    <polyline points="433.7,696.0 516.9,744.0 600.0,696.0" stroke-width="3"/>
+    <polygon points="267.4,696.0 350.6,744.0 350.6,840.0 267.4,792.0" fill="#000" stroke-width="6"/>
+    <polygon points="433.7,696.0 350.6,744.0 350.6,840.0 433.7,792.0" fill="#000" stroke-width="6"/>
+    <polygon points="350.6,648.0 433.7,696.0 350.6,744.0 267.4,696.0" fill="#000" stroke-width="6"/>
+  </g>
+</svg>

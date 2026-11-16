@@ -53,7 +53,21 @@
 
   const reduced = () => prefs.motion === 'reduce' || motionQuery.matches;
   const dark = () => prefs.theme === 'dark' || prefs.theme === 'system' && darkQuery.matches;
-  const last = () => boards.indexOf(board) === boards.length - 1;
+  // ---- The end, the same in all eight accessible games. Next goes to the
+  // following board and, past the last, to the first unfinished one. Once
+  // every board is finished the readout says so, and on the last board Next
+  // turns into Replay: board 1 again, fresh, with the finished marks kept.
+  const ENDING = `All ${boards.length} boards solved.`, ARROW = 'M5 12h14M13 6l6 6-6 6', REPLAY = 'M17 3l3 3-3 3M4 11V9a3 3 0 0 1 3-3h13M7 21l-3-3 3-3M20 13v2a3 3 0 0 1-3 3H4';
+  const allSolved = () => boards.every(b => finished.has(b.id));
+  const ahead = () => boards[boards.indexOf(board) + 1] || boards.find(b => !finished.has(b.id)) || boards[0];
+  const replays = () => !boards[boards.indexOf(board) + 1] && allSolved();
+  function labelNext() {
+    const n = $('#next-btn'), again = replays(), label = again ? 'Replay from board 1' : 'Next board', d = again ? REPLAY : ARROW;
+    n.dataset.end = again ? 'replay' : 'next';
+    if (n.getAttribute('aria-label') === label && n.querySelector('path')?.getAttribute('d') === d) return;
+    n.setAttribute('aria-label', label);
+    n.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  }
   const T = () => E.period(board, prefs.speed);
   // Auto chooses, on each board at each speed, whichever way has the lower par.
   const mode = () => prefs.choose === 'auto' ? (board.par.line[prefs.speed] < board.par.cell[prefs.speed] ? 'line' : 'cell') : prefs.choose;
@@ -73,7 +87,7 @@
   const palette = () => PALETTES[boards.indexOf(board) % PALETTES.length].filter(rgb => dark() ? luminance(rgb) >= .06 : luminance(rgb) <= .7);
   const stop = (pal, t) => { const at = clamp(t, 0, .9999) * (pal.length - 1), i = Math.floor(at), f = at - i, a = pal[i], b = pal[Math.min(pal.length - 1, i + 1)]; return `rgb(${a.map((v, c) => Math.round(v + (b[c] - v) * f)).join(',')})`; };
   function begin(t = performance.now()) {
-    const ids = E.contention(board, state, mode(), last());
+    const ids = E.contention(board, state, mode());
     sel = ids.length ? E.selection(ids, T(), t) : null;
     probs = sel ? E.probabilities(sel) : new Map();
     q = E.quiet(board, state.filled); ok = E.live(board, state.filled, q);
@@ -425,7 +439,7 @@
   // it and out zooms back; undo takes back the last fill or emptying; a cell's
   // clock fills or empties it.
   function take(id, t) {
-    if (id === 'next') { const n = boards[boards.indexOf(board) + 1]; if (n) go(n.id); return; }
+    if (id === 'next') { go(ahead().id); return; }
     const before = state, wasQuiet = q;
     state = E.choose(board, state, id);
     if (typeof id === 'string' && id[0] === 'r') { zoom.row = state.view; setZoom(1, t); }
@@ -445,7 +459,7 @@
       done = { start: t, x: from.x, y: from.y, far, pal: palette() };
     } else done = null;
     chrome(); save();
-    if (nowSolved) { announce(`Picture finished in ${hits} presses. Par ${par()}. ${last() ? 'Every board is finished.' : 'Next board is available.'}`); sound('solve'); return; }
+    if (nowSolved) { announce(`Picture finished in ${hits} presses. Par ${par()}. ${allSolved() ? ENDING : 'Next board is available.'}`); sound('solve'); return; }
     if (id === 'out') { announce('Back to the board.'); return; }
     if (typeof id === 'string' && id[0] === 'r') { announce(`Row ${state.view + 1}: ${clueText(g.rows[state.view]).join(' ')}.`); return; }
     const changed = id === 'undo' ? before.history[before.history.length - 1] : id;
@@ -500,15 +514,16 @@
 
   function chrome() {
     const n = boards.indexOf(board) + 1, finishedNow = solved(), g = E.info(board);
-    $('#readout-text').textContent = `${n} / ${boards.length} · ${hits} / ${par()}`;
+    const end = finishedNow && allSolved();
+    $('#readout-text').textContent = end ? ENDING : `${n} / ${boards.length} · ${hits} / ${par()}`;
     $('#speed-glyph').innerHTML = meter(prefs.speed, 'small');
-    $('#readout').setAttribute('aria-label', `Board ${n} of ${boards.length}; ${hits} presses; par ${par()}; speed ${prefs.speed + 1} of ${E.STEPS.length}`);
+    $('#readout').setAttribute('aria-label', `${end ? ENDING + ' ' : ''}Board ${n} of ${boards.length}; ${hits} presses; par ${par()}; speed ${prefs.speed + 1} of ${E.STEPS.length}`);
     const clues = (list, word) => list.map((c, k) => `${word} ${k + 1}: ${clueText(c).join(' ')}`).join('; ');
     $('#board').setAttribute('aria-label', `Board ${n} of ${boards.length}: ${g.R} rows by ${g.C} columns, ${state.filled.length} cells filled. ${clues(g.rows, 'row')}. ${clues(g.cols, 'column')}. ${finishedNow ? 'Picture finished.' : state.view >= 0 ? `Zoomed into row ${state.view + 1}.` : 'Press any key or tap as a clock\'s hand reaches the top.'}`);
     $('#speed').setAttribute('aria-valuetext', `${prefs.speed + 1} of ${E.STEPS.length}, ${(E.STEPS[prefs.speed] / 1000).toFixed(1)} seconds a turn`);
     $('#undo-btn').disabled = state.history.length === 0;
     $('#hint-btn').disabled = finishedNow;
-    $('#next-btn').hidden = !finishedNow || last();
+    $('#next-btn').hidden = !finishedNow; labelNext();
     catalog();
   }
   // Settings lists every board as current, completed or available.
@@ -593,7 +608,7 @@
   $('#undo-btn').addEventListener('click', e => { undoButton(); handBack(e); });
   $('#hint-btn').addEventListener('click', e => { hintButton(); handBack(e); });
   $('#restart-btn').addEventListener('click', e => { restart(); handBack(e); });
-  $('#next-btn').addEventListener('click', e => { const n = boards[boards.indexOf(board) + 1]; if (n && solved()) go(n.id); handBack(e); });
+  $('#next-btn').addEventListener('click', e => { if (solved()) go(ahead().id); handBack(e); });
   const openedBy = {};
   for (const id of ['settings', 'help']) {
     $('#' + id + '-btn').addEventListener('click', () => { openedBy[id] = lastInput; held.clear(); $('#' + id).showModal(); });

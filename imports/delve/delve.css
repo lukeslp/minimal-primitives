@@ -26,14 +26,16 @@
   --text: #ededed;
   --sub: #a6a6a6;
   --line: #2f2f2f;
-  --guide: #8f8f8f;
+  /* Strike marks and remembered things: above the floor gray (3.1:1), below ink. */
+  --guide: #b0b0b0;
   --frame: #ededed;
   --band: rgba(255, 255, 255, 0.06);
   --scrim: rgba(0, 0, 0, 0.8);
   --icon: #dddddd;
-  /* The two grays of the floor: in sight, and remembered. */
-  --floor: #2e2e2e;
-  --fog: #1b1b1b;
+  /* The two grays of the floor: in sight (3.1:1 on black, so the floor reads at a glance; it was
+   * #2e2e2e, 1.6:1, until November 13, 2026), and remembered (1.8:1 on black, 1.8:1 under the floor). */
+  --floor: #5c5c5c;
+  --fog: #383838;
   --mono: "Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --sans: "Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
 }

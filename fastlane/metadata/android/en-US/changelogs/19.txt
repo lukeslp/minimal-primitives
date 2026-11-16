@@ -1,0 +1,1 @@
+The library now follows the Minimal index: Slant and Notan first, then Hexsweeper's three boards, Bridges, Akari and the rest. Same games as 0.5.3, including the lit-room Cast. Still no camera input and no camera permission in this build.

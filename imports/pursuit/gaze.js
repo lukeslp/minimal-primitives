@@ -193,6 +193,19 @@
     if (cal.kind === 'head') return { ...cal, centre: { yaw: rest.yaw, pitch: rest.pitch } };
     return { ...cal, u: { k: cal.u.k, b: -cal.u.k * rest.ax }, v: { k: cal.v.k, b: -cal.v.k * rest.ay } };
   }
+  // A typical reach, for a player whose five-dot calibration did not take
+  // twice: made from the five places as an average sitter reaches them (a
+  // quarter radian of head turn, or the look's same share), then recentred on
+  // one held dot. In image terms, as the readings are: the screen's left is
+  // the image's right, so a look left reads positive across, and a look up
+  // reads negative. Marked rough, so the next start asks for the five dots
+  // again.
+  function typical(kind) {
+    const T = { head: [{ yaw: 0, pitch: 0, roll: 0 }, { yaw: .25, pitch: 0, roll: 0 }, { yaw: -.25, pitch: 0, roll: 0 }, { yaw: 0, pitch: -.15, roll: 0 }, { yaw: 0, pitch: .15, roll: 0 }],
+      eyes: [{ ax: 0, ay: 0 }, { ax: .6, ay: 0 }, { ax: -.6, ay: 0 }, { ax: 0, ay: -.5 }, { ax: 0, ay: .5 }] };
+    const made = kind === 'head' ? headCalibration(T.head) : kind === 'eyes' ? eyesCalibration(T.eyes) : null;
+    return made && { ...made, rough: true };
+  }
   // Holding still: every recent reading lies close to their mean.
   function stillness(window, keys, tolerance) {
     if (!window.length) return { still: false };
@@ -203,7 +216,8 @@
   // An eyes calibration made before the eyes' up and down were measured from
   // the corners (no `e: 2`) still loads, but asks for a full calibration
   // again; a head calibration is unchanged.
-  const current = c => !!c && (c.kind !== 'eyes' || c.e === 2);
+  // A rough (typical) calibration also asks for the five dots again.
+  const current = c => !!c && !c.rough && (c.kind !== 'eyes' || c.e === 2);
   function validCalibration(c) {
     const num = v => typeof v === 'number' && Number.isFinite(v);
     if (!c || typeof c !== 'object') return false;
@@ -219,5 +233,5 @@
     const num = v => typeof v === 'number' && Number.isFinite(v);
     return !!t && typeof t === 'object' && (t.sx === 1 || t.sx === -1) && (t.sy === 1 || t.sy === -1) && num(t.gx) && num(t.gy) && t.gx > 0 && t.gy > 0 && t.gx < 1 && t.gy < 1;
   }
-  return { clamp, oneEuro, dwell, MESH, headPose, landmarkPose, irisOffset, lookAngles, SPOTS, headCalibration, headMap, eyesCalibration, eyesMap, recentre, stillness, validCalibration, current, validTuning };
+  return { clamp, oneEuro, dwell, MESH, headPose, landmarkPose, irisOffset, lookAngles, SPOTS, headCalibration, headMap, eyesCalibration, eyesMap, recentre, typical, stillness, validCalibration, current, validTuning };
 });

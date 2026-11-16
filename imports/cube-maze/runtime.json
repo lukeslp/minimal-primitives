@@ -1,0 +1,23 @@
+{
+  "id": "cube-maze",
+  "entry": "index.html",
+  "files": [
+    "boards.js",
+    "controls.css",
+    "controls.js",
+    "cube-maze.css",
+    "cube-maze.js",
+    "engine.js",
+    "favicon.svg",
+    "feet.js",
+    "fonts/IBMPlexMono-500.woff2",
+    "fonts/IBMPlexSans-400.woff2",
+    "fonts/OFL.txt",
+    "index.html",
+    "vendor/LICENSE-THREE.txt",
+    "vendor/three.core.min.js",
+    "vendor/three.module.min.js",
+    "access.js",
+    "bridge-client.js"
+  ]
+}

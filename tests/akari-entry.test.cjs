@@ -7,7 +7,7 @@ for(const theme of ['light','system'])test('Akari tile opens stylized with '+the
  await frame.locator('#settings-btn').click();await frame.locator('#look-other').click();
  await page.waitForFunction(()=>document.querySelector('#player iframe')?.contentDocument?.documentElement?.dataset.look==='light');
  const classic=await (await page.locator('#player iframe').elementHandle()).contentFrame();await h.ready(classic,true);
- await classic.locator('#minimal-home').click();await page.locator('#library:visible').waitFor();await page.locator('.tile[data-game="akari"]').click();
+ await classic.locator('#minimal-home').click();await page.locator('#library:visible').waitFor();await page.locator('[data-open="akari"]').evaluate(a=>a.click());
  await page.waitForFunction(()=>document.querySelector('#player iframe')?.contentDocument?.documentElement?.dataset.look==='dark');
  const back=await (await page.locator('#player iframe').elementHandle()).contentFrame();await h.ready(back,true);await h.restored(back);assert.deepEqual(ctx.parity.errors,[]);
 });

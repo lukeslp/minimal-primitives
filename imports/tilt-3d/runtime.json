@@ -19,6 +19,13 @@
     "tilt-input.js",
     "vendor/LICENSE-THREE.txt",
     "vendor/three.core.min.js",
-    "vendor/three.module.min.js"
+    "vendor/three.module.min.js",
+    "manifest.webmanifest",
+    "sw.js",
+    "pwa.js",
+    "icons/icon-180.png",
+    "icons/icon-192.png",
+    "icons/icon-512.png",
+    "icons/maskable-512.png"
   ]
 }

@@ -108,7 +108,7 @@
 .centre:focus-visible{outline:0}.centre:focus-visible::before{outline:2px solid #fff;outline-offset:4px}
 @media(forced-colors:active){.centre::before{border-color:CanvasText;background:Canvas;box-shadow:0 0 0 3px Canvas}.centre::after{background:CanvasText}.centre[aria-pressed=true]::before{background:CanvasText}.centre[aria-pressed=true]::after{background:Canvas}}
 
-.milestone{color:var(--sub);font:14px/1.3 var(--sans);text-align:center;margin:0;grid-row:2;grid-column:1/-1;justify-self:center;white-space:nowrap}.milestone:empty{display:none}.completion:not([hidden]):has(.milestone:not(:empty)){display:grid;grid-template-columns:repeat(2,48px);height:auto;row-gap:0}
+.milestone{color:var(--sub);font:14px/1.3 var(--sans);text-align:center;margin:0;grid-row:2;grid-column:1/-1;justify-self:center;white-space:nowrap}.milestone:empty{display:none}.completion:not([hidden]):has(.milestone:not(:empty)){display:grid;grid-template-columns:48px;justify-content:center;height:auto;row-gap:0}
 .board-stage:has(.board.solved):has(.milestone:not(:empty)){padding-bottom:87.2px}
 
 .completion{gap:12px}.completion .ib[hidden]{display:none}
