@@ -316,13 +316,32 @@ class PrimitivesTests(unittest.TestCase):
     def test_every_game_has_primitives_from_the_vocabulary(self):
         data = json.loads((ROOT / 'primitives.json').read_text())
         allowed = {verb for verbs in data['vocabulary']['groups'].values() for verb in verbs}
-        self.assertLessEqual(set(data['vocabulary']['line']), allowed, 'the public line uses grouped verbs')
+        line, words = data['vocabulary']['line'], data['vocabulary']['words']
+        self.assertEqual(line, ['get', 'put', 'push', 'turn', 'join', 'split', 'bend', 'switch'], 'the eight words, in the order the opening shows them')
+        self.assertEqual(list(words), line)
+        self.assertLessEqual({verb for verbs in words.values() for verb in verbs}, allowed, 'each word covers grouped verbs')
         games = [g['id'] for g in json.loads((ROOT / 'sources.json').read_text())['games']]
         self.assertEqual(sorted(data['games']), sorted(games), 'Add the new game to primitives.json')
         for game, entry in data['games'].items():
             self.assertTrue(1 <= len(entry['primitives']) <= 3, game)
             self.assertLessEqual(set(entry['primitives']), allowed, game)
             self.assertTrue(entry['exercises'], game)
+            self.assertTrue(1 <= len(entry['words']) <= 2, game)
+            self.assertLessEqual(set(entry['words']), set(line), game)
+            covered = {verb for word in entry['words'] for verb in words[word]}
+            self.assertTrue(set(entry['primitives']) & covered, game + ': its words cover none of its verbs')
+
+    def test_every_public_text_names_the_same_eight_words(self):
+        # One list everywhere: the index's opening (imported), the store and itch descriptions and the document.
+        line = ', '.join(json.loads((ROOT / 'primitives.json').read_text())['vocabulary']['line'])
+        opening = re.findall(r'<li>([^<]+)</li>', json.loads((ROOT / 'index.json').read_text())['opening'])
+        self.assertEqual(', '.join(opening), line, 'the opening shows the eight words')
+        for name in ['release/app-store/description.txt', 'release/play/full_description.txt',
+                     'fastlane/metadata/android/en-US/full_description.txt', 'release/itch-page.md']:
+            text = (ROOT / name).read_text()
+            self.assertIn('to building: ' + line + '.', text, name)
+            self.assertNotIn('toggle, point', text, name)
+        self.assertIn(line.capitalize() + '.', ' '.join((ROOT / 'docs/interaction-primitives.md').read_text().split()))
 
 
 class ReleaseCopyTests(unittest.TestCase):

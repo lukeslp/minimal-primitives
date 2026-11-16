@@ -54,16 +54,14 @@
    ]
   },
   "line": [
+   "get",
+   "put",
    "push",
-   "pull",
-   "lift",
-   "release",
-   "tilt",
    "turn",
-   "fold",
-   "connect",
-   "toggle",
-   "point"
+   "join",
+   "split",
+   "bend",
+   "switch"
   ],
   "adjacent": [
    "twist",
@@ -79,10 +77,65 @@
    "open",
    "close",
    "wind"
-  ]
+  ],
+  "words": {
+   "get": [
+    "lift",
+    "pull",
+    "grasp",
+    "uncover",
+    "select",
+    "point",
+    "follow",
+    "scan"
+   ],
+   "put": [
+    "place",
+    "drop",
+    "release",
+    "lower",
+    "stack",
+    "mark"
+   ],
+   "push": [
+    "push",
+    "repel",
+    "strike",
+    "step",
+    "slide",
+    "press"
+   ],
+   "turn": [
+    "turn",
+    "spin",
+    "tilt",
+    "flip"
+   ],
+   "join": [
+    "connect",
+    "trace"
+   ],
+   "split": [
+    "divide",
+    "separate"
+   ],
+   "bend": [
+    "fold",
+    "squeeze"
+   ],
+   "switch": [
+    "toggle",
+    "press on time",
+    "wait"
+   ]
+  }
  },
  "games": {
   "hexsweeper": {
+   "words": [
+    "get",
+    "put"
+   ],
    "primitives": [
     "uncover",
     "mark"
@@ -92,6 +145,9 @@
    ]
   },
   "notan": {
+   "words": [
+    "switch"
+   ],
    "primitives": [
     "toggle"
    ],
@@ -100,6 +156,10 @@
    ]
   },
   "akari": {
+   "words": [
+    "put",
+    "switch"
+   ],
    "primitives": [
     "place",
     "toggle"
@@ -109,6 +169,9 @@
    ]
   },
   "galaxies": {
+   "words": [
+    "split"
+   ],
    "primitives": [
     "divide"
    ],
@@ -117,6 +180,9 @@
    ]
   },
   "bridges": {
+   "words": [
+    "join"
+   ],
    "primitives": [
     "connect"
    ],
@@ -126,6 +192,9 @@
    ]
   },
   "slant": {
+   "words": [
+    "turn"
+   ],
    "primitives": [
     "flip"
    ],
@@ -134,6 +203,9 @@
    ]
   },
   "fold": {
+   "words": [
+    "bend"
+   ],
    "primitives": [
     "fold"
    ],
@@ -142,6 +214,10 @@
    ]
   },
   "bending": {
+   "words": [
+    "put",
+    "bend"
+   ],
    "primitives": [
     "place",
     "push"
@@ -151,6 +227,9 @@
    ]
   },
   "tilt": {
+   "words": [
+    "turn"
+   ],
    "primitives": [
     "tilt",
     "drop"
@@ -160,6 +239,10 @@
    ]
   },
   "horologist": {
+   "words": [
+    "put",
+    "turn"
+   ],
    "primitives": [
     "place",
     "spin"
@@ -169,6 +252,9 @@
    ]
   },
   "towers": {
+   "words": [
+    "put"
+   ],
    "primitives": [
     "lift",
     "stack"
@@ -178,6 +264,9 @@
    ]
   },
   "tents": {
+   "words": [
+    "put"
+   ],
    "primitives": [
     "place"
    ],
@@ -186,6 +275,9 @@
    ]
   },
   "constellations": {
+   "words": [
+    "join"
+   ],
    "primitives": [
     "connect"
    ],
@@ -195,6 +287,9 @@
    ]
   },
   "shoo-minimal": {
+   "words": [
+    "push"
+   ],
    "primitives": [
     "repel"
    ],
@@ -203,6 +298,9 @@
    ]
   },
   "balance": {
+   "words": [
+    "switch"
+   ],
    "primitives": [
     "toggle"
    ],
@@ -211,6 +309,9 @@
    ]
   },
   "cast": {
+   "words": [
+    "put"
+   ],
    "primitives": [
     "lift",
     "drop",
@@ -221,6 +322,9 @@
    ]
   },
   "tilt-3d": {
+   "words": [
+    "turn"
+   ],
    "primitives": [
     "tilt",
     "drop"
@@ -230,6 +334,9 @@
    ]
   },
   "delve": {
+   "words": [
+    "push"
+   ],
    "primitives": [
     "step",
     "strike",
@@ -241,6 +348,9 @@
    ]
   },
   "cube-maze": {
+   "words": [
+    "turn"
+   ],
    "primitives": [
     "tilt",
     "turn"
@@ -250,6 +360,10 @@
    ]
   },
   "tangles": {
+   "words": [
+    "turn",
+    "join"
+   ],
    "primitives": [
     "turn",
     "connect"
@@ -259,6 +373,9 @@
    ]
   },
   "weaves": {
+   "words": [
+    "switch"
+   ],
    "primitives": [
     "toggle"
    ],
@@ -267,6 +384,9 @@
    ]
   },
   "glance": {
+   "words": [
+    "turn"
+   ],
    "primitives": [
     "flip",
     "select"
@@ -277,6 +397,9 @@
    ]
   },
   "glyph": {
+   "words": [
+    "join"
+   ],
    "primitives": [
     "trace"
    ],
@@ -285,6 +408,9 @@
    ]
   },
   "pursuit": {
+   "words": [
+    "get"
+   ],
    "primitives": [
     "follow"
    ],
@@ -293,6 +419,9 @@
    ]
   },
   "shoo": {
+   "words": [
+    "push"
+   ],
    "primitives": [
     "repel"
    ],
@@ -302,6 +431,9 @@
    ]
   },
   "nod": {
+   "words": [
+    "turn"
+   ],
    "primitives": [
     "tilt",
     "drop"
@@ -311,6 +443,9 @@
    ]
   },
   "noon": {
+   "words": [
+    "switch"
+   ],
    "primitives": [
     "toggle",
     "press on time"
@@ -320,6 +455,9 @@
    ]
   },
   "sweep": {
+   "words": [
+    "get"
+   ],
    "primitives": [
     "scan",
     "select"
@@ -329,6 +467,9 @@
    ]
   },
   "ticker": {
+   "words": [
+    "switch"
+   ],
    "primitives": [
     "press on time"
    ],

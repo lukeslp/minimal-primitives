@@ -1,6 +1,6 @@
 These games started as UX experiments. I wanted to see whether a simple, iconic surface could drop you straight into a puzzle and teach the interaction through the design, with almost no text.
 
-Interaction primitives are to doing what simple machines are to building: push, pull, lift, release, tilt, turn, fold, connect, toggle, point. Each game here is built on one or two of them.
+Interaction primitives are to doing what simple machines are to building: get, put, push, turn, join, split, bend, switch. Each game here is built on one or two of them.
 
 Twenty-nine small puzzle games in black and white, in one app that plays offline. Most also play with one switch or by looking. No account, no ads, no tracking. Unfinished boards, Undo and settings are kept when you go Home, so you can move between games and pick up where you left off.
 
