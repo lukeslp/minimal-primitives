@@ -126,6 +126,8 @@ html, body { touch-action: manipulation; }
 .board.solved .outlines{opacity:0;transition:opacity 1.1s ease .35s}
 /* A square not yet joined to its diamond is a note, not a mistake: no dashes. */
 .cell.conflict.loose::after{display:none}
+/* A hint that corrects a marked square keeps its solid target ring over the problem dashes. */
+.cell.conflict.hint-target::after{display:block;border:3px solid currentColor}
 /* A tap that needs a galaxy chosen makes the diamonds answer once. */
 .centres.nudge .centre:not(:disabled)::before{animation:nudge .45s ease}
 @keyframes nudge{50%{transform:rotate(45deg) scale(1.4)}}

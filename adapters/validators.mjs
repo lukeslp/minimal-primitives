@@ -171,9 +171,10 @@ export async function validateProof(request){
     if(!modes.includes(i.mode))return{valid:false};
     let p,E,value=elapsedMs,puzzleLayout;
     if(i.game==='bending'){
-      const {boards}=await import('../imports/bending/boards.mjs');
+      // Since game-riffs d3d9b9e Bending's stages are the campaign's thirty, then the New Game+ pool, numbered on.
+      const {boards,pool=[]}=await import('../imports/bending/boards.mjs');
       const {placed}=await import('../imports/bending/well.mjs');
-      p=boards.find((p,n)=>String(p.id||n+1)===i.puzzleId);
+      p=[...boards,...pool].find((p,n)=>String(p.id||n+1)===i.puzzleId);
       if(!p||!bounded(proof.planets,p.answer.length)||proof.planets.length!==p.answer.length||proof.planets.some(n=>!Number.isInteger(n))||new Set(proof.planets).size!==proof.planets.length||!placed(p,proof.planets).solved)return{valid:false};
       puzzleLayout=p;
     }else{

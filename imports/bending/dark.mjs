@@ -1,11 +1,15 @@
 import {judge, nearestDot, placed, spots, FULL, PLANET, WELL} from './well.mjs?v=0f8ac9d7';
-import {boards} from './boards.mjs?v=7924441f';
-import {fresh as freshCampaign, migrate, unlock} from './campaign.mjs?v=afbaeef6';
+import {boards as campaign, pool} from './boards.mjs?v=4cee060e';
+import {fresh as freshCampaign, draw as fromPool, fingerprint, pack, restore, unlock} from './campaign.mjs?v=30f86605';
 import {createView, createSky, trayPoint, NEXT, RIPPLE} from './dark-view.mjs?v=0f8ac9d7';
 
-// v2: a planet's place is a dot of its own stage's lattice, so v1 places mean nothing here.
-const SAVE_KEY = 'rimlight.dark.v2';
-const fresh = () => freshCampaign(boards);
+// The campaign's stages, then New Game+'s boards: a record has one entry for each.
+const boards = [...campaign, ...pool];
+// v3 keeps progress under each board's name. The v2 record, kept by place, is
+// read once when there is no v3 record and never written again.
+const SAVE_KEY = 'rimlight.dark.v3';
+const OLD_KEY = 'rimlight.dark.v2';
+const fresh = () => freshCampaign(campaign, pool);
 const $ = id => document.getElementById(id);
 const canvas = $('well');
 const view = createView(canvas);
@@ -21,30 +25,33 @@ const weave = query.get('weave') !== 'off';
 const hole = query.get('orb') === 'hole';
 const sky = stars ? createSky($('sky')) : null;
 let record = fresh();
-try {
-  const candidate = JSON.parse(localStorage.getItem(SAVE_KEY));
-  const migrated = migrate(candidate, boards);
-  if (migrated) record = migrated;
-} catch (_) {}
-// Which stages have ever been solved. Replay clears the boards and keeps these
-// marks, so a stage stays finished after its planets go back to the tray.
+// True when the save is from a later version: it is read, and never written over.
+let protect = false;
+{
+  const stored = key => { try { return localStorage.getItem(key); } catch (_) { return null; } };
+  const opened = restore(stored(SAVE_KEY), stored(OLD_KEY), campaign, pool);
+  record = opened.record;
+  protect = opened.protect;
+  // An unreadable save is set aside before anything is written in its place.
+  if (opened.keep !== null) try { localStorage.setItem(`${SAVE_KEY}.recovery.${Date.now()}`, opened.keep); } catch (_) {}
+}
+// Which stages have ever been solved, so a stage stays finished after its
+// planets go back to the tray.
 function marks() {
   const kept = Array.isArray(record.done) && record.done.length === boards.length ? record.done : [];
   record.done = record.stages.map((entry, i) => entry.solved || kept[i] === true);
 }
 marks();
 const finished = i => record.done[i] || record.stages[i].solved;
-const allFinished = () => boards.every((_, i) => finished(i));
-const firstOpen = () => boards.findIndex((_, i) => !finished(i));
+// Only the campaign's stages count; New Game+ boards are played for their own sake.
+const allFinished = () => campaign.every((_, i) => finished(i));
+const firstOpen = () => campaign.findIndex((_, i) => !finished(i));
+const inPool = () => record.board >= campaign.length;
 // True from the solve that finished the last open stage until another stage opens.
 let finale = false;
 // The end: every stage finished, shown on the last stage, or on the one whose solve finished them all.
-const ending = () => stage().solved && allFinished() && (finale || record.board === boards.length - 1);
-const endLine = () => `All ${boards.length} boards solved.`;
-const ICONS = {
-  next: '<path d="M5 12h14M13 6l6 6-6 6"/>',
-  replay: '<path d="M21 4v6h-6M3 20v-6h6"/><path d="M5.5 9a7.5 7.5 0 0 1 12.4-2.8L21 10M3 14l3.1 3.8A7.5 7.5 0 0 0 18.5 15"/>'
-};
+const ending = () => !inPool() && stage().solved && allFinished() && (finale || record.board === campaign.length - 1);
+const endLine = () => `All ${campaign.length} boards solved.`;
 let result;
 let held = null;
 let history = [];
@@ -59,6 +66,7 @@ let audio = null;
 const stage = () => record.stages[record.board];
 const size = () => boards[record.board].size ?? FULL;
 const dots = () => spots(boards[record.board]);
+const where = index => `row ${dots()[index].row + size() + 1}, column ${dots()[index].col + size() + 1}`;
 // The planets still in the tray close up toward its left end, in order. While one is held the rest stay put.
 const slots = () => held?.slots ?? packed();
 function packed() {
@@ -70,6 +78,9 @@ const home = i => trayPoint(slots()[i] ?? packed()[i] ?? 0, stage().planets.leng
 let ripples = [];
 // The planet a tap on a dot will move: the one last touched, shown lit. Null when none is picked.
 let selected = null;
+// The hint on show: the planet it lit, the dot it marked, and the board as it
+// was. A second Hint moves that planet there while nothing has changed since.
+let hinted = null;
 const rippling = now => ripples.some(ripple => now < ripple.start + RIPPLE);
 function ripple(planet, delay = 0) {
   if (!moving()) return;
@@ -114,7 +125,8 @@ function settle(seconds) {
   return busy;
 }
 function save() {
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(record)); } catch (_) {}
+  if (protect) return;
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(pack(record, campaign, pool))); } catch (_) {}
 }
 function tone() {
   if (!record.sound || !(window.AudioContext || window.webkitAudioContext)) return;
@@ -145,7 +157,7 @@ function positionButtons() {
     button.style.left = `${x + point.x * scale}px`;
     button.style.top = `${y + point.y * scale}px`;
     button.style.width = button.style.height = `${Math.max(44, PLANET.r * 2 * scale)}px`;
-    button.setAttribute('aria-label', `Planet ${i + 1}, ${index === null ? 'in the tray' : `row ${dots()[index].row + size() + 1}, column ${dots()[index].col + size() + 1}`}`);
+    button.setAttribute('aria-label', `Planet ${i + 1}, ${index === null ? 'in the tray' : where(index)}`);
     button.setAttribute('aria-disabled', String(stage().solved));
   });
   // The next arrow takes the tray's place under the well.
@@ -201,30 +213,29 @@ function animation() {
 function update(atRest = false, before = null, landed = null) {
   result = placed(boards[record.board], stage().planets);
   if (atRest) {
+    hinted = null;
     // A planet that has come to rest on a new dot sends a ripple; a solved stage sends one from each.
     if (landed) stage().planets.forEach((index, i) => { if (index !== null && index !== landed[i]) ripple(i, 110); });
     if (result.solved && !stage().solved) { wonAt = performance.now(); stage().planets.forEach((_, i) => ripple(i, 260 + i * 130)); }
-    if (result.solved && !stage().solved && !allFinished() && boards.every((_, i) => i === record.board || finished(i))) finale = true;
+    if (result.solved && !stage().solved && !inPool() && !allFinished() && campaign.every((_, i) => i === record.board || finished(i))) finale = true;
     stage().solved = result.solved;
-    if (result.solved) record.done[record.board] = true;
-    if (result.solved) unlock(record, record.board, boards);
+    if (result.solved && !inPool()) record.done[record.board] = true;
+    if (result.solved) unlock(record, record.board, campaign);
     if (result.solved) selected = null;
     if (before && result.lit.some((lit, i) => lit && !before[i])) tone();
     announce();
     save();
   }
-  $('readout').textContent = `${record.board + 1} / ${boards.length} · ${boards.filter((_, i) => finished(i)).length} ✓`;
-  canvas.setAttribute('aria-label', `Bending, stage ${record.board + 1} of ${boards.length}: ${result.lit.length} beams, ${stage().planets.length} planets`);
+  // A New Game+ board reads +n, its place in the pool, beside the count of stages solved.
+  const solvedCount = campaign.filter((_, i) => finished(i)).length;
+  $('readout').textContent = inPool() ? `+${record.board - campaign.length + 1} · ${solvedCount} ✓` : `${record.board + 1} / ${campaign.length} · ${solvedCount} ✓`;
+  canvas.setAttribute('aria-label', `Bending, ${inPool() ? `New Game+ stage ${record.board - campaign.length + 1}` : `stage ${record.board + 1} of ${campaign.length}`}: ${result.lit.length} beams, ${stage().planets.length} planets`);
   $('completion').hidden = !stage().solved;
-  // At the end the line shows above the arrow, and the arrow becomes Replay.
-  const end = ending(), kind = end ? 'replay' : 'next';
+  // At the end the line shows above the arrow, and the arrow starts New Game+.
+  const end = ending();
   $('end-line').hidden = !end;
   $('end-line').textContent = end ? endLine() : '';
-  if ($('next').dataset.kind !== kind) {
-    $('next').dataset.kind = kind;
-    $('next').querySelector('svg').innerHTML = ICONS[kind];
-    $('next').setAttribute('aria-label', end ? 'Replay' : 'Next stage');
-  }
+  $('next').setAttribute('aria-label', end ? 'Start New Game+' : inPool() ? 'Next board' : 'Next stage');
   $('undo').disabled = history.length === 0;
   positionButtons();
   animation();
@@ -290,8 +301,10 @@ function keyboard(event, planet) {
   options.sort((a, b) => Math.abs(a.point[axis] - dot[axis]) - Math.abs(b.point[axis] - dot[axis]));
   if (options.length) place(planet, options[0].index);
 }
+// A stage opens once the one before is solved; New Game+ boards once every stage is.
+const reachable = index => index < campaign.length ? index < record.available : allFinished();
 function load(index) {
-  if (!Number.isInteger(index) || index < 0 || index >= boards.length || index >= record.available) return;
+  if (!Number.isInteger(index) || index < 0 || index >= boards.length || !reachable(index)) return;
   cancel();
   record.board = index;
   history = [];
@@ -328,26 +341,45 @@ function restart() {
   stage().planets.fill(null);
   update(true);
 }
-function replay() {
-  marks();
-  record.stages = fresh().stages;
-  record.board = 0;
-  load(0);
+// New Game+: a board from the pool, each once before any comes again.
+function newBoard() {
+  if (held || !allFinished()) return;
+  load(fromPool(record, campaign, pool));
 }
+// The first press marks a dot of the answer that no planet holds yet and lights
+// the planet that goes there; the second moves it there as a tap would. The
+// planets are alike, so one on any answer dot is already right and stays put.
 function hint() {
-  if (held) return;
-  stage().hints = Math.min(boards[record.board].answer.length, stage().hints + 1);
+  if (held || stage().solved) return;
+  const planets = stage().planets;
+  if (hinted && hinted.board === record.board && hinted.selected === selected && hinted.planets.every((index, i) => index === planets[i])) {
+    const { planet, dot } = hinted;
+    place(planet, dot);
+    return;
+  }
+  const answer = boards[record.board].answer;
+  const at = answer.findIndex(dot => !planets.includes(dot));
+  if (at < 0) return;
+  // A planet on a wrong dot goes first, the lit one before the others; then the
+  // lit planet, or the last one waiting, as a tap on the dot would bring it.
+  const wrong = i => i !== null && planets[i] !== null && !answer.includes(planets[i]);
+  const astray = planets.findIndex((_, i) => wrong(i));
+  const planet = wrong(selected) ? selected : astray >= 0 ? astray : selected !== null && planets[selected] === null ? selected : planets.lastIndexOf(null);
+  stage().hints = Math.max(stage().hints, at + 1);
+  selected = planet;
+  hinted = { board: record.board, planet, dot: answer[at], planets: [...planets], selected };
   save();
   draw();
+  $('status').replaceChildren(document.createTextNode(`Planet ${planet + 1} goes on ${where(answer[at])}. Press Hint again to ${planets[planet] === null ? 'place' : 'move'} it.`));
 }
 // Next: the following stage; after the last, the first stage not yet finished.
-// When every stage is finished it is Replay: the boards start again from
-// stage 1, cleared, and every finished mark stays.
+// When every stage is finished it starts New Game+, and on a New Game+ board
+// it brings another.
 function next() {
   if (!stage().solved || held) return;
   const keys = document.body.dataset.input === 'keyboard';
-  if (ending()) replay();
-  else load(record.board < boards.length - 1 ? record.board + 1 : firstOpen());
+  if (ending() || inPool()) newBoard();
+  else load(record.board < campaign.length - 1 ? record.board + 1 : firstOpen());
   // The next arrow has gone; a keyboard player carries on from the first planet.
   if (keys) buttons[0]?.focus({ preventScroll: true });
 }
@@ -379,6 +411,7 @@ canvas.addEventListener('pointerdown', event => {
   event.preventDefault();
   buttons[planet].focus({ preventScroll: true });
   held = { id: event.pointerId, planet, point, direct, travelled: false, x: event.clientX, y: event.clientY, before: snapshot(), lit: [...result.lit], slots: packed() };
+  hinted = null;
   canvas.setPointerCapture(event.pointerId);
   if (fetched) movePointer(event);
 });
@@ -431,7 +464,10 @@ function showSheet(id, opener) {
 }
 function settings() {
   $('stage-list').replaceChildren();
-  boards.forEach((_, index) => {
+  $('new-game').disabled = !allFinished();
+  $('plus-note').hidden = allFinished();
+  $('plus-note').textContent = `Complete all ${campaign.length} to unlock New Game+.`;
+  campaign.forEach((_, index) => {
     const item = document.createElement('li');
     const button = document.createElement('button');
     button.type = 'button';
@@ -470,6 +506,7 @@ $('help-button').addEventListener('click', () => showSheet('help', 'help-button'
 $('settings-button').addEventListener('click', settings);
 ['help', 'settings'].forEach(id => $(id).addEventListener('click', event => { if (event.target === $(id)) $(id).close(); }));
 ['motion', 'sound'].forEach(key => $(key).addEventListener('click', () => { record[key] = !record[key]; preferences(); save(); animation(); }));
+$('new-game').addEventListener('click', () => { if (!allFinished()) return; $('settings').close(); newBoard(); });
 $('reset-stage').addEventListener('click', () => {
   cancel();
   record.stages[record.board] = fresh().stages[record.board];
@@ -493,7 +530,11 @@ preferences();
 document.fonts.ready.then(() => draw());
 animation();
 window.__rimlight = {
-  boards, mode,
+  // `boards` is the campaign; `current` is the board on screen, a stage or a New Game+ board.
+  boards: campaign, pool, mode,
+  get current() { return boards[record.board]; },
+  get inPool() { return inPool(); },
+  get ids() { return campaign.map(fingerprint); },
   get dots() { return dots(); },
   get tray() { return stage().planets.map((_, i) => slots()[i] === null ? null : home(i)); },
   get rippling() { return rippling(performance.now()); },
@@ -506,13 +547,15 @@ window.__rimlight = {
   get planets() { return [...stage().planets]; },
   get lit() { return [...result.lit]; },
   get solved() { return stage().solved; },
-  get done() { return boards.map((_, i) => finished(i)); },
+  get done() { return campaign.map((_, i) => finished(i)); },
   get ending() { return ending(); },
   get hints() { return stage().hints; },
+  get hinted() { return hinted && { planet: hinted.planet, dot: hinted.dot }; },
   get gliding() { return gliding; },
   get won() { return won(performance.now()); },
   get size() { return size(); },
   lens, clues,
   get geometry() { return view.geometry; },
-  place, load, undo, restart, hint, next, replay
+  get protect() { return protect; },
+  place, load, undo, restart, hint, next, newBoard
 };

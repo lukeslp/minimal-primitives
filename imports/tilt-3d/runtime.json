@@ -13,6 +13,7 @@
     "fonts/OFL.txt",
     "index.html",
     "levels.js",
+    "campaign.js",
     "theme-boot.js",
     "tilt-3d.css",
     "tilt-3d.js",

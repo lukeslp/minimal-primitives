@@ -3,14 +3,22 @@
   'use strict';
 
   const E = globalThis.TiltStack;
-  const Boards = globalThis.TiltStackBoards;
+  const All = globalThis.TiltStackBoards;
+  // The campaign (campaign.js) plays thirty of the fifty boards in levels.js, in its own order. The other
+  // twenty come after it, drawn at random, each once before any comes back; they are not campaign progress.
+  const Boards = globalThis.TiltCampaign.map(id => All.find(board => board.id === id));
+  const Pool = All.filter(board => !Boards.includes(board));
   const KEY = 'tilt-levels-grok.v1';
   const CELL = 64;
   const GAP = 44;
   const PAD = 26;
   const NS = 'http://www.w3.org/2000/svg';
   const NAMES = { U: 'Up', D: 'Down', L: 'Left', R: 'Right' };
-  const ids = new Set(Boards.map(board => board.id));
+  // Saves are checked against all fifty boards, so a save that names a board left out of the campaign is read
+  // whole: its finished mark stays.
+  const ids = new Set(All.map(board => board.id));
+  // Before November 16, 2026 the campaign was all fifty, l01 to l50 in turn, and reached counted in that order.
+  const OLD_ORDER = All.map(board => board.id).sort();
   const $ = id => document.getElementById(id);
 
   const paths = {
@@ -45,9 +53,12 @@
       const motion = data.motion === 'reduce' || data.motion === 'system' ? data.motion : 'system';
       // Before campaign version 2 every original tray was available.
       const previous = data.campaign === 2 ? (Number.isInteger(data.reached) ? data.reached : 0) : 11;
-      const reached = Math.min(Boards.length - 1, Math.max(0, previous,
+      // A save without order 2 counts reached in the fifty-board order: every campaign board it had open stays open.
+      const opened = data.order === 2 ? previous : Math.max(...OLD_ORDER.slice(0, Math.max(0, previous) + 1).map(id => Boards.findIndex(item => item.id === id)));
+      const reached = Math.min(Boards.length - 1, Math.max(0, opened,
         Boards.findIndex(item => item.id === board), ...done.map(id => Boards.findIndex(item => item.id === id) + 1)));
-      return { board: board, done: done, theme: theme, motion: motion, reached: reached };
+      const pool = Array.isArray(data.pool) ? [...new Set(data.pool.filter(id => Pool.some(item => item.id === id)))] : [];
+      return { board: board, done: done, theme: theme, motion: motion, reached: reached, pool: pool };
     } catch (error) {
       saveBlocked = true;
       return null;
@@ -58,7 +69,14 @@
   const prefs = { theme: saved ? saved.theme : 'dark', motion: saved ? saved.motion : 'system' };
   const done = new Set(saved && saved.done || []);
   let reached = saved ? saved.reached : 0;
-  let current = Boards.find(board => board.id === (saved && saved.board)) || Boards[0];
+  // The boards of the pool served since it was last used up.
+  let played = saved ? saved.pool : [];
+  const campaignDone = () => Boards.every(board => done.has(board.id));
+  let current = All.find(board => board.id === (saved && saved.board)) || Boards[0];
+  // A player last on a board left out of the campaign goes on from the first campaign board not finished; with
+  // the campaign finished, that board is one of the pool and stays.
+  if (!Boards.includes(current) && !campaignDone()) current = Boards.find(board => !done.has(board.id)) || Boards[0];
+  const inPool = () => !Boards.includes(current);
   let parsed = E.prepare(current);
   let place = { level: parsed.start.level, row: parsed.start.row, col: parsed.start.col };
   let moves = 0;
@@ -81,11 +99,13 @@
     try {
       localStorage.setItem(KEY, JSON.stringify({
         campaign: 2,
+        order: 2,
         reached: reached,
         board: current.id,
         done: [...done],
         theme: prefs.theme,
-        motion: prefs.motion
+        motion: prefs.motion,
+        pool: played
       }));
     } catch (error) {}
   }
@@ -210,9 +230,10 @@
   }
 
   function showHint() {
+    $('undo-btn').classList.toggle('hinted', hint === 'undo');
     const mark = $('hint-mark');
     if (!mark) return;
-    if (!hint) {
+    if (!hint || hint === 'undo') {
       mark.setAttribute('visibility', 'hidden');
       return;
     }
@@ -274,14 +295,23 @@
   }
 
   // The end of the campaign. Next takes the following board; after the last,
-  // the first board not yet finished. With every board finished it becomes
-  // Replay, which starts again at board 1 and keeps the finished marks.
-  const allDone = () => Boards.every(board => done.has(board.id));
+  // the first board not yet finished. With every board finished the game is
+  // finished, and Next draws a board from the pool, one not served since the
+  // pool was last used up. Replay from board 1 is left for an empty pool.
+  const allDone = campaignDone;
   const endLine = 'All ' + Boards.length + ' boards solved.';
+  let drawn = null;
+  function drawPool() {
+    if (drawn && drawn !== current) return drawn;
+    let left = Pool.filter(board => board !== current && !played.includes(board.id));
+    if (!left.length) left = Pool.filter(board => board !== current);
+    drawn = left[Math.floor(Math.random() * left.length)] || null;
+    return drawn;
+  }
   function nextTarget() {
     const index = Boards.indexOf(current);
-    if (index + 1 < Boards.length) return Boards[index + 1];
-    return Boards.find((board, at) => at <= reached && !done.has(board.id)) || null;
+    if (index >= 0 && index + 1 < Boards.length) return Boards[index + 1];
+    return Boards.find((board, at) => at <= reached && !done.has(board.id)) || (allDone() ? drawPool() : null);
   }
   let nextMode = 'next';
   function showNext() {
@@ -299,11 +329,12 @@
 
   function refresh() {
     const index = Boards.findIndex(board => board.id === current.id) + 1;
-    $('readout').textContent = index + ' / ' + Boards.length + ' · ' + moves + '/' + par;
+    // A pool board shows the infinity sign where a campaign board shows its number, as Cast's free play does.
+    $('readout').textContent = (inPool() ? '∞' : index + ' / ' + Boards.length) + ' · ' + moves + '/' + par;
     $('board').setAttribute('aria-label', describe());
     showNext();
-    $('previous').disabled = index === 1;
-    $('following').disabled = index - 1 >= reached || index === Boards.length;
+    $('previous').disabled = index <= 1;
+    $('following').disabled = inPool() || index - 1 >= reached || index === Boards.length;
     updateCatalog();
     $('undo-btn').disabled = undoStack.length === 0;
     $('hint-btn').disabled = solved;
@@ -396,7 +427,8 @@
     place = { level: result.level, row: result.row, col: result.col };
     moves += 1;
     solved = result.solved;
-    if (solved) {
+    // A pool board is not campaign progress: it is neither marked finished nor opens a board.
+    if (solved && !inPool()) {
       done.add(current.id);
       reached = Math.max(reached, Math.min(Boards.length - 1, Boards.indexOf(current) + 1));
     }
@@ -434,10 +466,12 @@
   }
 
   function go(id) {
-    const next = Boards.find(board => board.id === id);
+    const next = Boards.find(board => board.id === id) || (allDone() ? Pool.find(board => board.id === id) : null);
     if (!next || Boards.indexOf(next) > reached) return false;
     cancelMotion();
     current = next;
+    drawn = null;
+    if (inPool()) played = (played.length + 1 >= Pool.length ? [] : played.filter(item => item !== id)).concat(id);
     parsed = E.prepare(current);
     par = E.par(current);
     place = { level: parsed.start.level, row: parsed.start.row, col: parsed.start.col };
@@ -458,12 +492,20 @@
     if (hint) {
       const dir = hint;
       hint = null;
-      tilt(dir);
+      if (dir === 'undo') undo();
+      else tilt(dir);
       return;
     }
     const moveset = E.solve(current, place);
     if (!moveset || !moveset.length) {
-      say('No way on from here.');
+      // No tilt finishes from here: the hint is Undo, and a second press takes the last tilt back.
+      if (!undoStack.length) {
+        say('No way on from here.');
+        return;
+      }
+      hint = 'undo';
+      say('No way on from here. Undo.');
+      showHint();
       return;
     }
     hint = moveset[0];
@@ -559,6 +601,8 @@
 
   globalThis.__tiltLevels = {
     boards: Boards,
+    pool: Pool,
+    get played() { return played.slice(); },
     get board() { return current.id; },
     get state() {
       return { level: place.level, row: place.row, col: place.col, moves: moves, par: par, solved: solved };

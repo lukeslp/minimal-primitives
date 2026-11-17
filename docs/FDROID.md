@@ -17,6 +17,8 @@ version.
   Up and down rows, and their camera help and privacy lines. Their pages see no
   camera API, so they start on pointer. Every page's own policy drops the
   camera's WebAssembly and the gaze bridge.
+- Open-license assets only: Hexsweeper Sphere has four themes and no history
+  picture (see Licenses).
 - Every game stays: all 29, with the motor-accessible set in its own grid, and
   every switch, touch, keyboard and pointer mode unchanged.
 - Android: no CAMERA permission (it lives in `android/app/src/full/`), page
@@ -34,6 +36,15 @@ listed in each build's `NOTICES.txt`: Earth and Moon textures by Solar System
 Scope (CC BY 4.0), IBM Plex fonts (SIL Open Font License 1.1, beside each font
 set), and Hexsweeper Sphere geometry inspired by Rob Scanlon's hexasphere.js
 (MIT). MediaPipe (Apache License 2.0) is in the full build only.
+
+No build carries the screenshot of Microsoft Minesweeper that Hexsweeper
+Sphere's Help showed, or the Stratosphere photograph, whose source is not
+confirmed (`tools/assets_recipe.py`, since 0.5.9). The full build keeps six
+photographs under the Unsplash License, which is not an open license: three
+reflected by the Ion Storm, Galaxy and Heat Lightning themes, credited under
+Sphere's theme buttons, and three packaged but not offered. Its `NOTICES.txt`
+credits all six. The F-Droid build leaves them out too (`"freeAssets"` in
+`variants.json`): Sphere offers Light, Dark, Mercury and Aurora.
 
 ## Build and signing
 

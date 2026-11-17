@@ -1,7 +1,9 @@
 /* Cast · 3D: a lit plaster room, its three lamps, input and saves. By Luke Steuber. */
 import * as THREE from './vendor/three.module.min.js';
 
-const E = globalThis.CastEngine, boards = globalThis.CastBoards, Free = globalThis.CastFree, $ = s => document.querySelector(s);
+// The campaign (campaign.js) plays thirty of the fifty boards in boards.js, in its own order. Saves are checked against
+// all fifty, so a finished mark on a board left out stays.
+const E = globalThis.CastEngine, ALL = globalThis.CastBoards, boards = globalThis.CastCampaign.map(id => ALL.find(b => b.id === id)), Free = globalThis.CastFree, $ = s => document.querySelector(s);
 const KEY = 'cast-3d.v1', NS = 'http://www.w3.org/2000/svg';
 const board = $('#board'), canvas = $('#scene'), marks = $('#marks'), reducedQuery = matchMedia('(prefers-reduced-motion:reduce)'), forcedColors = matchMedia('(forced-colors:active)');
 // Room proportions in cube units: wall thickness, the cube's bevel and the carried cube's lift. The room
@@ -63,19 +65,19 @@ const copy = h => h.map(row => row.slice());
 const validHeights = (h, b) => Array.isArray(h) && h.length === b.n && h.every(row => Array.isArray(row) && row.length === b.n && row.every(v => Number.isInteger(v) && v >= 0 && v <= b.maxH)) && E.used(h) <= b.cubes;
 const validHits = v => Number.isSafeInteger(v) && v >= 0;
 // Saves carry a revision. Revision 2 (November 2026) kept boards 1–10 and redrew the other forty.
-const REVISION = 2, REDRAWN = new Set(boards.slice(10).map(b => b.id)), RECENT = 30;
+const REVISION = 2, REDRAWN = new Set(ALL.slice(10).map(b => b.id)), RECENT = 30;
 let saved = null, preserveSave = false;
 try {
   const raw = localStorage.getItem(KEY);
   if (raw !== null) {
-    const v = JSON.parse(raw), b = boards.find(b => b.id === v?.board);
+    const v = JSON.parse(raw), b = ALL.find(b => b.id === v?.board);
     if (v?.revision !== undefined && v.revision !== REVISION) throw new Error('Invalid save');
     // Revision 2 redrew boards 11–50. Cubes saved on one of them belong to the old board and may not even
     // fit the new one, so that board opens empty, with its hits and undo cleared; finished boards, opened
     // boards and the motion setting load as saved, and every other board keeps its cubes.
     if (b && v.revision === undefined && REDRAWN.has(b.id) && validHits(v.hits) && Array.isArray(v.history)) { v.heights = E.start(b); v.hits = 0; v.history = []; }
-    if (!v || !b || !validHeights(v.heights, b) || !validHits(v.hits) || !Array.isArray(v.finished) || !v.finished.every(id => boards.some(b => b.id === id)) || !['system', 'reduce'].includes(v.motion) || !Array.isArray(v.history) || !v.history.every(s => validHeights(s.heights, b) && validHits(s.hits))) throw new Error('Invalid save');
-    if (v.campaign !== undefined && (v.campaign !== 2 || !Number.isInteger(v.reached) || v.reached < 0 || v.reached >= boards.length)) throw new Error('Invalid save');
+    if (!v || !b || !validHeights(v.heights, b) || !validHits(v.hits) || !Array.isArray(v.finished) || !v.finished.every(id => ALL.some(b => b.id === id)) || !['system', 'reduce'].includes(v.motion) || !Array.isArray(v.history) || !v.history.every(s => validHeights(s.heights, b) && validHits(s.hits))) throw new Error('Invalid save');
+    if (v.campaign !== undefined && (v.campaign !== 2 || !Number.isInteger(v.reached) || v.reached < 0 || v.reached >= (v.order === 2 ? boards : ALL).length)) throw new Error('Invalid save');
     // Free play keeps its own board beside the campaign's: its seed, cubes, hits and undo. The campaign's
     // fields stay as they were, so a save from free play still opens in a page from before it. A free slot
     // that cannot be read is dropped and the campaign loads as saved.
@@ -89,8 +91,11 @@ try {
     saved = v;
   }
 } catch (_) { preserveSave = true; }
-let puzzle = boards.find(b => b.id === saved?.board) || boards[0], heights = saved ? copy(saved.heights) : E.start(puzzle), hits = saved?.hits || 0;
+let puzzle = ALL.find(b => b.id === saved?.board) || boards[0], heights = saved ? copy(saved.heights) : E.start(puzzle), hits = saved?.hits || 0;
 let history = saved?.history || [], finished = new Set(saved?.finished || []), prefs = {motion: saved?.motion || 'system'};
+// A player last on a board left out of the campaign goes on from the first campaign board not finished, or, with all
+// thirty finished, from the last, where free play opens.
+if (!boards.includes(puzzle)) { puzzle = boards.find(b => !finished.has(b.id)) || boards.at(-1); heights = E.start(puzzle); hits = 0; history = []; }
 // Free play: after the last board, boards drawn in the page by the campaign's rules. `mode` is the board in
 // hand; the other one waits in `parked` (the campaign's board while playing free, the free board otherwise).
 let mode = 'campaign', parked = saved?.free ? {...saved.free} : null, recent = saved?.recent || [];
@@ -101,7 +106,10 @@ const complete = () => boards.every(b => finished.has(b.id));
 // next for good. A save from before the campaign keeps boards 1–12 open, and finishing any board opens
 // its successor, so a save that finished board 12 opens board 13.
 const openedBy = done => Math.max(-1, ...[...done].map(id => boards.findIndex(b => b.id === id))) + 1;
-let reached = Math.min(boards.length - 1, Math.max(saved ? (saved.campaign === 2 ? saved.reached : 11) : 0, openedBy(finished), saved ? boards.indexOf(isFree() ? parked.board : puzzle) : 0));
+// Before November 16, 2026 the campaign was all fifty, in boards.js's order, and reached counted in that order: a save
+// without order 2 keeps every campaign board it had open.
+const fromSave = saved ? (saved.campaign === 2 ? saved.reached : 11) : 0, opened = saved?.order === 2 ? fromSave : Math.max(...ALL.slice(0, fromSave + 1).map(b => boards.indexOf(b)));
+let reached = Math.min(boards.length - 1, Math.max(opened, openedBy(finished), saved ? boards.indexOf(isFree() ? parked.board : puzzle) : 0));
 let hint = null, focus = [0, 0], keyboard = false, hover = null, gesture = null, carry = null, wheel = null;
 let busy = false, queue = [], epoch = 0;
 // `tint` is how far the finish's color has come in, 0 in play and 1 on a finished board.
@@ -115,7 +123,7 @@ function announce(message) { $('#announcement').textContent = message; }
 function save() {
   if (preserveSave) return;
   const here = {board: puzzle, heights, hits, history}, camp = isFree() ? parked : here, free = isFree() ? here : parked;
-  const record = {board: camp.board.id, heights: camp.heights, hits: camp.hits, history: camp.history, finished: [...finished], ...prefs, campaign: 2, reached, revision: REVISION};
+  const record = {board: camp.board.id, heights: camp.heights, hits: camp.hits, history: camp.history, finished: [...finished], ...prefs, campaign: 2, order: 2, reached, revision: REVISION};
   if (free) record.free = {seed: free.board.seed, heights: free.heights, hits: free.hits, history: free.history};
   if (isFree()) record.play = 'free';
   if (recent.length) record.recent = recent;
@@ -810,7 +818,7 @@ function rings() {
   board.dataset.carrying = String(!!carry);
 }
 // The board's name, and where the next arrow leads once it is solved: the next board; after the last board,
-// the first one not yet finished, or free play once all fifty are; after a free board, a new free board.
+// the first one not yet finished, or free play once all thirty are; after a free board, a new free board.
 function boardName() { return isFree() ? 'Free play board' : `Board ${boards.indexOf(puzzle) + 1} of ${boards.length}`; }
 const theEnd = () => !isFree() && puzzle === boards.at(-1) && complete() && solvedNow();
 function onward() {
@@ -824,7 +832,7 @@ function sync() {
   updateScene(); rings();
   const solved = solvedNow(), next = onward();
   board.dataset.busy = String(busy); board.dataset.solved = String(solved); board.dataset.mode = mode; board.dataset.end = String(theEnd());
-  // The readout names the board: its number, ∞ in free play, and the last board, once all fifty are finished, the end.
+  // The readout names the board: its number, ∞ in free play, and the last board, once all thirty are finished, the end.
   const name = isFree() ? '∞' : theEnd() ? 'The end' : `${boards.indexOf(puzzle) + 1} / ${boards.length}`;
   $('#readout').textContent = `${name} · ${hits} / ${E.par(puzzle)}`;
   $('#readout').setAttribute('aria-label', `${theEnd() ? 'The end. ' : ''}${boardName()}; ${hits} hits; par ${E.par(puzzle)}`);
@@ -964,7 +972,7 @@ function go(id) {
   open(next, E.start(next), 0, []); announce(`Board ${boards.indexOf(puzzle) + 1} of ${boards.length}.`);
   return true;
 }
-// Free play opens once all fifty boards are finished. `fresh` draws a new board; otherwise a parked free
+// Free play opens once all thirty boards are finished. `fresh` draws a new board; otherwise a parked free
 // board that is not yet solved comes back as it was left.
 function startFree(fresh) {
   if (!complete() || !Free) return false;
@@ -1201,7 +1209,7 @@ function updateCatalog() {
     const button = list.children[i].firstChild, here = b === puzzle, done = finished.has(b.id), open = i <= reached;
     button.dataset.state = here ? 'current' : done ? 'completed' : open ? 'available' : 'locked';
     button.disabled = !open;
-    // With all fifty finished, the last board is marked as the end.
+    // With all thirty finished, the last board is marked as the end.
     button.querySelector('.catalog-state').textContent = [here ? 'Current' : null, done ? 'Completed' : null, !here && !done ? (open ? 'Available' : 'Locked') : null, all && i === boards.length - 1 ? 'The end' : null].filter(Boolean).join(' · ');
     if (here) button.setAttribute('aria-current', 'true'); else button.removeAttribute('aria-current');
   });

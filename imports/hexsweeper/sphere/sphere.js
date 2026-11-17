@@ -2152,6 +2152,26 @@
       return Math.abs(area) * 0.5;
     }
 
+    /**
+     * True when a projected face turns toward the eye. projectRotated is a
+     * perspective view from 2.8 radii out, so the horizon is where the line
+     * of sight grazes the sphere, at normal z = 1 / 2.8 (about 0.36), not at
+     * z = 0. Faces between the two are behind the rim: their outlines fold
+     * back inside the silhouette, wound the other way, on top of the rim
+     * faces in front of them. Tiles wind counter-clockwise seen from
+     * outside, which is a negative shoelace sum in canvas coordinates.
+     */
+    function facesViewer(proj) {
+      const pts = proj.boundary;
+      let twiceArea = 0;
+      for (let i = 0, n = pts.length; i < n; i++) {
+        const a = pts[i];
+        const b = pts[i + 1 === n ? 0 : i + 1];
+        twiceArea += a.x * b.y - b.x * a.y;
+      }
+      return twiceArea < 0;
+    }
+
     function rotKey() {
       return `${state.rotY.toFixed(4)}|${state.rotX.toFixed(4)}|${state.scale}`;
     }
@@ -2607,26 +2627,30 @@
     let persistSuspended = false;
     let persistTimer = null;
 
-    function storageGet(store, key) {
+    // Each helper takes the store's name ("localStorage" / "sessionStorage")
+    // and looks it up inside its guard: when a browser blocks site data, just
+    // reading window.localStorage throws a SecurityError, and that used to
+    // abort boot before the board was built (a bare disk and no controls).
+    function storageGet(name, key) {
       try {
-        return store.getItem(key);
+        return global[name].getItem(key);
       } catch (_) {
         return null;
       }
     }
 
-    function storageSet(store, key, val) {
+    function storageSet(name, key, val) {
       try {
-        store.setItem(key, val);
+        global[name].setItem(key, val);
         return true;
       } catch (_) {
         return false;
       }
     }
 
-    function storageRemove(store, key) {
+    function storageRemove(name, key) {
       try {
-        store.removeItem(key);
+        global[name].removeItem(key);
       } catch (_) {}
     }
 
@@ -2674,21 +2698,21 @@
     /** Explicit clear only — Reset button / size change / invalid save. */
     function clearPersist() {
       if (variant) {
-        storageRemove(localStorage, runStorageKey);
-        storageRemove(sessionStorage, runStorageKey);
+        storageRemove("localStorage", runStorageKey);
+        storageRemove("sessionStorage", runStorageKey);
       } else {
-        storageRemove(localStorage, RUN_STORAGE_KEY);
-        storageRemove(localStorage, RUN_STORAGE_KEY_LEGACY);
-        storageRemove(sessionStorage, RUN_STORAGE_KEY);
-        storageRemove(sessionStorage, RUN_STORAGE_KEY_LEGACY);
+        storageRemove("localStorage", RUN_STORAGE_KEY);
+        storageRemove("localStorage", RUN_STORAGE_KEY_LEGACY);
+        storageRemove("sessionStorage", RUN_STORAGE_KEY);
+        storageRemove("sessionStorage", RUN_STORAGE_KEY_LEGACY);
       }
     }
 
     function writePersistPayload(json) {
       // Dual-write: session for same-tab reload resilience, local for return visits.
       return {
-        local: storageSet(localStorage, runStorageKey, json),
-        session: storageSet(sessionStorage, runStorageKey, json),
+        local: storageSet("localStorage", runStorageKey, json),
+        session: storageSet("sessionStorage", runStorageKey, json),
       };
     }
 
@@ -2886,7 +2910,7 @@
       const keys = variant
         ? [runStorageKey]
         : [RUN_STORAGE_KEY, RUN_STORAGE_KEY_LEGACY];
-      const stores = [sessionStorage, localStorage];
+      const stores = ["sessionStorage", "localStorage"];
       const candidates = [];
       let order = 0;
       for (const store of stores) {
@@ -3959,10 +3983,15 @@
      * Paint one compound path per style instead of issuing a fill and stroke
      * for every visible face. The complete renderer returns as soon as motion
      * settles, so counts, tiers, and effects remain unchanged at rest.
+     * One fill per style throws away back-to-front order, so faces behind
+     * the horizon are left out: drawn here they showed through the rim
+     * faces, and where a batch held both, the nonzero fill of the two
+     * opposite windings cancelled into holes. Without them nothing overlaps.
      */
     function drawFastMono(projected, now, styleId) {
       const batches = new Map();
       for (const proj of projected) {
+        if (!facesViewer(proj)) continue;
         const idx = proj.index;
         const cell = state.cells[idx];
         const tile = state.tiles[idx];
@@ -5619,6 +5648,8 @@
 
       // Flags stand above the shell, so they paint after their neighbors
       // (still back-to-front among themselves) or the shell clips their skirts.
+      // A flag behind the horizon stays in the back-to-front pass, where the
+      // rim faces in front of it cover it; deferred, it painted over them.
       const proudFlags = [];
       const effectId = interiorEffect();
       const effectHoles = [];
@@ -5634,6 +5665,13 @@
         for (const proj of projected) {
           const idx = proj.index;
           const cell = state.cells[idx];
+          // The reflection themes paint covered faces at a few percent
+          // opacity over the WebGL mirror, so the faces in front cannot hide
+          // the ones behind the horizon. Painted first and covered by
+          // nothing, the far side showed through the rim: its wells, counts
+          // and flags, and at the end of a run every mine it held, over rim
+          // faces that a tap there reaches instead. Those faces are left out.
+          if (state.theme.reflectionSurface && !facesViewer(proj)) continue;
           // Hover/press on activatable covered faces draw in the raised pass.
           // Reflection themes have no raised pass (it tore the mirror), so the
           // pressed face must stay in this pass or it vanishes for the whole
@@ -5646,7 +5684,12 @@
           if (proj.z > 0.02 && hoverRaise) {
             continue;
           }
-          if (!fastInteraction && proj.z > 0.02 && heights[idx] > 1e-6) {
+          if (
+            !fastInteraction &&
+            proj.z > 0.02 &&
+            heights[idx] > 1e-6 &&
+            facesViewer(proj)
+          ) {
             proudFlags.push(proj);
             continue;
           }

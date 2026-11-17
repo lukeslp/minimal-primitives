@@ -26,6 +26,7 @@
     "access.js",
     "bridge-client.js"
   ],
-  "stageCount": 50,
+  "stageCount": 30,
+  "poolCount": 18,
   "classicStageCount": 12
 }

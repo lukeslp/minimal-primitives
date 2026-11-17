@@ -4,6 +4,7 @@
   "files": [
     "THIRD_PARTY.md",
     "boards.js",
+    "campaign.js",
     "cast-3d.css",
     "cast-3d.js",
     "controls.css",

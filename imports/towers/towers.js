@@ -272,7 +272,7 @@
   const REPLAY = 'Play the opening boards again';
   const backLabel = () => resumeAt() === 'generated' ? 'Back to New Game+' : 'Back to board ' + (L.findIndex(p => p.id === resumeAt()) + 1);
   // Where Next goes from a solved board: the next board in order; past the last, the first one not yet
-  // solved; with all thirty solved, a new generated board (and the same from a generated board).
+  // solved; with every board solved, a new generated board (and the same from a generated board).
   function nextTarget() {
     const k = openingAt(at), n = L.findIndex(p => p.id === at);
     if (k >= 0) return k < OPENING.length - 1 ? OPENING[k + 1].id : resumeAt();
@@ -287,7 +287,7 @@
     $('#undo-btn').disabled = !S.undo.length;
     $('#readout').textContent = at === 'generated' ? puzzle.n + ' × ' + puzzle.n + ' · ' + progress.completed.length + ' ✓' : n < 0 ? '' : (n + 1) + ' / ' + L.length + ' · ' + progress.completed.length + ' ✓';
     $('#completion').hidden = !S.solved;
-    // The line under a solve that leaves all thirty done; the status line says it to screen readers.
+    // The line under a solve that leaves the whole campaign done; the status line says it to screen readers.
     $('#ending').hidden = !ended; $('#ending').textContent = ended ? ENDING : '';
     const next = $('#next-btn');
     next.disabled = !S.solved;

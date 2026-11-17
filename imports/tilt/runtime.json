@@ -9,6 +9,7 @@
     "fonts/OFL.txt",
     "index.html",
     "levels.js",
+    "campaign.js",
     "og.png",
     "tilt-input.js",
     "tilt-levels.css",

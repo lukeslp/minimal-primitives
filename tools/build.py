@@ -12,6 +12,7 @@ import re
 import shutil
 import zipfile
 from transforms import transform
+import assets_recipe
 
 ROOT = Path(__file__).resolve().parents[1]
 NOTICES = """Minimal Primitives
@@ -20,6 +21,7 @@ Games and collection by Luke Steuber.
 Hexsweeper: MIT, retained in games/hexsweeper/LICENSE.
 Hexsweeper Sphere geometry (games/hexsweeper/sphere/hexasphere.js): Luke Steuber's port of his hexasphere.ts from Rind, an original implementation inspired by Rob Scanlon's hexasphere.js (https://github.com/arscan/hexasphere.js), MIT License, Copyright (c) 2014-2017 Robert Scanlon.
 Earth/Moon textures: Solar System Scope / INOVE, CC BY 4.0. Attribution and modification history: games/hexsweeper/sphere/assets/textures/README.md and sources.json.
+Hexsweeper Sphere reflection photographs (games/hexsweeper/sphere/assets/reflections/), from Unsplash under the Unsplash License (https://unsplash.com/license), which is not an open-source license; the MIT license does not cover them. Each was resized and converted to WebP. Ion Storm: "Clouds with thunder digital wallpaper" by Felix Mittermeier (https://unsplash.com/photos/L4-16dmZ-1c). Galaxy: "A night sky filled with lots of stars" by Jose G. Ortega Castro (https://unsplash.com/photos/W6EsQWhEc94). Heat Lightning: "Lightning strike at night" by Max LaRochelle (https://unsplash.com/photos/uu-Jw5SunYI). Also packaged, not offered as themes: Amber Tempest, "Photo of island and thunder" by Johannes Plenio (https://unsplash.com/photos/E-Zuyev2XWo); Chromatic Ink, "Swirling iridescent soap film patterns" by Daniel Olah (https://unsplash.com/photos/pCcGpVsOHoo); Stained Oculus, by Adam Gonzales (https://unsplash.com/photos/2_Zm7XxRzYk). Sources: SOURCES.md in that folder.
 IBM Plex fonts: SIL Open Font License, retained beside each font set.
 MediaPipe Face Landmarker (games/glance/vendor/, used only when a player turns on Look and hold by head or eyes): Google, Apache License 2.0, retained in games/glance/vendor/LICENSE-MEDIAPIPE.txt.
 Three.js (games/cast/vendor/, games/tilt-3d/vendor/ and games/cube-maze/vendor/, unmodified): three.js authors, MIT License, retained in each game's vendor/LICENSE-THREE.txt.
@@ -28,7 +30,10 @@ Source revisions and individual file hashes: SOURCE_MANIFEST.json.
 """
 
 
-MEDIAPIPE_NOTICE = NOTICES.splitlines(keepends=True)[7]
+MEDIAPIPE_NOTICE = NOTICES.splitlines(keepends=True)[8]
+# The notice for the photographs an open-assets variant leaves out (tools/assets_recipe.py). No build carries the
+# Microsoft Minesweeper screenshot or the Stratosphere photograph, so neither has a notice.
+NON_FREE_NOTICES = NOTICES.splitlines(keepends=True)[6]
 
 # The library is drawn from index.json, the live Minimal index as imported by
 # tools/import-index.py: its tiles, order, names, lines, pictures, line drawings,
@@ -79,6 +84,7 @@ def library_tiles(index, games, output):
 
 
 assert MEDIAPIPE_NOTICE.startswith('MediaPipe Face Landmarker'), 'NOTICES layout changed'
+assert NON_FREE_NOTICES.startswith('Hexsweeper Sphere reflection photographs') and 'Unsplash License' in NON_FREE_NOTICES, 'NOTICES layout changed'
 
 
 def privacy_page(text, camera):
@@ -110,6 +116,11 @@ def build(variant='full', make_zip=True):
         raise ValueError(f'variants.json omits unknown games: {sorted(unknown)}')
     games = [game if spec.get('camera', True) else dict(game, camera=False)
              for game in sources['games'] if game['id'] not in omitted]
+    # Every build leaves out Sphere's Minesweeper screenshot and the Stratosphere photograph; an open-assets variant
+    # also leaves out the photographs that are not under an open license (tools/assets_recipe.py).
+    free = bool(spec.get('freeAssets'))
+    if free:
+        games = [dict(game, freeAssets=True) for game in games]
     shared_sets = [s for s in sources.get('shared', []) if s['id'] not in spec.get('omitShared', [])]
     # Omitted shared files stay out even where a game also lists them (Glance lists MediaPipe).
     left_out = {f['path'] for s in sources.get('shared', []) if s not in shared_sets for f in s['files']}
@@ -119,7 +130,7 @@ def build(variant='full', make_zip=True):
     output.mkdir(parents=True)
     for game in games:
         for item in game['files']:
-            if item['path'] in left_out:
+            if item['path'] in left_out or assets_recipe.omitted(item['path'], free):
                 continue
             data = (ROOT / 'imports' / item['path']).read_bytes()
             if hashlib.sha256(data).hexdigest() != item['sha256']:
@@ -127,9 +138,11 @@ def build(variant='full', make_zip=True):
             path = output / 'games' / item['path']
             path.parent.mkdir(parents=True, exist_ok=True)
             if path.suffix in {'.html', '.js', '.mjs', '.css'}:
-                data = transform(game, item['path'], data.decode()).encode()
+                data = assets_recipe.transform(game, item['path'], transform(game, item['path'], data.decode())).encode()
             elif not spec.get('camera', True) and item['path'].endswith('/THIRD_PARTY.md') and b'MediaPipe' in data:
                 data = CAMERA_FREE_NOTE + data
+            else:
+                data = assets_recipe.rewrite(game, item['path'], data)
             path.write_bytes(data)
     # Shared runtime files (MediaPipe for Look and hold by camera) are copied as pinned, never transformed.
     for item in [f for shared in shared_sets for f in shared['files']]:
@@ -187,8 +200,14 @@ def build(variant='full', make_zip=True):
             entry.update(group=game['group'], image=image_url(game['id']))
         catalog.append(entry)
     (output / 'catalog.json').write_text(json.dumps(catalog, separators=(',', ':')) + '\n')
-    shutil.copyfile(ROOT / 'sources.json', output / 'SOURCE_MANIFEST.json')
+    # The source manifest lists the files this build carries: files left out above are not named in it.
+    manifest = json.loads((ROOT / 'sources.json').read_text())
+    for game in manifest['games']:
+        game['files'] = [f for f in game['files'] if not assets_recipe.omitted(f['path'], free)]
+    (output / 'SOURCE_MANIFEST.json').write_text(json.dumps(manifest, indent=2) + '\n')
     notices = NOTICES if any(s['id'] == 'mediapipe' for s in shared_sets) else NOTICES.replace(MEDIAPIPE_NOTICE, '')
+    if free:
+        notices = notices.replace(NON_FREE_NOTICES, '')
     if variant != 'full':
         notices += f'\nThis is the {variant} build: {spec["summary"]}\n'
         if omitted:

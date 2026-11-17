@@ -107,6 +107,85 @@ class CameraFreeVariantTests(unittest.TestCase):
             self.assertNotIn('<option value="head">', page)
             self.assertIn('#camera-btn,#camera-start,#camera{display:none!important}', page)
 
+    def test_only_open_license_assets(self):
+        """No photograph and no Microsoft screenshot: four Sphere themes, no history picture, notices in step."""
+        self.assertTrue(self.spec['freeAssets'])
+        self.assertFalse([n for n in self.names if 'assets/reflections/' in n or 'classic-minesweeper' in n])
+        sphere = self.texts['games/hexsweeper/sphere/index.html']
+        self.assertIn('const ROSTER = ["light", "dark", "mercury", "aurora"];', sphere)
+        # Hexsweeper b8ad354: the open sheet keeps its own compositor layer (Android WebView left it half painted).
+        self.assertIn('  will-change: opacity;\n}\n.help-overlay.open', sphere)
+        for gone in ['classic-minesweeper', 'class="help-history-row"', 'id="history-lightbox"', 'id="help-history-btn"', 'help-theme-credit']:
+            self.assertNotIn(gone, sphere)
+        engine = self.texts['games/hexsweeper/sphere/sphere.js']
+        self.assertIn('    THEME_MERCURY,\n    THEME_AURORA,\n  ].filter(', engine)
+        self.assertNotIn('assets/reflections/', self.texts['games/hexsweeper/sphere/mirror-material.js'])
+        notices = self.texts['NOTICES.txt']
+        for word in ['Unsplash', 'Microsoft', 'reflection photographs', 'Stratosphere', 'stratosphere']:
+            self.assertNotIn(word, notices)
+        for name in ['classic-minesweeper', 'stratosphere-1024', 'stratosphere-2048', 'assets/reflections/']:
+            self.assertNotIn(name, self.texts['SOURCE_MANIFEST.json'])
+
+    def test_full_build_leaves_out_the_screenshot_and_stratosphere(self):
+        """Every build: no Microsoft screenshot, no Stratosphere photograph; the full build credits the other photos."""
+        full = ROOT / 'build/minimal-primitives-browser.zip'
+        if not full.exists():
+            subprocess.run([sys.executable, 'tools/build.py'], cwd=ROOT, check=True, capture_output=True)
+        with zipfile.ZipFile(full) as bundle:
+            names = bundle.namelist()
+            text = lambda name: bundle.read(name).decode()
+            said, page, mirror, engine = text('NOTICES.txt'), text('games/hexsweeper/sphere/index.html'), text('games/hexsweeper/sphere/mirror-material.js'), text('games/hexsweeper/sphere/sphere.js')
+            sources, manifest = text('games/hexsweeper/sphere/assets/reflections/SOURCES.md'), text('SOURCE_MANIFEST.json')
+            files = [bundle.read(n) for n in names if not n.endswith('/')]
+        photos = sorted(n.rsplit('/', 1)[1] for n in names if 'assets/reflections/' in n and n.endswith('.webp'))
+        self.assertEqual(len(photos), 12)
+        for gone in ['classic-minesweeper', 'stratosphere-1024', 'stratosphere-2048']:
+            self.assertFalse([n for n in names if gone in n], gone)
+            for body in [page, mirror, engine, sources, manifest]:
+                self.assertNotIn(gone, body)
+        # Not by name and not by content: the shipped hashes of the screenshot and both Stratosphere sizes.
+        # The SHA-256 of each file as Hexsweeper f4ea5ca (and e61a79f, shipped through 0.5.8) carries it: not in the
+        # package and not in the source record; the importer no longer takes the files at all.
+        gone = {'hexsweeper/sphere/assets/classic-minesweeper.png': 'b42114581fded77b4aa8e003634ee68682a7013f3ce7d43f2ac119b4fc0360fa',
+                'hexsweeper/sphere/assets/reflections/stratosphere-1024.webp': '6a4464d76e50c17740ed17a3f10efa074657f664dd0a293020dae7bd4c159fa8',
+                'hexsweeper/sphere/assets/reflections/stratosphere-2048.webp': '9c0c54f493ab29c116c991275cf558d9d59e638b45e6300cb691d78bbf5f78c5'}
+        shipped = {hashlib.sha256(bundle_bytes).hexdigest() for bundle_bytes in files}
+        recorded = (ROOT / 'sources.json').read_text()
+        for path, digest in gone.items():
+            self.assertNotIn(digest, shipped)
+            self.assertNotIn(digest, manifest)
+            self.assertNotIn(path, recorded)
+            self.assertFalse((ROOT / 'imports' / path).exists())
+        self.assertIn('const ROSTER = ["light", "dark", "mercury", "ion-storm", "aurora", "galaxy", "heat-lightning"];', page)
+        self.assertIn('  will-change: opacity;\n}\n.help-overlay.open', page)
+        self.assertIn('    THEME_MERCURY,\n    THEME_ION_STORM,\n    THEME_AURORA,\n', engine)
+        for gone in ['class="help-history-row"', 'id="history-lightbox"', 'id="help-history-btn"']:
+            self.assertNotIn(gone, page)
+        self.assertIn('id="help-theme-credit">Photographs: Ion Storm by Felix Mittermeier, Galaxy by Jose G. Ortega Castro, Heat Lightning by Max LaRochelle, on Unsplash (Unsplash License).', page)
+        raw = (ROOT / 'imports/hexsweeper/sphere/mirror-material.js').read_text()
+        self.assertEqual(mirror.count('retired: true'), raw.count('retired: true') + 1)
+        self.assertEqual(mirror.count('Retired stratosphere slot'), 1)
+        for credit in ['Unsplash License', 'Felix Mittermeier', 'Jose G. Ortega Castro', 'Max LaRochelle', 'Johannes Plenio', 'Daniel Olah', 'Adam Gonzales', 'Solar System Scope']:
+            self.assertIn(credit, said)
+        for gone in ['Microsoft', 'Minesweeper screenshot', 'stratosphere', 'Stratosphere']:
+            self.assertNotIn(gone, said)
+        # The repository's own notice file says the same, for the source as published.
+        repo = (ROOT / 'THIRD-PARTY-NOTICES.md').read_text()
+        for credit in ['Unsplash License', 'Felix Mittermeier', 'Jose G. Ortega Castro', 'Max LaRochelle', 'Johannes Plenio', 'Daniel Olah', 'Adam Gonzales', 'Solar System Scope', 'Robert Scanlon', 'Apache License 2.0', 'LICENSE-THREE.txt']:
+            self.assertIn(credit, repo)
+
+    def test_open_assets_anchor_drift_is_fatal(self):
+        from assets_recipe import transform as assets
+        from assets_recipe import rewrite
+        for hexsweeper in [{'id': 'hexsweeper', 'freeAssets': True}, {'id': 'hexsweeper'}]:
+            for path in ['hexsweeper/sphere/sphere.js', 'hexsweeper/sphere/index.html', 'hexsweeper/sphere/mirror-material.js']:
+                with self.assertRaises(ValueError):
+                    assets(hexsweeper, path, 'nothing to anchor on')
+            with self.assertRaises(ValueError):
+                rewrite(hexsweeper, 'hexsweeper/sphere/assets/reflections/SOURCES.md', b'nothing to anchor on')
+        self.assertEqual(assets({'id': 'hexsweeper'}, 'hexsweeper/sphere/quiet-chrome.js', 'untouched'), 'untouched')
+        self.assertEqual(assets({'id': 'akari', 'freeAssets': True}, 'akari/akari.js', 'untouched'), 'untouched')
+
     def test_camera_anchor_drift_is_fatal(self):
         from camera_recipe import transform as camera
         with self.assertRaises(ValueError):
@@ -514,7 +593,8 @@ class PackageOffersOnlyWhatWorksTests(unittest.TestCase):
         # No packaged script opens a window at all.
         self.assertEqual(opened, [])
         sphere = (self.full / 'games/hexsweeper/sphere/index.html').read_text()
-        self.assertIn('Riding on the original — history of Minesweeper\n', sphere)
+        # The Help row that named Minesweeper's history went with its screenshot (tools/assets_recipe.py).
+        self.assertNotIn('history of Minesweeper', sphere)
         with self.assertRaises(ValueError):
             transform(self.games['hexsweeper'], 'hexsweeper/sphere/index.html',
                       (ROOT / 'imports/hexsweeper/sphere/index.html').read_text().replace('the-history-of-minesweeper', 'another-article'))

@@ -421,8 +421,9 @@ test('Hexsweeper: Help links to no other mode, the Water Wheel has no door, and 
     assert.doesNotMatch(await frame.evaluate(()=>document.body.textContent),/Water Wheel/,mode);
     if(mode!=='sphere'){await goHome(page,frame);continue;}
     assert.equal(await frame.locator('#help-wheel-btn,#qc-wheel,.help-egg-row,.qc-egg-door').count(),0,'no door in Help, on the mine count or for a screen reader');
-    assert.equal(await frame.locator('.help-history-cap').evaluate(p=>p.textContent.trim()),'Riding on the original — history of Minesweeper');
-    assert.equal(await frame.locator('.help-history-cap a').count(),0);
+    // Since 0.5.9 the history row (the screenshot of Microsoft Minesweeper and its line) is out of every build.
+    assert.equal(await frame.locator('.help-history-row,.help-history-cap,#history-lightbox,img[src*="classic-minesweeper"]').count(),0,'no history picture or line');
+    assert.match(await frame.locator('#help-theme-credit').evaluate(p=>p.textContent),/^Photographs: Ion Storm by Felix Mittermeier, Galaxy by Jose G\. Ortega Castro, Heat Lightning by Max LaRochelle, on Unsplash \(Unsplash License\)\.$/);
     // Holding the mine count is no gesture now: no fill, no announcement, the timer is left alone, the page stays.
     await frame.evaluate(()=>{window.__paused=0;const sphere=window.HEXSWEEPER_SPHERE_GAME,pause=sphere.pauseTimer;sphere.pauseTimer=function(){window.__paused++;return pause.apply(this,arguments);};
       document.querySelector('.qc-mines').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,button:0,pointerId:1}));});
