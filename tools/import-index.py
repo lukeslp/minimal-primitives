@@ -35,7 +35,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PIN = '8cdf938'
+PIN = 'dfb83d1'
 PAGE = 'minimal/index.html'
 
 # Where each index link leads inside the package: (game id, Hexsweeper mode). A tile's own

@@ -6,6 +6,8 @@ import json
 from pathlib import Path, PurePosixPath
 import subprocess
 
+import assets_recipe
+
 ROOT = Path(__file__).resolve().parents[1]
 TITLES = [
     ('notan', 'Notan', 'notan'),
@@ -37,7 +39,7 @@ NEW = [
 ]
 # Games moved past --games-ref one at a time, each to a commit whose page the
 # build's transforms and adapters were checked against.
-REPIN = {}  # Every game is at --games-ref: c965c4f in 0.5.7 (the Settings standard), 261303e in 0.5.8 (final master).
+REPIN = {}  # Every game is at --games-ref: c965c4f in 0.5.7 (the Settings standard), 261303e in 0.5.8 (final master), d3d9b9e in 0.5.9 (the balance pass and Hint).
 # Web-only files a newer runtime.json lists: home-screen installs and the site's privacy page.
 WEB_ONLY = ('manifest.webmanifest', 'sw.js', 'pwa.js', 'privacy.html')
 WEB_ONLY_DIRS = ('icons/',)
@@ -76,9 +78,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--games', type=Path, default=ROOT.parent / 'game-riffs')
     parser.add_argument('--hex', type=Path, default=ROOT.parent / 'hexsweeper')
-    parser.add_argument('--games-ref', default='261303e')
-    parser.add_argument('--new-ref', default='261303e')
-    parser.add_argument('--hex-ref', default='e61a79f')
+    parser.add_argument('--games-ref', default='d3d9b9e')
+    parser.add_argument('--new-ref', default='d3d9b9e')
+    parser.add_argument('--hex-ref', default='f4ea5ca')
     parser.add_argument('--accessible-art', type=Path, default=None, help="defaults to the games checkout's accessible/art")
     args = parser.parse_args()
     args.accessible_art = args.accessible_art or args.games / 'accessible/art'
@@ -133,6 +135,9 @@ def main():
     roots = {'bounded.html', 'infinite.html', 'LICENSE', 'skin-chrome.css', 'access.js', 'bridge-client.js'}
     paths = [p for p in hex_paths if p in roots or p.startswith(('fonts/', 'sphere/assets/')) or
              (p.startswith('sphere/') and p.count('/') == 1 and Path(p).suffix in {'.js', '.css', '.html'} and not Path(p).name.startswith('test-'))]
+    # Never imported (tools/assets_recipe.py): Sphere's screenshot of Microsoft Minesweeper and the Stratosphere
+    # photograph, whose source is not confirmed. No build, and no copy of this repository, carries them.
+    paths = [p for p in paths if 'hexsweeper/' + p not in assets_recipe.NEVER]
     files = [capture(args.hex, hex_sha, p, 'hexsweeper/' + p) for p in sorted(paths)]
     records.insert(0, {'id': 'hexsweeper', 'title': 'Hexsweeper', 'repository': 'lukeslp/hexsweeper-private-history', 'commit': hex_sha,
                       'entry': 'hexsweeper/sphere/index.html', 'modes': [

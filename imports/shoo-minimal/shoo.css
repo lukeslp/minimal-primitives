@@ -29,6 +29,9 @@ button:focus-visible,select:focus-visible,.sheet summary:focus-visible{outline:2
 .board[data-solved=true] .cell{cursor:default}
 .hex{fill:var(--bg);stroke:var(--grid);stroke-width:1;vector-effect:non-scaling-stroke;stroke-linejoin:round;transition:stroke .5s ease}
 .board[data-solved=true] .hex{stroke:var(--line)}
+/* A gap: a place inside the board with no cell, hatched so it does not pass for an empty cell. The comb hides it; the page shows through. */
+.gap{fill:none;stroke:var(--grid);stroke-width:1;vector-effect:non-scaling-stroke;stroke-linecap:round}
+.board[data-finish] .gap{display:none}
 .wall{stroke:var(--ink);stroke-width:4;stroke-linecap:round;vector-effect:non-scaling-stroke}
 .petal{fill:var(--bg);stroke:var(--petal);stroke-width:1.2;vector-effect:non-scaling-stroke}.pistil{fill:var(--petal)}
 .hive-body{fill:var(--ink);stroke:none}.hive-door{fill:var(--bg)}.hive-bee{fill:var(--bg)}
@@ -101,6 +104,8 @@ html[data-field] body>:not(dialog):not(main){--ink:#fff;--sub:#fff;--text:#fff}
 .row select{max-width:65%;min-height:44px;background:var(--bg);border:0;padding:4px 8px}
 .row button{min-height:44px;background:none;border:0;padding:8px}
 .row button:not(:disabled){text-decoration:underline;text-underline-offset:4px}
+/* As in Slant: the line under New Game+ saying how to unlock it. */
+.quiet{color:var(--sub);font:13px/1.4 var(--mono);overflow-wrap:anywhere;margin-top:8px}
 .sheet-foot{padding:12px 24px;border-top:1px solid var(--line);flex:none;color:var(--sub);font-size:14px}
 .sheet-foot a{color:inherit}
 .controls{border-top:1px solid var(--line);padding-top:16px}

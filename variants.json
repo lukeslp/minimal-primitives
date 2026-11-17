@@ -1,7 +1,8 @@
 {
   "fdroid": {
-    "summary": "Camera-free build for F-Droid: no MediaPipe and no head, eye or eye-tracker input. Every game stays, with touch, keyboard, pointer dwell and switch play.",
+    "summary": "Camera-free build for F-Droid: no MediaPipe and no head, eye or eye-tracker input. Every game stays, with touch, keyboard, pointer dwell and switch play. Hexsweeper Sphere has four themes (Light, Dark, Mercury, Aurora) and no history picture, because the photographs and the screenshot behind the others are not under an open license.",
     "omitShared": ["mediapipe"],
-    "camera": false
+    "camera": false,
+    "freeAssets": true
   }
 }

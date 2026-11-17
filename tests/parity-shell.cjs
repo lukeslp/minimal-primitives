@@ -192,8 +192,12 @@ for(const [size,viewport] of Object.entries({phone:{width:390,height:844},tablet
     await page.reload();await page.locator('#tiles .tile').first().waitFor({state:'attached'});
     assert.equal((await shown(page)).boot.look,'dark');assert.equal(await page.locator('#set-look').inputValue(),'system');
   });
-  await t.test('no names at rest in the library; the title is the name; the accessible grid keeps its names',async()=>{
-    assert.deepEqual(await page.locator('#tiles .cap').evaluateAll(n=>[...new Set(n.map(e=>getComputedStyle(e).display))]),['none']);
+  await t.test("each game's name sits right below its picture; screen readers hear it once, from the link; the title is the name",async()=>{
+    // The index at luke-portfolio dfb83d1: the name under the picture replaces "no name at rest" (2026-11-15).
+    const caps=await page.locator('#tiles .tile').evaluateAll(tiles=>tiles.filter(t=>t.offsetParent).map(t=>{const cap=t.querySelector('.cap'),art=t.querySelector('.art');const c=cap.getBoundingClientRect(),a=art.getBoundingClientRect();
+      return{display:getComputedStyle(cap).display,hidden:cap.getAttribute('aria-hidden'),text:cap.textContent.trim(),under:c.top>=a.top+a.height*0.8&&c.height>0};}));
+    assert.ok(caps.length>=19,'every bundled tile has a name');
+    for(const cap of caps){assert.notEqual(cap.display,'none');assert.equal(cap.hidden,'true');assert.ok(cap.text.length>0);assert.ok(cap.under,cap.text+' sits under its picture');}
     assert.equal(await page.locator('#tiles .tile a.go:not([aria-label])').count(),0,'every tile link is named for screen readers');
     const head=page.locator('#library h1');assert.equal(await head.textContent(),'minimal primitives');assert.equal(await head.isVisible(),true);
     const box=await page.locator('#masthead-text').boundingBox();assert.ok(Math.abs(box.x+box.width/2-viewport.width/2)<2,'the title is centered');
@@ -299,12 +303,12 @@ const NOTAN=[...require(path.join(h.ROOT,'imports/notan/levels.js')),...require(
 const file=art=>art.file.split('/').pop();
 test('a finished game shows its solved board in color, or one color where it has no picture; an unfinished tile reads no picture',async t=>{
   const sets=Object.fromEntries(LIFE.tiles.filter(x=>x.set).map(x=>[x.name,x]));
-  assert.deepEqual([sets.Slant.set,sets.Notan.set,sets.Cast.set,sets.Tilt.set,sets.Horologist.set],[['slant',54],['ink',73],['cast-3d',50],['tilt-levels-grok',50],['horologist-plate',50]],"the index's own table, with Notan's from the package");
+  assert.deepEqual([sets.Slant.set,sets.Notan.set,sets.Cast.set,sets.Tilt.set,sets.Horologist.set],[['slant',54],['ink',73],['cast-3d',30],['tilt-levels-grok',30],['horologist-plate',50]],"the index's own table, with Notan's from the package");
   assert.equal(NOTAN.length,sets.Notan.set[1],"Notan's whole set is every board in its pinned source");
   assert.deepEqual(LIFE.tiles.filter(x=>x.solved).map(x=>x.name),['Slant','Notan','Bridges','Spiral Galaxies','Cast','Folding','Towers','Tents','Shoo','Balance']);
   const ctx=await h.context(await getBrowser(),{width:390,height:844},{seed:{localStorage:{...seen,
     'lukesteuber.minimal.slant:slant.progress.v1':done(54),'lukesteuber.minimal.notan:ink.v1':ink(73),'lukesteuber.minimal.akari:akari.progress.v1':done(50),
-    'lukesteuber.minimal.bridges:bridges.progress.v1':done(49),'lukesteuber.minimal.tilt:tilt-levels-grok.v1':JSON.stringify({done:Array.from({length:49},(_,i)=>i)}),
+    'lukesteuber.minimal.bridges:bridges.progress.v1':done(49),'lukesteuber.minimal.tilt:tilt-levels-grok.v1':JSON.stringify({done:Array.from({length:29},(_,i)=>i)}),
     'lukesteuber.minimal.cast:cast-3d.v1':JSON.stringify({finished:Array.from({length:50},(_,i)=>i)}),'lukesteuber.minimal.towers:slant.progress.v1':done(99)}}});t.after(()=>ctx.close());
   const fetched=[];ctx.on('request',r=>{if(/-solved[^/]*\.webp/.test(r.url()))fetched.push(new URL(r.url()).pathname.split('/').pop());});
   // Cast's picture cannot be had here: the tile keeps the one-color mark and its own drawing.

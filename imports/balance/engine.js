@@ -176,6 +176,32 @@
     return null;
   }
 
+  // A mark to change, for Hint on a board that holds a mistake. The rules can say that three squares
+  // match, but not which of them is wrong, so this one asks the board's answer (every board has exactly
+  // one). It takes a placed mark that differs from the answer: one the fault names first, then the most
+  // recent of `recent` (cell indexes, newest first), then the first on the board, with the shade it needs.
+  const answers = new WeakMap();
+  function answer(p) {
+    if (!answers.has(p)) answers.set(p, valid(p) ? solve(p).solution : null);
+    return answers.get(p);
+  }
+  function fix(p, s, m, recent) {
+    const sol = stateValid(p, s) && answer(p);
+    if (!sol) return null;
+    const wrong = s.map((v, i) => i).filter(i => !p.givens[i] && s[i] && s[i] !== sol[i]);
+    if (!wrong.length) return null;
+    const n = p.n, stuck = m && m.fault === 'stuck';
+    const named = new Set(!m || !m.fault ? [] : stuck ? lines(n).filter(l => l.cells.includes(m.i)).flatMap(l => l.cells) : m.support);
+    const order = (recent || []).filter(i => wrong.includes(i));
+    const rank = i => (named.has(i) ? 0 : 2) + (order.includes(i) ? 0 : 1);
+    const i = wrong.slice().sort((a, b) => rank(a) - rank(b) || (order.indexOf(a) - order.indexOf(b)) || a - b)[0];
+    const value = sol[i];
+    let text = 'No solution keeps ' + (m && m.fault ? 'the ringed square ' : 'this square ') + NAME[s[i]] + ', so it is ' + NAME[value] + '.';
+    if (stuck) text = 'Neither shade fits the dashed square, so an earlier mark is wrong. ' + text;
+    else if (m && m.fault) text = m.text.replace(/ Change one of them\.$/, '') + ' ' + text;
+    return { i, value, rule: 'fix', support: stuck ? [m.i] : m && m.fault ? m.support : [], text };
+  }
+
   // Solve from the givens by Hint's deductions alone and report how hard that was.
   function grade(p, depth) {
     const s = start(p), used = { pair: 0, gap: 0, share: 0, trial: 0, search: 0 };
@@ -232,5 +258,5 @@
     return { n, givens, seed: seed >>> 0, difficulty: DIFFICULTY[difficulty] ? difficulty : 'Normal', version: VERSION, level: grade(p).level };
   }
 
-  return { VERSION, EMPTY, BLACK, WHITE, NAME, rng, valid, stateValid, start, lines, inspect, solve, next, grade, generate };
+  return { VERSION, EMPTY, BLACK, WHITE, NAME, rng, valid, stateValid, start, lines, inspect, solve, next, answer, fix, grade, generate };
 });

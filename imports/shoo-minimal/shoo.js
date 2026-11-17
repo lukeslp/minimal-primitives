@@ -1,11 +1,14 @@
 /* Shoo (Minimal): the page. Bees flee from the cell you tap. The rule is in
-   engine.js, the boards in boards.js, the finish's palettes in payoff.js. The
+   engine.js, the boards in boards.js, the thirty of the campaign and their
+   order in campaign.js, the finish's palettes in payoff.js. The
    board, the bees and their motion, the hive and the finish are ported from
    shoo/shoo.js; the camera and look-and-hold are left out, and every tap
    leaves a brief ring on the cell it landed on. */
 (function () {
   'use strict';
-  const E = ShooEngine, boards = ShooBoards, P = ShooPayoff;
+  // The campaign (campaign.js) is thirty of the eighty boards in boards.js, in its own order. Once every
+  // one is done the game is finished, and New Game+ deals the other fifty (the pool) at random.
+  const E = ShooEngine, all = ShooBoards, boards = ShooCampaign.map(id => all.find(b => b.id === id)), P = ShooPayoff;
   const $ = s => document.querySelector(s), NS = 'http://www.w3.org/2000/svg';
   // Version 2 of the board and progress saves holds bees; version 1 held the
   // stones of an earlier rule and is left alone, unread.
@@ -16,7 +19,10 @@
   const WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
   const word = n => WORDS[n] || String(n), Word = n => { const w = word(n); return w[0].toUpperCase() + w.slice(1); };
   const ease = t => 1 - (1 - t) ** 3, clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-  const ids = new Set(boards.map(b => b.id)), boardOf = id => boards.find(b => b.id === id);
+  // Saves are checked against all eighty boards, so a save that names a board outside the campaign is
+  // still whole: it is kept as it was. Only campaign boards count as done.
+  const known = new Set(all.map(b => b.id)), ids = new Set(boards.map(b => b.id)), boardOf = id => all.find(b => b.id === id);
+  const pool = all.filter(b => !ids.has(b.id)), poolIds = new Set(pool.map(b => b.id));
   const hivesOf = b => { const L = E.layout(b); return L.cells.map((x, i) => i).filter(i => L.cells[i].kind === 'hive'); };
   const beeCount = b => E.bits(E.start(b));
   const motionQuery = matchMedia('(prefers-reduced-motion: reduce)'), darkQuery = matchMedia('(prefers-color-scheme: dark)');
@@ -34,20 +40,32 @@
   const validHits = n => Number.isSafeInteger(n) && n >= 0 && n < 100000;
   const validPosition = (p, b) => isObject(p) && validBees(p.bees, b) && validHomes(p.homes, p.bees, b) && validHits(p.hits);
   const boardValid = (id, v) => validPosition(v, boardOf(id)) && Array.isArray(v.undo) && v.undo.length <= 400 && v.undo.every(u => validPosition(u, boardOf(id)));
-  const progress = read(K.progress, v => isObject(v) && v.version === 2 && Array.isArray(v.completed) && v.completed.every(id => ids.has(id)) && new Set(v.completed).size === v.completed.length, { version: 2, completed: [] });
+  const progress = read(K.progress, v => isObject(v) && v.version === 2 && Array.isArray(v.completed) && v.completed.every(id => known.has(id)) && new Set(v.completed).size === v.completed.length, { version: 2, completed: [] });
   const prefs = read(K.settings, v => isObject(v) && v.version === 1 && ['system', 'light', 'dark'].includes(v.theme) && ['system', 'reduce'].includes(v.motion) && ['color', 'plain'].includes(v.finish), { version: 1, theme: 'system', motion: 'system', finish: 'color' });
-  const store = read(K.current, v => isObject(v) && v.version === 2 && ids.has(v.at) && isObject(v.boards) && Object.keys(v.boards).every(id => ids.has(id) && boardValid(id, v.boards[id])), { version: 2, at: boards[0].id, boards: {} });
+  const store = read(K.current, v => isObject(v) && v.version === 2 && known.has(v.at) && isObject(v.boards) && Object.keys(v.boards).every(id => known.has(id) && boardValid(id, v.boards[id])), { version: 2, at: boards[0].id, boards: {} });
+  // Every campaign board done: the game is finished and New Game+ is open (as in Slant).
+  const unlocked = () => boards.every(b => progress.completed.includes(b.id));
+  // The pool boards New Game+ has dealt this round, in order; none comes again until all fifty have.
+  store.pool = Array.isArray(store.pool) ? [...new Set(store.pool.filter(id => poolIds.has(id)))] : [];
+  // A player last on a board outside the campaign stays there once the game is finished (a New Game+
+  // board); before that, they go on from the first campaign board not yet done.
+  if (!ids.has(store.at)) {
+    if (unlocked() && poolIds.has(store.at)) { if (!store.pool.includes(store.at)) store.pool.push(store.at); }
+    else store.at = (boards.find(b => !progress.completed.includes(b.id)) || boards[0]).id;
+  }
   const asked = Number(new URLSearchParams(location.search).get('level'));
   if (Number.isInteger(asked) && asked >= 1 && asked <= boards.length) store.at = boards[asked - 1].id;
 
   let board = boardOf(store.at), L = E.layout(board), bees = E.start(board), homes = hivesOf(board).map(() => 0), hits = 0, history = [];
   let hint = null, focus = 0, keyboard = false, hover = null, press = null, washOrigin = null;
-  let busy = false, queue = [], animation = null, epoch = 0;
+  let busy = false, queue = [], animation = null, epoch = 0, finale = false;
   const reduced = () => prefs.motion === 'reduce' || motionQuery.matches;
   const dark = () => prefs.theme === 'dark' || (prefs.theme === 'system' && darkQuery.matches);
   const solved = () => E.solved(bees), home = () => homes.reduce((s, n) => s + n, 0);
   const freeCells = m => L.cells.map((x, i) => i).filter(i => E.has(m, i));
   const indexOfBoard = () => boards.indexOf(board);
+  // A New Game+ board has no place in the campaign and shows no id: the id means nothing to a player.
+  const boardName = () => indexOfBoard() < 0 ? 'New Game+ board' : 'Board ' + (indexOfBoard() + 1);
   const say = text => { $('#feedback').textContent = text; };
   const announce = text => { $('#live').textContent = text; };
   function svg(tag, attrs, parent) {
@@ -69,9 +87,40 @@
     const xs = L.cells.map((_, i) => center(i).x), ys = L.cells.map((_, i) => center(i).y);
     return { x0: Math.min(...xs) - .5, x1: Math.max(...xs) + .5, y0: Math.min(...ys) - RAD, y1: Math.max(...ys) + RAD };
   }
+  // Gaps: places inside the board with no cell (the ring boards' middle, the
+  // bowtie's notches). Their neighbors' outlines draw them on four or more
+  // sides, so on paper they looked like empty cells, though no bee can hop in
+  // and no tap lands there. They are hatched in gray hairlines instead.
+  function gaps() {
+    const out = [];
+    for (let r = 0; r < L.rows; r++) for (let c = 0; c < L.cols; c++) {
+      if (L.at(r, c) >= 0) continue;
+      const [q] = E.toAxial(r, c), around = E.DIRS.filter(([dq, dr]) => { const [rr, cc] = E.fromAxial(q + dq, r + dr); return L.at(rr, cc) >= 0; }).length;
+      if (around >= 4) out.push({ r, c, x: c + (r & 1) / 2, y: r * SQ });
+    }
+    return out;
+  }
+  // The hatch: lines rising to the right, spaced .14 apart along x + y, cut to a hexagon a little inside the gap's outline.
+  function hatch(cx, cy) {
+    const pts = [0, 1, 2, 3, 4, 5].map(j => { const a = Math.PI / 180 * (60 * j - 90); return [Math.cos(a) * RAD * .9, Math.sin(a) * RAD * .9]; });
+    let d = '';
+    for (let n = 0; n < 10; n++) {
+      const k = -.63 + n * .14, hit = [];
+      for (let j = 0; j < 6; j++) {
+        const [x0, y0] = pts[j], [x1, y1] = pts[(j + 1) % 6], f0 = x0 + y0 - k, f1 = x1 + y1 - k;
+        if (f0 === f1 || f0 * f1 > 0) continue;
+        const t = f0 / (f0 - f1); hit.push([x0 + (x1 - x0) * t, y0 + (y1 - y0) * t]);
+      }
+      if (hit.length < 2) continue;
+      hit.sort((a, b) => a[0] - b[0]);
+      const [a, b] = [hit[0], hit[hit.length - 1]];
+      if (Math.hypot(b[0] - a[0], b[1] - a[1]) > .02) d += `M${(cx + a[0]).toFixed(4)} ${(cy + a[1]).toFixed(4)}L${(cx + b[0]).toFixed(4)} ${(cy + b[1]).toFixed(4)}`;
+    }
+    return d;
+  }
   const geo = { s: 60, ex: null };
   const root = $('#board');
-  let art = null, cellLayer = null, washLayer = null, markLayer = null, tapLayer = null, beeLayer = null, ringLayer = null, hiveDots = new Map(), beeNodes = new Map(), leaving = new Set(), built = null;
+  let boardGaps = [], gapLayer = null, art = null, cellLayer = null, washLayer = null, markLayer = null, tapLayer = null, beeLayer = null, ringLayer = null, hiveDots = new Map(), beeNodes = new Map(), leaving = new Set(), built = null;
   // As large as the room allows, with a 16px gutter at the sides.
   function fit() {
     const ex = extent(), W = ex.x1 - ex.x0, H = ex.y1 - ex.y0, shell = $('#board-shell');
@@ -108,6 +157,9 @@
     built = board;
     art = svg('svg', { class: 'art', 'aria-hidden': 'true' }, root);
     cellLayer = svg('g', { class: 'cells' }, art);
+    gapLayer = svg('g', { class: 'gaps' }, art);
+    boardGaps = gaps();
+    for (const g of boardGaps) svg('path', { class: 'gap', d: hatch(g.x, g.y), 'data-r': g.r, 'data-c': g.c }, gapLayer);
     washLayer = svg('g', { class: 'wash' }, art);
     markLayer = svg('g', { class: 'marks' }, art);
     L.cells.forEach((x, i) => {
@@ -204,35 +256,48 @@
 
   /* ---- Words for a screen reader: where each cell is and what is on it. ---- */
   function placeOf(i) { const x = L.cells[i]; let k = 0; for (let c = 0; c <= x.c; c++) if (L.at(x.r, c) >= 0) k++; return `row ${x.r + 1}, place ${k}`; }
+  // Gaps side by side in a row are told as one, with its width.
+  function gapRuns() { const out = []; for (const g of boardGaps) { const last = out.at(-1); if (last && last.r === g.r && last.c + last.n === g.c) last.n++; else out.push({ r: g.r, c: g.c, n: 1 }); } return out; }
+  function gapPlace({ r, c, n }) { let k = 0; for (let x = 0; x < c; x++) if (L.at(r, x) >= 0) k++; return (k ? `row ${r + 1}, after place ${k}` : `row ${r + 1}, before place 1`) + (n > 1 ? `, ${word(n)} cells wide` : ''); }
+  // The directions from cell i that lead into a gap.
+  function gapSides(i) {
+    const x = L.cells[i], [q] = E.toAxial(x.r, x.c);
+    return COMPASS.filter((_, d) => { const [rr, cc] = E.fromAxial(q + E.DIRS[d][0], x.r + E.DIRS[d][1]); return boardGaps.some(g => g.r === rr && g.c === cc); });
+  }
   const listOf = list => list.length <= 1 ? list.join('') : list.slice(0, -1).join('; ') + ' and ' + list.at(-1);
   function cellWords(i) {
     const x = L.cells[i], k = hivesOf(board).indexOf(i);
     const what = E.has(bees, i) ? 'a bee' : x.kind === 'flower' ? 'a flower' : x.kind === 'hive' ? `the hive, ${word(homes[k])} ${homes[k] === 1 ? 'bee' : 'bees'} inside` : 'empty';
-    const walls = COMPASS.filter((_, d) => L.wall[i] >> d & 1), near = L.nb[i].filter(j => j >= 0 && E.has(bees, j)).length;
-    return `${placeOf(i)}: ${what}${walls.length ? `, a wall to the ${listOf(walls)}` : ''}${near ? `, ${word(near)} ${near === 1 ? 'bee' : 'bees'} beside it` : ''}`;
+    const walls = COMPASS.filter((_, d) => L.wall[i] >> d & 1), sides = gapSides(i), near = L.nb[i].filter(j => j >= 0 && E.has(bees, j)).length;
+    return `${placeOf(i)}: ${what}${walls.length ? `, a wall to the ${listOf(walls)}` : ''}${sides.length ? `, a gap to the ${listOf(sides)}` : ''}${near ? `, ${word(near)} ${near === 1 ? 'bee' : 'bees'} beside it` : ''}`;
   }
   const optionText = b => `${boards.indexOf(b) + 1} · par ${b.par}${progress.completed.includes(b.id) ? ' ✓' : ''}`;
   function chrome() {
     const done = solved(), n = indexOfBoard(), total = beeCount(board), hives = hivesOf(board), free = freeCells(bees), flowers = L.cells.map((x, i) => x.kind === 'flower' ? i : -1).filter(i => i >= 0);
-    const parts = [`Board ${n + 1}. ${Word(total)} ${total === 1 ? 'bee' : 'bees'}. ${hives.length === 1 ? 'One hive' : Word(hives.length) + ' hives'}.`,
+    const parts = [`${boardName()}. ${Word(total)} ${total === 1 ? 'bee' : 'bees'}. ${hives.length === 1 ? 'One hive' : Word(hives.length) + ' hives'}.`,
       done ? 'Every bee is home.' : `${free.length === 1 ? 'A bee' : 'Bees'} at ${listOf(free.map(placeOf))}.` + (home() ? ` ${Word(home())} home.` : ''),
       `${hives.length === 1 ? 'Hive' : 'Hives'} at ${listOf(hives.map(placeOf))}.`,
       flowers.length ? `${flowers.length === 1 ? 'A flower' : 'Flowers'} at ${listOf(flowers.map(placeOf))}.` : '',
       (board.walls || []).length ? `${Word(board.walls.length)} ${board.walls.length === 1 ? 'wall' : 'walls'} between cells.` : '',
+      boardGaps.length ? (runs => `${runs.length === 1 ? 'A gap with no cell' : Word(runs.length) + ' gaps with no cell'} at ${listOf(runs.map(gapPlace))}.`)(gapRuns()) : '',
       `${hits} ${hits === 1 ? 'tap' : 'taps'}, par ${board.par}.`];
     root.setAttribute('aria-label', parts.filter(Boolean).join(' '));
     root.querySelectorAll('.cell').forEach(c => { const i = +c.dataset.i; c.tabIndex = i === focus ? 0 : -1; c.setAttribute('aria-label', cellWords(i)); });
-    $('#readout').textContent = `${n + 1} / ${boards.length} · ${hits} / ${board.par}`;
-    $('#readout').setAttribute('aria-label', `Board ${n + 1} of ${boards.length}; ${hits} ${hits === 1 ? 'tap' : 'taps'}; par ${board.par}`);
+    // A New Game+ board shows taps and par alone, where a campaign board also has its place.
+    $('#readout').textContent = `${n < 0 ? '' : `${n + 1} / ${boards.length} · `}${hits} / ${board.par}`;
+    $('#readout').setAttribute('aria-label', `${n < 0 ? boardName() : `Board ${n + 1} of ${boards.length}`}; ${hits} ${hits === 1 ? 'tap' : 'taps'}; par ${board.par}`);
     $('#undo-btn').disabled = history.length === 0;
     $('#hint-btn').disabled = done;
     const frozen = !done && L.cells.every((_, x) => E.step(board, bees, x) === bees);
     $('#undo-btn').classList.toggle('wanted', frozen && history.length > 0);
     $('#completion').hidden = !done || busy;
-    $('#next-btn').setAttribute('aria-label', n === boards.length - 1 ? 'Choose next board' : 'Next board');
+    $('#next-btn').setAttribute('aria-label', finale || (n === boards.length - 1 && unlocked()) ? 'Start New Game+' : n === boards.length - 1 ? 'Choose next board' : 'Next board');
     $('#feedback').classList.toggle('sr-only', done);
-    $('#campaign').value = board.id;
-    $('#previous').disabled = n <= 0; $('#following').disabled = n === boards.length - 1;
+    $('#campaign').value = n < 0 ? '' : board.id;
+    $('#previous').disabled = n <= 0; $('#following').disabled = n < 0 || n === boards.length - 1;
+    $('#new-game').disabled = !unlocked();
+    $('#generation-details').textContent = unlocked() ? '' : `Complete all ${boards.length} to unlock New Game+.`;
+    $('#generation-details').hidden = unlocked();
     for (const o of $('#campaign').options) o.textContent = optionText(boardOf(o.value));
     return frozen;
   }
@@ -394,7 +459,8 @@
     bees = res.mask; hits++; hint = null; say('');
     for (const [, t] of res.home) homes[hives.indexOf(t)]++;
     // The move is saved before any motion, so leaving the page cannot lose it.
-    if (solved() && !progress.completed.includes(board.id)) progress.completed.push(board.id);
+    // Only campaign boards count as progress. The solve that does the last of them is the finale.
+    if (solved() && ids.has(board.id) && !progress.completed.includes(board.id)) { const had = unlocked(); progress.completed.push(board.id); if (!had && unlocked()) finale = true; }
     save();
     const hops = [...res.moved.map(m => [...m, false]), ...res.home.map(m => [...m, true])].map(([n, t, d, inside]) => ({ b: beeNodes.get(n), t, from: center(n), to: center(t), d, home: inside }));
     const flinch = res.blocked.map(([n, d]) => ({ b: beeNodes.get(n), d }));
@@ -422,7 +488,7 @@
     const hopped = res.moved.length, went = res.home.length;
     if (solved()) {
       stats.solves++; draw(); paintWash(res.home.length ? res.home[0][1] : hivesOf(board)[0], true);
-      announce(`Every bee is home in ${hits} ${hits === 1 ? 'tap' : 'taps'}. Par ${board.par}. ${indexOfBoard() === boards.length - 1 ? 'That was the last board.' : 'Next board is open.'}`);
+      announce(`Every bee is home in ${hits} ${hits === 1 ? 'tap' : 'taps'}. Par ${board.par}. ${finale ? `All ${boards.length} boards solved.` : indexOfBoard() === boards.length - 1 ? 'That was the last board.' : 'Next board is open.'}`);
     } else if (held) announce(`${held}${word(hopped + went)} ${hopped + went === 1 ? 'bee' : 'bees'} fled${went ? `, ${word(went)} into the hive` : ''}${res.blocked.length ? `; ${word(res.blocked.length)} could not move` : ''}. ${home()} of ${beeCount(board)} home, ${hits} ${hits === 1 ? 'tap' : 'taps'}.`);
     else announce(`${hopped ? `${Word(hopped)} ${hopped === 1 ? 'bee' : 'bees'} hopped away` : ''}${hopped && went ? '; ' : ''}${went ? `${word(went)} went home` : ''}${res.blocked.length ? `; ${word(res.blocked.length)} could not move` : ''}. ${home()} of ${beeCount(board)} home, ${hits} ${hits === 1 ? 'tap' : 'taps'}.`.replace(/^./, c => c.toUpperCase()));
   }
@@ -481,14 +547,14 @@
       say('Board set up again. Undo brings it back.'); announce('Board restarted. Undo brings it back.');
     } else if (action.type === 'go') {
       const next = boardOf(action.id); if (!next) return;
-      board = next; L = E.layout(board);
+      board = next; L = E.layout(board); finale = false;
       const saved = store.boards[board.id], kept = saved && boardValid(board.id, saved);
       history = kept ? saved.undo.map(u => ({ bees: u.bees, homes: u.homes.slice(), hits: u.hits })) : [];
       hover = null; press = null; keyboard = !!action.keyboard; focus = 0; say('');
       reset(kept ? saved : { bees: E.start(board), homes: hivesOf(board).map(() => 0), hits: 0 });
       focus = firstCell(); rest(); save();
       if (solved()) paintWash(hivesOf(board)[0], false);
-      announce(`Board ${indexOfBoard() + 1}. ${Word(beeCount(board))} ${beeCount(board) === 1 ? 'bee' : 'bees'}. Par ${board.par}.`);
+      announce(`${boardName()}. ${Word(beeCount(board))} ${beeCount(board) === 1 ? 'bee' : 'bees'}. Par ${board.par}.`);
     }
   }
   const firstCell = () => { const f = freeCells(bees); return f.length ? f[0] : 0; };
@@ -519,16 +585,32 @@
     return enqueue({ type: 'shoo', i, marked });
   };
   const undo = () => enqueue({ type: 'undo' }, true), restart = () => enqueue({ type: 'restart' }, true), askHint = () => enqueue({ type: 'hint' });
-  const go = (id, opts = {}) => ids.has(id) ? enqueue({ type: 'go', id, ...opts }, true).then(() => true) : Promise.resolve(false);
-  // Next: the following board; after the last, the first board not yet done,
-  // or Settings when every board is done. A board played again starts fresh.
+  const go = (id, opts = {}) => ids.has(id) || (unlocked() && poolIds.has(id)) ? enqueue({ type: 'go', id, ...opts }, true).then(() => true) : Promise.resolve(false);
+  // New Game+: a pool board at random, one not yet dealt this round (a new round starts once all fifty
+  // have been, and never with the board just played). A board already solved before starts fresh.
+  function newGame(opts = {}) {
+    if (!unlocked()) return Promise.resolve(false);
+    let left = pool.filter(b => !store.pool.includes(b.id) && b !== board);
+    if (!left.length) { store.pool = []; left = pool.filter(b => b !== board); }
+    let r = Math.random();
+    try { r = crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296; } catch (_) {}
+    const next = left[Math.floor(r * left.length)];
+    store.pool.push(next.id);
+    const saved = store.boards[next.id];
+    if (saved && (!boardValid(next.id, saved) || E.solved(saved.bees))) delete store.boards[next.id];
+    return go(next.id, opts);
+  }
+  // Next: the following board; after the last, the first board not yet done.
+  // As in Slant, the solve that finishes the campaign, the last board once every
+  // one is done, and a New Game+ board all lead to a New Game+ board. A board
+  // played again starts fresh.
   function advance(event) {
     if (!solved() || busy) return Promise.resolve(false);
     const byKey = !event || event.detail === 0, n = indexOfBoard(), open = boards.find(b => !progress.completed.includes(b.id));
     delete store.boards[board.id];
-    const target = n < boards.length - 1 ? boards[n + 1] : open;
-    if (!target) { write(K.current, store); openSheet('settings', $('#settings-btn')); return Promise.resolve(false); }
-    return go(target.id, { keyboard: byKey }).then(() => { if (byKey) focusCell(focus); return true; });
+    const then = moved => { if (moved && byKey) focusCell(focus); return moved; };
+    if (finale || n < 0 || (n === boards.length - 1 && !open)) return newGame({ keyboard: byKey }).then(then);
+    return go((n < boards.length - 1 ? boards[n + 1] : open).id, { keyboard: byKey }).then(then);
   }
 
   /* ---- Input: tap or click a cell; a press shows who will flee. ---- */
@@ -597,6 +679,7 @@
   $('#hint-btn').addEventListener('click', askHint);
   $('#restart-btn').addEventListener('click', restart);
   $('#next-btn').addEventListener('click', advance);
+  $('#new-game').addEventListener('click', () => { if (unlocked()) { newGame(); $('#settings').close(); } });
   let lastInvoker = null;
   function openSheet(id, button) {
     for (const d of document.querySelectorAll('dialog[open]')) d.close();
@@ -635,7 +718,8 @@
     boards,
     get at() { return board.id; },
     get state() { return { at: board.id, bees: freeCells(bees).map(rc), mask: bees, homes: homes.slice(), home: home(), total: beeCount(board), solved: solved(), hits, par: board.par, undo: history.length, hint: hint && (hint.stuck ? { stuck: true } : { r: L.cells[hint.look].r, c: L.cells[hint.look].c }), focus: rc(focus), keyboard, busy, done: progress.completed.slice() }; },
-    shoo: (r, c) => at(r, c) >= 0 ? shooAt(at(r, c)) : Promise.resolve(), undo, restart, go, next: () => advance(), hint: askHint,
+    shoo: (r, c) => at(r, c) >= 0 ? shooAt(at(r, c)) : Promise.resolve(), undo, restart, go, next: () => advance(), hint: askHint, newGame: () => newGame(),
+    get pool() { return { dealt: store.pool.slice(), size: pool.length, unlocked: unlocked(), finale }; },
     index: (r, c) => at(r, c),
     center(r, c) { const n = root.querySelector(`.cell[data-i="${at(r, c)}"]`); if (!n) return null; const b = n.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2, size: b.width }; },
     bees() { return [...beeNodes.values()].map(b => ({ r: L.cells[b.at].r, c: L.cells[b.at].c, angle: +(b.turn.getAttribute('transform') || '').replace(/[^\d.-]/g, ''), transform: b.g.getAttribute('transform'), dodge: b.g.getAttribute('data-dodge'), wing: b.wings[0].getAttribute('transform'), drift: b.buzz.style.animationPlayState || 'running' })); },

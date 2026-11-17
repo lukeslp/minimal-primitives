@@ -1030,6 +1030,19 @@ vec3 plate(vec2 uv) {
   return color;
 }
 
+// Behind the orb: the photograph's overall color, never the photograph. This
+// canvas is drawn at about a third of the screen's resolution, so the picture
+// stretched across the field showed as a blurry copy of itself floating behind
+// the sphere. The last mip level is the picture's average color. The full
+// shader paints a procedural field here for the same reason.
+vec3 backdropTone(vec2 uv) {
+  if (uTextureReady < 0.5) return plate(uv);
+  vec3 color = textureLod(uEnvironmentMap, vec2(0.5), 16.0).rgb * uTextureParams.y;
+  float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
+  color = mix(vec3(luma), color, uTextureParams.z);
+  return color * mix(0.85, 1.1, uv.y);
+}
+
 vec2 sphereUv(vec3 direction) {
   direction.yz = rotate2(uShellRotation.y) * direction.yz;
   direction.xz = rotate2(-uShellRotation.x) * direction.xz;
@@ -1047,7 +1060,7 @@ void main() {
   vec2 centered = screenUv - 0.5;
   vec3 accent = materialAccent();
   vec3 field = mix(vec3(0.006, 0.008, 0.012), accent * 0.15, uAppearance * 0.42);
-  vec3 backdrop = plate(vec2(screenUv.x, 1.0 - screenUv.y));
+  vec3 backdrop = backdropTone(vec2(screenUv.x, 1.0 - screenUv.y));
   float backdropWeight = 0.18 + uTextureParams.w * 0.24;
   vec3 color = mix(field, backdrop, backdropWeight);
   color *= mix(0.62, 1.0, 1.0 - smoothstep(0.08, 0.72, length(centered)));
@@ -1135,6 +1148,8 @@ void main() {
       this.lastTimeAt = this.startedAt;
       this.lastPaintAt = 0;
       this.frame = 0;
+      // Whether the owner wants the loop; visibility only pauses and resumes it.
+      this.running = false;
       this.failed = false;
       this.reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
       this.mobile = matchMedia("(max-width: 700px), (pointer: coarse)").matches;
@@ -1238,9 +1253,13 @@ void main() {
         this.pointer.tx = (event.clientX / Math.max(1, innerWidth)) * 2 - 1;
         this.pointer.ty = (event.clientY / Math.max(1, innerHeight)) * 2 - 1;
       };
+      // Coming back to the page resumes the loop only if it was meant to be
+      // running: Sphere stops it (and hides the canvas) on plain themes, and
+      // a visibility change used to restart it, drawing into the hidden canvas
+      // at its usual frame rate for the rest of the session.
       this.onVisibility = () => {
-        if (document.hidden) this.stop();
-        else this.start();
+        if (document.hidden) this.cancelFrame();
+        else this.scheduleFrame();
       };
       this.onSphereAction = (event) => this.handleSphereAction(event.detail || {});
       addEventListener("resize", this.onResize, { passive: true });
@@ -1555,12 +1574,22 @@ void main() {
     }
 
     start() {
-      if (this.frame || document.hidden) return;
+      this.running = true;
+      this.scheduleFrame();
+    }
+
+    stop() {
+      this.running = false;
+      this.cancelFrame();
+    }
+
+    scheduleFrame() {
+      if (!this.running || this.frame || document.hidden) return;
       this.lastTimeAt = performance.now();
       this.frame = requestAnimationFrame((time) => this.loop(time));
     }
 
-    stop() {
+    cancelFrame() {
       if (this.frame) cancelAnimationFrame(this.frame);
       this.frame = 0;
     }
@@ -1580,7 +1609,7 @@ void main() {
         this.render(time, false);
         this.lastPaintAt = time;
       }
-      this.start();
+      this.scheduleFrame();
     }
 
     render(time, force) {

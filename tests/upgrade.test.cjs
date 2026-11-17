@@ -2,30 +2,81 @@
 // An app update moves games to a newer source commit. A player's unfinished board and progress live in the
 // library's saves, made by the older build; the update must still open them. Each fixture holds one save per
 // game, taken in a shipped build: a move on the first board, then Home. saves-2ba8a67.json is from 0.5.5
-// (game-riffs 2ba8a67), saves-c965c4f.json from 0.5.7 (c965c4f, with Cube Maze, Tangles and Weaves). Add one
-// from each shipped build before its games are pinned again.
+// (game-riffs 2ba8a67), saves-c965c4f.json from 0.5.7 (c965c4f, with Cube Maze, Tangles and Weaves),
+// saves-261303e.json from 0.5.8 (261303e). Add one from each shipped build before its games are pinned again.
 const {test,after}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const h=require('./parity-fixtures/browser.cjs'),a=require('./parity-fixtures/actions.cjs');
 const KEY='lukesteuber.minimal.collection.v1:saves';
-const FIXTURES=[['0.5.5','saves-2ba8a67.json'],['0.5.7','saves-c965c4f.json']].map(([build,name])=>{const fixture=fs.readFileSync(path.join(__dirname,'upgrade-fixtures',name),'utf8');return{build,fixture,old:JSON.parse(fixture)};});
+const FIXTURES=[['0.5.5','saves-2ba8a67.json'],['0.5.7','saves-c965c4f.json'],['0.5.8','saves-261303e.json']].map(([build,name])=>{const fixture=fs.readFileSync(path.join(__dirname,'upgrade-fixtures',name),'utf8');return{build,fixture,old:JSON.parse(fixture)};});
 const {old}=FIXTURES[0];
 let browser;const getBrowser=async()=>browser||(browser=await h.launch());
 after(async()=>browser?.close());
-for(const {build,fixture,old} of FIXTURES)for(const game of h.games.filter(g=>old[g.id]))test(`${game.id}: a save from the ${build} build opens after the update`,async t=>{
-  assert.notEqual(old[game.id].source,game.commit,'the fixture is from an older source commit');
-  const ctx=await h.context(await getBrowser(),{width:390,height:844},{seed:{localStorage:{[KEY]:fixture}}});t.after(()=>ctx.close());
-  // shell() waits for the restore and fails on a restore error.
+// Bending's saves changed shape in game-riffs d3d9b9e (0.5.9): progress is kept under each board's name (v3), and
+// an older record, kept by place, is converted once. Its saves from earlier builds cannot come back unchanged, so
+// they are checked as the reordered games' midway saves are, below: against the game's own reading of the same save.
+const CONVERTED={bending:old=>({'rimlight.dark.v2':JSON.stringify(old.record)})};
+// Fields this build's saves carry that earlier ones did not (game-riffs d3d9b9e): `order: 2` says reached counts in
+// campaign places, and `pool` lists the New Game+ or pool boards dealt. An earlier save restores with them added.
+const ADDED={tilt:s=>({...s,order:2,pool:[]}),'tilt-3d':s=>({...s,order:2,pool:[]}),cast:s=>({...s,order:2}),horologist:s=>({...s,order:2}),
+  'shoo-minimal':s=>({...s,store:{...s.store,pool:[]}})};
+// Where a save leaves the player, in this build's terms: the board, what is finished, how far the campaign is open,
+// and for Bending the stage on the saved board.
+function where(id,s){
+  if(id==='bending'){const r=s.named;return{board:r.board,done:r.done,open:r.open};}
+  const finished=s.progress?.completed??s.done??s.finished??s.completed;
+  return{at:s.at??null,board:s.store?.at??s.board??null,finished:[...(finished||[])].sort(),reached:s.reached??s.progress?.available??null,order:s.order??null};
+}
+async function opened(t,game,localStorage){
+  const ctx=await h.context(await getBrowser(),{width:390,height:844},{seed:{localStorage}});t.after(()=>ctx.close());
   const {page,frame}=await h.shell(ctx,game);
   assert.equal(await page.locator('#notice:not([hidden])').count(),0,'no notice is shown');
-  // The board, its Undo history, progress and settings are the ones the old build saved, not a fresh game's.
-  h.sameSnapshot(await h.snapshot(frame),old[game.id].state,game.id+' restores the saved state');
-  await frame.locator('#minimal-home').focus();await page.keyboard.press('Enter');
+  return {ctx,page,frame,state:await h.snapshot(frame)};
+}
+async function home(page,game){
+  await page.locator('#player iframe').contentFrame().locator('#minimal-home').focus();await page.keyboard.press('Enter');
   await page.waitForFunction(()=>!document.querySelector('iframe'));
   const now=await page.evaluate(([k,id])=>JSON.parse(localStorage.getItem(k))[id],[KEY,game.id]);
   assert.equal(now.source,game.commit,'the save is kept, now from this build');
+  return now;
+}
+for(const {build,fixture,old} of FIXTURES)for(const game of h.games.filter(g=>old[g.id]))test(`${game.id}: a save from the ${build} build opens after the update`,async t=>{
+  assert.notEqual(old[game.id].source,game.commit,'the fixture is from an older source commit');
+  // shell() waits for the restore and fails on a restore error.
+  const {page,state}=await opened(t,game,{[KEY]:fixture});
+  if(CONVERTED[game.id]){
+    // The library's save opens where the game itself opens the same record kept natively by the old build.
+    const native=Object.fromEntries(Object.entries(CONVERTED[game.id](old[game.id].state)).map(([k,v])=>[`lukesteuber.minimal.${game.id}:${k}`,v]));
+    const own=await opened(t,game,native);
+    assert.deepEqual(where(game.id,state),where(game.id,own.state),game.id+' opens where the game opens its own old save');
+  }
+  // The board, its Undo history, progress and settings are the ones the old build saved, not a fresh game's.
+  else h.sameSnapshot(state,(ADDED[game.id]||(s=>s))(old[game.id].state),game.id+' restores the saved state');
+  await home(page,game);
+});
+
+// Midway saves from the shipped 0.5.8 build, for every game whose board order or save shape changes in 0.5.9
+// (game-riffs d3d9b9e): Shoo, Tilt, Tilt 3D and Cast play thirty boards (Shoo of eighty, the others of fifty) and
+// count how far the campaign is open in campaign places; Bending keeps thirty stages, by name; Horologist, Akari,
+// Bridges and Spiral Galaxies play their boards in a new order; Towers, Tents and Balance gain boards. Each game's
+// 0.5.8 page was opened on its own native save part way through (`native`), and the library save 0.5.8 made from it
+// is `saves`. The library save must open where this build's game opens that native save: the game's own reading is
+// the upstream migration, tested there. Several saves sit on a board the new campaign leaves out.
+const MIDWAY=JSON.parse(fs.readFileSync(path.join(__dirname,'upgrade-fixtures','saves-261303e-midway.json'),'utf8'));
+for(const game of h.games.filter(g=>MIDWAY.saves[g.id]))test(`${game.id}: a midway save from the 0.5.8 build opens where the game opens its own`,async t=>{
+  const saved=MIDWAY.saves[game.id];
+  assert.equal(saved.source.slice(0,7),'261303e');
+  const library=await opened(t,game,{[KEY]:JSON.stringify({[game.id]:saved})});
+  const own=await opened(t,game,MIDWAY.native[game.id]);
+  const got=where(game.id,library.state),want=where(game.id,own.state);
+  assert.deepEqual(got,want,game.id+' opens where the game opens its own 0.5.8 save');
+  // Nothing finished is lost: every board the old save had finished that this build still has stays finished.
+  if(game.id!=='bending')assert.ok(got.finished.length>=Math.min(where(game.id,saved.state).finished.length,want.finished.length),'finished boards kept');
+  // Bending's save is on a stage the thirty keep: the planet placed there in 0.5.8 is still on it.
+  else{const r=saved.state.record;assert.deepEqual(library.state.named.stages[got.board].planets,r.stages[r.board].planets,'the stage keeps its planets');}
+  await home(library.page,game);
 });
 
 test('a save this build cannot read is kept aside, the player is told, and the game starts new',async t=>{

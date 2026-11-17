@@ -38,6 +38,11 @@
   const pinned = (r, c) => board.pins.some(p => p[0] === r && p[1] === c);
   // Counts are said as a person would: 1 hit, 2 hits; 1 loose stretch, 2 loose stretches.
   const count = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`, hitsWord = () => count(hits, 'hit'), looseWord = n => count(n, 'loose stretch', 'loose stretches');
+  // The stretches the dashed lines mark are also said: where each lies once
+  // three or fewer are left, and whether the focused crossing is in one.
+  const where = run => run.axis === 'row' ? `row ${run.index + 1}, columns ${run.from + 1} to ${run.to + 1}` : `column ${run.index + 1}, rows ${run.from + 1} to ${run.to + 1}`;
+  const looseText = list => looseWord(list.length) + (list.length && list.length <= 3 ? ': ' + list.map(where).join('; ') : '');
+  const inLoose = (list, r, c) => list.some(run => run.axis === 'row' ? run.index === r && c >= run.from && c <= run.to : run.index === c && r >= run.from && r <= run.to);
   function announce(text) { $('#announcement').textContent = text; }
   function save() {
     if (protectSave) return;
@@ -113,7 +118,7 @@
   function build() {
     boardNode.replaceChildren();
     defs = svg('defs', {}, boardNode); cloth = svg('g', { id: 'cloth', 'aria-hidden': 'true' }, boardNode);
-    layers = Object.fromEntries(['footprints', 'row', 'onRow', 'col', 'onCol', 'patches', 'frame', 'knots'].map(name => [name, svg('g', {}, cloth)]));
+    layers = Object.fromEntries(['footprints', 'row', 'onRow', 'rowMarks', 'col', 'onCol', 'colMarks', 'patches', 'frame', 'knots'].map(name => [name, svg('g', {}, cloth)]));
     const targets = svg('g', { id: 'targets', 'aria-hidden': 'true' }, boardNode);
     for (let r = 0; r < board.rows; r++) for (let c = 0; c < board.cols; c++) svg('rect', { class: 'crossing-target', 'data-r': r, 'data-c': c, x: c - .5, y: r - .5, width: 1, height: 1 }, targets);
     rings = svg('g', { id: 'rings', 'aria-hidden': 'true' }, boardNode);
@@ -286,6 +291,28 @@
         looks[axis][index] = look;
       }
     }
+    // A loose stretch carries a dashed line along its own middle, from the
+    // near edge of its first crossing to the far edge of its last: the one
+    // mark on the cloth of what still breaks the rule, gone once the stretch
+    // closes. Its dashes are laid once along the thread, evenly from both
+    // ends, and every piece is cut from that one set, so the line drawn
+    // between crossings and the line drawn over them stay in step. Whatever
+    // ribbon lies over the stretch hides the line there, as it hides the
+    // thread: a front float shows it whole, a back float only in the gaps.
+    // A row's line over a column is drawn again with the row's patch.
+    // Dashes and their weight grow a little with roomy crossings.
+    const marks = { row: new Map(), col: new Map() }, dash = clamp(.085 * scale, 5, 9) / scale, gap = .8 * dash, inkWidth = +clamp(.02 * scale, 1.5, 2).toFixed(2);
+    const point = (axis, index, t) => { const { p, n } = lay(axis, index, t), lift = offset(axis, index, t); return [p[0] + n[0] * lift, p[1] + n[1] * lift]; };
+    for (const run of runs.values()) {
+      if (run.weight < .001) continue;
+      const lo = run.from - W, span = run.to - run.from + 2 * W, n = Math.max(1, Math.floor((span + gap) / (dash + gap))), first = lo + (span - n * (dash + gap) + gap) / 2;
+      const segments = Array.from({ length: n }, (_, k) => { const t = first + k * (dash + gap); return { t, line: [point(run.axis, run.index, t), point(run.axis, run.index, t + dash)] }; });
+      // Dark on the pale weft and on a warp's pale back float; pale on the dark warp.
+      const mark = { ...run, segments, ink: run.axis === 'row' || (run.value === 1 && !dark()) ? 'ink-dark' : 'ink-light', key: `${run.from}-${run.to}-${run.value}` };
+      if (!marks[run.axis].has(run.index)) marks[run.axis].set(run.index, []);
+      marks[run.axis].get(run.index).push(mark);
+      put(`mark-${run.axis}${run.index}-${mark.key}`, 'path', layers[run.axis === 'row' ? 'rowMarks' : 'colMarks'], { class: 'loose-mark ' + mark.ink, 'data-axis': run.axis, 'data-index': run.index, d: segments.map(s => polyline(s.line)).join(''), 'stroke-width': inkWidth, opacity: run.weight < .999 ? +run.weight.toFixed(3) : null });
+    }
     // The frame: one hairline.
     put('frame', 'rect', layers.frame, { class: 'frame', x: frame.x0, y: frame.y0, width: +(frame.x1 - frame.x0).toFixed(4), height: +(frame.y1 - frame.y0).toFixed(4) });
     // A front float lifts off the cloth over its own footprint: the float's
@@ -419,7 +446,7 @@
         const sides = [across(row, W), across(row, -W)], fill = clipShape(sides[0].concat([...sides[1]].reverse()), planes);
         if (fill.length < 3) return null;
         const lines = pieces => pieces.filter(piece => piece.length > 1).map(polyline).join('');
-        return { poly: fill, half: turned ? half : null, fill: polyline(fill) + 'Z', grain: GRAIN.map(g => lines(clipLine(across(row, g * W), planes))).join(''), edge: sides.map(side => lines(clipLine(side, planes))).join(''), seam: turned ? seam : null };
+        return { poly: fill, planes, half: turned ? half : null, fill: polyline(fill) + 'Z', grain: GRAIN.map(g => lines(clipLine(across(row, g * W), planes))).join(''), edge: sides.map(side => lines(clipLine(side, planes))).join(''), seam: turned ? seam : null };
       });
     }
     function patch(r, c, f, part = 'crossing', g = f, front = 0) {
@@ -431,6 +458,11 @@
       put(id + ':fill', 'path', group, { class: 'patch-fill', d: shape.fill, fill: looks.row[r].fill });
       put(id + ':grain', 'path', group, { class: 'grain weft', d: shape.grain, 'stroke-width': hair });
       put(id + ':edge', 'path', group, { class: 'patch-edge', d: shape.edge, style: looks.row[r].style });
+      if (part === 'crossing') for (const mark of marks.row.get(r) || []) {
+        if (c < mark.from || c > mark.to) continue;
+        const d = mark.segments.filter(s => Math.abs(s.t + dash / 2 - c) < .5 + dash).flatMap(s => clipLine(s.line, shape.planes)).filter(piece => piece.length > 1).map(polyline).join('');
+        if (d) put(`${id}:mark-${mark.key}`, 'path', group, { class: 'loose-mark ' + mark.ink, d, 'stroke-width': inkWidth, opacity: mark.weight < .999 ? +mark.weight.toFixed(3) : null });
+      }
     }
     for (let r = 0; r < board.rows; r++) for (let c = 0; c < board.cols; c++) {
       const rowOver = over('row', r, c);
@@ -467,7 +499,7 @@
   function draw() { if (built !== board) build(); drawCloth(); drawRings(); }
   function chrome() {
     const loose = E.loose(board, grid), solved = E.solved(board, grid), [r, c] = focus;
-    boardNode.setAttribute('aria-label', `Board ${boards.indexOf(board) + 1}, ${count(board.rows, 'row')} by ${count(board.cols, 'column')}. ${solved ? 'Cloth finished.' : looseWord(loose.length) + '.'} ${hitsWord()}, par ${parOf(board)}. Focus row ${r + 1}, column ${c + 1}, ${grid[r][c] === 1 ? 'weft over' : 'warp over'}${pinned(r, c) ? ', pinned' : ', free'}.`);
+    boardNode.setAttribute('aria-label', `Board ${boards.indexOf(board) + 1}, ${count(board.rows, 'row')} by ${count(board.cols, 'column')}. ${solved ? 'Cloth finished.' : looseText(loose) + '.'} ${hitsWord()}, par ${parOf(board)}. Focus row ${r + 1}, column ${c + 1}, ${grid[r][c] === 1 ? 'weft over' : 'warp over'}${pinned(r, c) ? ', pinned' : ', free'}${inLoose(loose, r, c) ? ', in a loose stretch' : ''}.`);
     $('#readout').textContent = `${boards.indexOf(board) + 1} / ${boards.length} · ${hits} / ${parOf(board)}`;
     $('#readout').setAttribute('aria-label', `Board ${boards.indexOf(board) + 1} of ${boards.length}; ${hitsWord()}; par ${parOf(board)}`);
     $('#undo-btn').disabled = history.length === 0;
@@ -544,7 +576,7 @@
       await tween(1100, t => { dye = Math.max(dye, t); draw(); });
       if (token !== epoch) return;
       announce(`Cloth finished in ${hitsWord()}. Par ${parOf(board)}. ${allDone() ? endLine : 'Next board is available.'}`);
-    } else if (at) announce(`Row ${at[0] + 1}, column ${at[1] + 1} changed. ${hitsWord()}. ${looseWord(E.loose(board, grid).length)}.`);
+    } else if (at) announce(`Row ${at[0] + 1}, column ${at[1] + 1} changed. ${hitsWord()}. ${looseText(E.loose(board, grid))}.`);
   }
   async function act(action) {
     const token = epoch;

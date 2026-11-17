@@ -322,7 +322,7 @@
     return null;
   }
 
-  /* Free play once all thirty are solved: an 8x8 like the campaign's last size, needing one to five
+  /* Free play once the whole campaign is solved: an 8x8 like the campaign's last size, needing one to five
      contradiction steps and never a plain search. generate() keeps only boards the solver proves have
      one answer (unique) and Hint can finish. `avoid` holds tree layouts already in use. */
   function freePlay(seed, avoid) {

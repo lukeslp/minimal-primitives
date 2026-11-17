@@ -24,14 +24,16 @@ from pathlib import Path
 sys.path.insert(0,'tools')
 from transforms import transform as base
 from hex_recipe import transform, exact
+import assets_recipe
 out=Path(sys.argv[1])
 game=json.load(open('sources.json'))['games'][0]
 assert game['id']=='hexsweeper'
 for item in game['files']:
  p=item['path']; raw=Path('imports')/p
  dst=out/'collection/games'/p; dst.parent.mkdir(parents=True,exist_ok=True)
- if raw.suffix in {'.html','.js','.css','.mjs'}: dst.write_text(base(game,p,raw.read_text()))
- else: shutil.copyfile(raw,dst)
+ # As tools/build.py does: the shell transforms, then what the app leaves out of Sphere's pictures.
+ if raw.suffix in {'.html','.js','.css','.mjs'}: dst.write_text(assets_recipe.transform(game,p,base(game,p,raw.read_text())))
+ else: dst.write_bytes(assets_recipe.rewrite(game,p,raw.read_bytes()))
  dst=out/'original/games'/p;dst.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(raw,dst)
 for name in ['bootstrap.js','hooks.js']: shutil.copyfile(Path('adapters')/name,out/'collection'/name)
 for bad in ['none','x x']:
@@ -369,8 +371,10 @@ test('native keyboard, touch dig and all registered Sphere material assets work'
   } finally { await touch.close(); }
   const sphere = await surface('sphere/index.html');
   try {
-    // Eight themes since Hexsweeper PR 13 dropped the unsourced reflection materials (Gilded Ribbon among them).
-    for (let i = 0; i < 8; i++) {
+    // Seven themes: eight since Hexsweeper PR 13 dropped the unsourced reflection materials, less Stratosphere,
+    // which the app leaves out (tools/assets_recipe.py).
+    assert.equal(await sphere.frame.evaluate(() => SphereSweeper.THEMES.length), 7);
+    for (let i = 0; i < 7; i++) {
       await sphere.frame.evaluate(i => __hexGame.setThemeIndex(i), i);
       await sphere.frame.waitForTimeout(120);
       assert.equal(await sphere.frame.evaluate(() => __hexGame.getThemeIndex()), i);
@@ -434,5 +438,8 @@ test('unfinished Infinite intro camera glide resumes on the original curve', asy
 
 test('all emitted errors and runtime asset requests are clean', () => {
   assert.deepEqual(errors, []);
-  assert.deepEqual([...new Set(missing.filter(p => p !== '/favicon.ico'))], []);
+  // The upstream pages (/original/) still name Sphere's Minesweeper screenshot and the Stratosphere photograph, which
+  // the importer no longer takes; the app's own pages ask for neither.
+  const removed = /^\/original\/games\/hexsweeper\/sphere\/assets\/(classic-minesweeper\.png|reflections\/stratosphere-(1024|2048)\.webp)$/;
+  assert.deepEqual([...new Set(missing.filter(p => p !== '/favicon.ico' && !removed.test(p)))], []);
 });

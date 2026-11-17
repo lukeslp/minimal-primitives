@@ -544,15 +544,19 @@
    * recently changed first. Otherwise it rings a square the board already
    * settles and the clue that settles it, preferring a square to fill:
    * empty squares never have to be marked, so "leave this empty" helps less.
-   * Every board can be finished line by line, so a correct board always has one. */
+   * Every board can be finished line by line, so a correct board always has one.
+   * A square in a locked line is rung only when no other square will do. */
   function findHint() {
     const { w, h, sol, rows, cols } = S.puz;
     const wrong = (i) => (S.cells[i] === INK && sol[i] !== 1) || (S.cells[i] === MARK && sol[i] === 1);
+    const free = (i) => !isLocked(i);
+    let held = null;
     for (let k = S.undo.length - 1; k >= 0; k--) {
       const snap = S.undo[k];
-      for (let i = 0; i < snap.length; i++) if (snap[i] !== S.cells[i] && wrong(i)) return { i, wrong: true };
+      for (let i = 0; i < snap.length; i++) if (snap[i] !== S.cells[i] && wrong(i)) { if (free(i)) return { i, wrong: true }; if (!held) held = { i, wrong: true }; }
     }
-    for (let i = 0; i < S.cells.length; i++) if (wrong(i)) return { i, wrong: true };
+    for (let i = 0; i < S.cells.length; i++) if (wrong(i)) { if (free(i)) return { i, wrong: true }; if (!held) held = { i, wrong: true }; }
+    if (held) return held;
     const known = Array.from(S.cells, (v) => (v === INK ? 1 : v === MARK ? 0 : -1));
     const lines = [];
     for (let r = 0; r < h; r++) lines.push({ kind: 'row', k: r, clue: rows[r], idx: Array.from({ length: w }, (_, c) => r * w + c) });
@@ -564,11 +568,13 @@
       if (res) L.idx.forEach((i, n) => { if (line[n] === -1 && res[n] !== -1) (res[n] === 1 ? fill : empty).push(i); });
       return { fill, empty };
     };
-    let best = null, spare = null;
+    let best = null, spare = null, heldFill = null, heldEmpty = null;
     for (const L of lines) {
-      const { fill, empty } = settle(L, known);
+      const settled = settle(L, known), fill = settled.fill.filter(free), empty = settled.empty.filter(free);
       if (fill.length && (!best || fill.length > best.weight)) best = { weight: fill.length, kind: L.kind, k: L.k, i: fill[0], fill: true };
       if (empty.length && !spare) spare = { kind: L.kind, k: L.k, i: empty[0], fill: false };
+      if (settled.fill.length && !heldFill) heldFill = { kind: L.kind, k: L.k, i: settled.fill[0], fill: true };
+      if (settled.empty.length && !heldEmpty) heldEmpty = { kind: L.kind, k: L.k, i: settled.empty[0], fill: false };
     }
     if (best) return best;
     // No line settles a square to fill from what is on the board. A player who
@@ -579,11 +585,13 @@
       changed = false;
       for (const L of lines) {
         const { fill, empty } = settle(L, ahead);
-        if (fill.length) return { kind: L.kind, k: L.k, i: fill[0], fill: true };
+        const open = fill.find(free);
+        if (open !== undefined) return { kind: L.kind, k: L.k, i: open, fill: true };
+        for (const i of fill) { ahead[i] = 1; changed = true; }
         for (const i of empty) { ahead[i] = 0; changed = true; }
       }
     }
-    return spare;
+    return spare || heldFill || heldEmpty;
   }
   function placeHint() {
     if (!S.hint || !S.geo) return;
@@ -597,8 +605,20 @@
     hintEl.classList.remove('on', 'wrong', 'fill', 'empty');
     grid.querySelectorAll('.clue.hinted').forEach((n) => n.classList.remove('hinted'));
   }
+  /* What a second press puts in the hinted square: a wrong square takes its answer,
+   * cleared rather than marked when it belongs empty (empties never have to be marked). */
+  function hintMove(hint) {
+    if (hint.wrong) return S.puz.sol[hint.i] === 1 ? INK : BLANK;
+    return hint.fill ? INK : MARK;
+  }
   function showHint() {
     if (!S.puz || S.solved) return;
+    // A second press while the ring is still up makes that move, as a tap would.
+    // Any change to the board takes the ring down first, so it always fits.
+    if (S.hint && !S.drag && !isLocked(S.hint.i)) {
+      const to = hintMove(S.hint);
+      if (S.cells[S.hint.i] !== to) { act(S.hint.i, to); return; }
+    }
     const hint = findHint();
     if (!hint) { announce('No hint: every square is already settled'); return; }
     clearHint();
@@ -614,9 +634,9 @@
     hintEl.classList.add('on');
     setFocus(hint.i, true);
     const w = S.puz.w, r = Math.floor(hint.i / w) + 1, c = hint.i % w + 1;
-    announce(hint.wrong
-      ? 'Hint: row ' + r + ', column ' + c + ' is wrong' + (isLocked(hint.i) ? ', and its line is locked' : '') + '.'
-      : 'Hint: row ' + r + ', column ' + c + (hint.fill ? ' can be filled.' : ' stays empty.'));
+    const again = { [INK]: ' Hint again fills it.', [MARK]: ' Hint again marks it.', [BLANK]: ' Hint again clears it.' }[hintMove(hint)];
+    announce('Hint: row ' + r + ', column ' + c + (hint.wrong ? ' is wrong' : hint.fill ? ' can be filled' : ' stays empty') +
+      (isLocked(hint.i) ? ', and its line is locked.' : '.' + again));
   }
 
   /* ---------- solved ---------- */

@@ -4,7 +4,10 @@
    W A S D key reaches the game through Tilt's input layer (tilt-input.js, copied unchanged). */
 import * as THREE from './vendor/three.module.min.js';
 
-const E = window.TiltStack, BOARDS = window.TiltStackBoards, KEY = 'tilt-3d.v1';
+const E = window.TiltStack, ALL = window.TiltStackBoards, KEY = 'tilt-3d.v1';
+// Tilt's campaign (campaign.js, a copy of Tilt's): thirty of the fifty boards, in its order. The other twenty come
+// after it, drawn at random, each once before any comes back; they are not campaign progress.
+const BOARDS = window.TiltCampaign.map(id => ALL.find(b => b.id === id)), POOL = ALL.filter(b => !BOARDS.includes(b));
 const $ = s => document.querySelector(s);
 const V3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const UP = V3(0, 1, 0);
@@ -30,8 +33,10 @@ const ease = t => t * t * (3 - 2 * t), easeOut = t => 1 - Math.pow(1 - t, 3), cl
 
 // ---------- Saves ----------
 let prefs = { theme: 'dark', motion: 'system', looked: false, hintCount: 0, hintBoard: null };
-let boardId = BOARDS[0].id, history = [], done = [], reached = 0, corrupt = false;
-const indexOf = id => BOARDS.findIndex(b => b.id === id);
+let boardId = BOARDS[0].id, history = [], done = [], reached = 0, corrupt = false, played = [];
+const indexOf = id => BOARDS.findIndex(b => b.id === id), known = id => ALL.some(b => b.id === id);
+// Before November 16, 2026 the campaign was all fifty, l01 to l50 in turn, and reached counted in that order.
+const OLD_ORDER = ALL.map(b => b.id).sort();
 function obstacle(P, s, d) { const [dr, dc] = E.DIRS[d], r = s.row + dr, c = s.col + dc; return r < 0 || c < 0 || r >= P.size || c >= P.size ? 'rim' : 'block'; }
 // The rules state after a list of tips, and how the last one ended: against the rim or a block, or on a landing.
 function replay(b, moves) {
@@ -53,15 +58,23 @@ function readSave() {
     if (!v || v.version !== 1 || typeof v.board !== 'string' || !Array.isArray(v.moves) || v.moves.length > 5000 || !Array.isArray(v.done) || !v.settings || !['system', 'reduce'].includes(v.settings.motion)) throw Error('Unreadable');
     const s = v.settings, hc = s.hintCount;
     prefs = { theme: ['system', 'light', 'dark'].includes(s.theme) ? s.theme : 'dark', motion: s.motion, looked: s.looked === true, hintCount: Number.isInteger(hc) ? Math.max(0, Math.min(2, hc)) : 0, hintBoard: typeof s.hintBoard === 'string' ? s.hintBoard : null };
-    done = [...new Set(v.done.filter(id => indexOf(id) >= 0))];
-    reached = Math.min(BOARDS.length - 1, Math.max(0, Number.isInteger(v.reached) ? v.reached : 0, ...done.map(id => indexOf(id) + 1)));
-    const b = BOARDS.find(b => b.id === v.board);
-    if (b && indexOf(b.id) <= reached) { boardId = b.id; try { replay(b, v.moves); history = v.moves.slice(); } catch (_) { history = []; } }
+    // Saves are checked against all fifty boards: a finished mark on a board left out of the campaign stays.
+    done = [...new Set(v.done.filter(known))];
+    // A save without order 2 counts reached in the fifty-board order: every campaign board it had open stays open.
+    const was = Math.min(ALL.length - 1, Math.max(0, Number.isInteger(v.reached) ? v.reached : 0));
+    const opened = v.order === 2 ? was : Math.max(...OLD_ORDER.slice(0, was + 1).map(indexOf));
+    reached = Math.min(BOARDS.length - 1, Math.max(0, opened, ...done.map(id => indexOf(id) + 1)));
+    played = Array.isArray(v.pool) ? [...new Set(v.pool.filter(id => POOL.some(b => b.id === id)))] : [];
+    const b = ALL.find(b => b.id === v.board);
+    // A player last on a board left out of the campaign goes on from the first campaign board not finished; with the
+    // campaign finished, that board is one of the pool and stays, moves and all.
+    if (b && (indexOf(b.id) >= 0 ? indexOf(b.id) <= reached : campaignDone())) { boardId = b.id; try { replay(b, v.moves); history = v.moves.slice(); } catch (_) { history = []; } }
+    else if (b && indexOf(b.id) < 0) boardId = (BOARDS.find(x => !done.includes(x.id)) || BOARDS[0]).id;
   } catch (_) { corrupt = true; }
 }
 function save() {
   if (corrupt) return;
-  try { localStorage.setItem(KEY, JSON.stringify({ version: 1, board: boardId, moves: history, done, reached, settings: prefs })); } catch (_) {}
+  try { localStorage.setItem(KEY, JSON.stringify({ version: 1, order: 2, board: boardId, moves: history, done, reached, pool: played, settings: prefs })); } catch (_) {}
 }
 const reduced = () => prefs.motion === 'reduce' || matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -422,7 +435,7 @@ function clearStack() {
 }
 function buildBoard() {
   clearStack();
-  board = BOARDS.find(b => b.id === boardId); puzzle = E.prepare(board); N = puzzle.size; L = puzzle.levels; G = gapOf(N); par = E.par(board);
+  board = ALL.find(b => b.id === boardId); puzzle = E.prepare(board); N = puzzle.size; L = puzzle.levels; G = gapOf(N); par = E.par(board);
   for (let k = 0; k < L; k++) {
     const pm = plateMats[k], bm = boxMats[k]; pm.uniforms.uK.value = plateK(k); bm.uniforms.uK.value = levelK(k); pm.uniforms.uN.value = N;
     const kinds = pm.uniforms.uKind.value; kinds.fill(0);
@@ -701,7 +714,7 @@ function run(item) {
   undoStack.push(history.slice()); history.push(d);
   const start = marbleLocal.clone();
   solvedNow = r.solved;
-  if (solvedNow) { if (!done.includes(boardId)) { done.push(boardId); if (campaignDone()) finale = true; } reached = Math.max(reached, Math.min(BOARDS.length - 1, indexOf(boardId) + 1)); lookHintDue = null; endLookHint(); }
+  if (solvedNow) { if (indexOf(boardId) >= 0 && !done.includes(boardId)) { done.push(boardId); if (campaignDone()) finale = true; } reached = Math.max(reached, Math.min(BOARDS.length - 1, indexOf(boardId) + 1)); lookHintDue = null; endLookHint(); }
   if (history.length === 3) lookHintDue = boardId;
   save(); announceTip(d, r); updateUI();
   const phases = [movePhase(d, from, r, start)];
@@ -721,17 +734,27 @@ function restart() {
   history = []; lookHintDue = null; endLookHint(); syncAll(); save(); arrival(); say('Restarted.');
 }
 function go(id) {
-  const i = indexOf(id); if (i < 0 || i > reached) return false;
+  const i = indexOf(id); if (i < 0 ? !(campaignDone() && POOL.some(b => b.id === id)) : i > reached) return false;
   queue = []; anim = null; clearHint(); hideWay(); lookHintDue = null; endLookHint(); finale = false;
+  drawn = null; if (i < 0) played = (played.length + 1 >= POOL.length ? [] : played.filter(x => x !== id)).concat(id);
   boardId = id; history = []; undoStack = []; resetLook(true); buildBoard(); syncAll(); save(); arrival(); say('');
   return true;
 }
-// Next: the following board; after the last, the first board not yet finished. When every board is finished it is
-// Replay: the campaign starts again from board 1, each board fresh, with every finished mark kept.
+// Next: the following board; after the last, the first board not yet finished. When every board is finished the
+// game is finished, and Next draws a board from the pool, one not served since the pool was last used up.
+let drawn = null;
+function drawPool() {
+  if (drawn && drawn.id !== boardId) return drawn;
+  let left = POOL.filter(b => b.id !== boardId && !played.includes(b.id));
+  if (!left.length) left = POOL.filter(b => b.id !== boardId);
+  drawn = left[Math.floor(Math.random() * left.length)] || null;
+  return drawn;
+}
 function nextBoard() {
-  if (ending()) { go(BOARDS[0].id); return; }
   const i = indexOf(boardId), open = BOARDS.find(b => !done.includes(b.id));
-  go(BOARDS[i + 1] ? BOARDS[i + 1].id : open ? open.id : BOARDS[0].id);
+  if (i >= 0 && BOARDS[i + 1] && !ending()) go(BOARDS[i + 1].id);
+  else if (open) go(open.id);
+  else { const pick = drawPool(); go(pick ? pick.id : BOARDS[0].id); }
 }
 
 // ---------- Screen geometry ----------
@@ -997,14 +1020,16 @@ function clearHint() { if (!hint) { updateHintButton(); return; } hint = null; h
 function pressHint() {
   if (solvedNow) return;
   if (busy()) return;
-  if (hint) { const d = hint; clearHint(); enqueue({ kind: 'tip', dir: d }); return; }
+  if (hint) { const d = hint; clearHint(); if (d === 'undo') undo(); else if (d === 'restart') restart(); else enqueue({ kind: 'tip', dir: d }); return; }
   const moves = E.solve(board, place);
-  if (!moves || !moves.length) { say('No way on from here.'); return; }
+  // No tip finishes from here: the hint is Undo, played on the second press. After a reload there is nothing to undo,
+  // so it is Restart, which Undo can take back.
+  if (!moves || !moves.length) { hint = undoStack.length ? 'undo' : 'restart'; say('No way on from here. Press Hint again to ' + hint + '.'); updateHintButton(); kick(); return; }
   hint = moves[0]; placeChevron(hintMark, place.level, hint);
   if (!reduced()) leanGoal.copy(DIRS[hint]).multiplyScalar(3.5 * DEG);
   say(NAMES[hint] + '. Press Hint again to play it.'); updateHintButton(); kick();
 }
-function updateHintButton() { const b = $('#hint-btn'); b.setAttribute('aria-pressed', String(!!hint)); b.disabled = solvedNow; }
+function updateHintButton() { const b = $('#hint-btn'); b.setAttribute('aria-pressed', String(!!hint)); b.disabled = solvedNow; $('#undo-btn').classList.toggle('hinted', hint === 'undo'); $('#restart-btn').classList.toggle('hinted', hint === 'restart'); }
 
 // ---------- The look hint (after Cube Maze) ----------
 // After the third move on a board, if the player has never turned the view, a small wordless glyph near the bottom
@@ -1057,7 +1082,7 @@ function describe() {
     for (let r = 0; r < N; r++) { const cells = []; for (let c = 0; c < N; c++) { const ch = puzzle.grid[k][r][c], here = !solvedNow && place.level === k && place.row === r && place.col === c; cells.push(here ? 'marble' : ch === '#' ? 'block' : ch === 'o' ? (k === L - 1 ? 'exit' : 'hole') : 'floor'); } rows.push(cells.join(', ')); }
     lines.push('Level ' + (k + 1) + ': ' + rows.join('; ') + '.');
   }
-  return 'Stacked glass trays, board ' + (indexOf(boardId) + 1) + ' of ' + BOARDS.length + '. ' + lines.join(' ');
+  return (indexOf(boardId) < 0 ? 'Stacked glass trays. ' : 'Stacked glass trays, board ' + (indexOf(boardId) + 1) + ' of ' + BOARDS.length + '. ') + lines.join(' ');
 }
 function updateCatalog() {
   const list = $('#level-catalog');
@@ -1078,15 +1103,16 @@ function updateCatalog() {
 function updateUI() {
   if (!place) return;
   const i = indexOf(boardId);
-  $('#readout').textContent = (i + 1) + ' / ' + BOARDS.length + ' · ' + history.length + ' / ' + par;
+  // A pool board shows the infinity sign where a campaign board shows its number, as Cast's free play does.
+  $('#readout').textContent = (i < 0 ? '∞' : (i + 1) + ' / ' + BOARDS.length) + ' · ' + history.length + ' / ' + par;
   $('#undo-btn').disabled = !undoStack.length && !busy();
   $('#next-btn').hidden = !showNext;
-  // At the end one line shows above the arrow, and the arrow becomes Replay.
-  const end = showNext && ending(), kind = end ? 'replay' : 'next', nb = $('#next-btn'), line = $('#end-line');
+  // At the end one line shows above the arrow, and the arrow goes on to the pool (Replay only if the pool were empty).
+  const end = showNext && ending(), kind = end && !POOL.length ? 'replay' : 'next', nb = $('#next-btn'), line = $('#end-line');
   line.hidden = !end; line.textContent = end ? endLine() : '';
-  if (nb.dataset.kind !== kind) { nb.dataset.kind = kind; nb.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + icons[kind] + '"/></svg>'; nb.setAttribute('aria-label', end ? 'Replay' : 'Next board'); }
+  if (nb.dataset.kind !== kind) { nb.dataset.kind = kind; nb.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + icons[kind] + '"/></svg>'; nb.setAttribute('aria-label', kind === 'replay' ? 'Replay' : 'Next board'); }
   canvas.setAttribute('aria-label', describe());
-  $('#previous').disabled = i === 0; $('#following').disabled = i >= reached || i === BOARDS.length - 1;
+  $('#previous').disabled = i <= 0; $('#following').disabled = i < 0 || i >= reached || i === BOARDS.length - 1;
   updateCatalog(); updateHintButton();
 }
 $('#restart-btn').onclick = restart; $('#undo-btn').onclick = undo; $('#hint-btn').onclick = pressHint; $('#next-btn').onclick = nextBoard;
@@ -1167,6 +1193,7 @@ function tapFor(d) {
 }
 window.__tilt3d = {
   boards: BOARDS,
+  pool: POOL,
   get board() { return boardId; },
   get state() { return { theme: prefs.theme, board: boardId, level: place.level, row: place.row, col: place.col, moves: history.length, par, solved: solvedNow, busy: busy(), queued: queue.length, history: history.slice(), done: done.slice(), reached, hint, next: showNext, ending: showNext && ending(), corrupt, looked: prefs.looked, motion: prefs.motion, sensor: { enabled: sensor.enabled, calibrated: !!sensor.base, armed: sensor.armed } }; },
   go, tip(d) { if (DIRS[d]) enqueue({ kind: 'tip', dir: d }); }, undo, restart, pressHint, next: nextBoard,

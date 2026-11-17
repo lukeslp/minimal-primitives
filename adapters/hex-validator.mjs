@@ -1,4 +1,4 @@
-/** Independent final-state validation for the accepted Hexsweeper pin (e61a79f since 0.5.3).
+/** Independent final-state validation for the accepted Hexsweeper pin (f4ea5ca since 0.5.9; e61a79f in 0.5.3 to 0.5.8).
  * Returns { value }; throws on unknown/inconsistent proofs. elapsedMs must be
  * supplied by the service's run clock. This is casual validation, not replay
  * attestation: random mine layouts are bound to identity, not server-seeded.
@@ -9,7 +9,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const root = new URL('../imports/hexsweeper/', import.meta.url);
 const pins = {
-  sphere: ['sphere/sphere.js', '02c18ab71892ebb681e25e1672624febfeadd86ca177ffe511cdbc8d14957fea'],
+  sphere: ['sphere/sphere.js', 'ba14b912ea47ff8e9e667acfa38a05253d17599825bb45be2010fa1d7dcb0bbf'],
   classic: ['bounded.html', '7f6983bb7c1a356cccbec8dea1909e24c910c0acca7d30698115a3d2a851be25'],
   infinite: ['infinite.html', '91ec62a9f19c9e280ba858ed69884f930b73795a454bead8848ff3aeaf4c8700']
 };

@@ -8,7 +8,7 @@ test('pinned engines accept real campaign solutions and reject changed layouts/r
  let count=0;
  for(const game of ['notan','akari','galaxies','bridges','slant','fold','horologist','tilt','bending']){
   const E=game==='bending'?null:require(root+'/imports/'+game+'/engine.js');
-  const levels=game==='bending'?(await import('../imports/bending/boards.mjs')).boards:require(root+'/imports/'+game+'/'+(game==='horologist'?'boards.js':'levels.js'));
+  const levels=game==='bending'?await import('../imports/bending/boards.mjs').then(m=>[...m.boards,...m.pool]):require(root+'/imports/'+game+'/'+(game==='horologist'?'boards.js':'levels.js'));
   for(const p of levels){
    let proof,l,mode={bridges:'classic',slant:'standard'}[game]||'campaign';
    if(game==='bending'){proof={planets:p.answer};l=p;}

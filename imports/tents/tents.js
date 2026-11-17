@@ -195,7 +195,7 @@
     $('#readout').textContent = at === 'generated' ? p.w + ' × ' + p.h + ' · ' + progress.completed.length + ' ✓' : n < 0 ? '' : (n + 1) + ' / ' + L.length + ' · ' + progress.completed.length + ' ✓';
     $('#undo-btn').disabled = !S.undo.length;
     $('#completion').hidden = !S.solved;
-    // The line under a solve that leaves all thirty done; the status line says it to screen readers.
+    // The line under a solve that leaves the whole campaign done; the status line says it to screen readers.
     $('#ending').hidden = !ended; $('#ending').textContent = ended ? ENDING : '';
     const next = $('#next-btn'), glyph = fresh ? 'more' : 'next';
     next.setAttribute('aria-label', fresh ? 'New board' : 'Next puzzle');
@@ -207,7 +207,8 @@
     for (const o of $('#campaign').options) if (o.value) o.textContent = optionText(o.value);
     forest();
   }
-  const optionText = id => { const p = boardOf(id); return Number(id.slice(1)) + ' · ' + p.w + ' × ' + p.h + (progress.completed.includes(id) ? ' ✓' : ''); };
+  // Labeled by place in play order, as the readout is: ids name boards in saves and do not follow play order.
+  const optionText = id => { const p = boardOf(id); return (L.findIndex(q => q.id === id) + 1) + ' · ' + p.w + ' × ' + p.h + (progress.completed.includes(id) ? ' ✓' : ''); };
 
   function focusCell(i, dom) {
     S.focus = i; render();
@@ -276,7 +277,7 @@
     say(''); build(); fit(); judge(false); render(); save();
   }
   /* Where Next goes from a solved board: the next board in order; past the last, the first one not yet
-     solved; with all thirty solved, a new generated board (and the same from a generated board). */
+     solved; with every board solved, a new generated board (and the same from a generated board). */
   function nextTarget() {
     const k = openingAt(at), n = L.findIndex(p => p.id === at);
     if (k >= 0) return k < OPENING.length - 1 ? OPENING[k + 1].id : store.at;

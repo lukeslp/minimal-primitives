@@ -14,7 +14,7 @@
 
   <link rel="preload" href="./fonts/IBMPlexMono-500.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="./rimlight.css?v=0f8ac9d7">
-  <link rel="stylesheet" href="./dark.css?v=08a136e3">
+  <link rel="stylesheet" href="./dark.css?v=3805f311">
 <meta name="description" content="Use gravity to send light where you point it.">
 <meta property="og:title" content="Bending">
 <meta property="og:description" content="Use gravity to send light where you point it.">
@@ -91,6 +91,10 @@
         <h3 id="stages-title">Stages</h3>
         <ol id="stage-list" class="stage-list" aria-labelledby="stages-title"></ol>
       </section>
+      <section aria-label="New Game+">
+        <div class="setting-row"><span id="new-game-label">New Game+</span><button type="button" class="text-action" id="new-game" aria-labelledby="new-game-label new-game-text"><span id="new-game-text">New board</span></button></div>
+        <p class="save-note" id="plus-note" hidden></p>
+      </section>
       <section aria-label="Reset">
         <div class="actions">
           <button type="button" class="text-action" id="reset-stage">Reset stage</button>
@@ -101,7 +105,7 @@
     </div>
   </div></dialog>
 
-  <script type="module" src="./dark.mjs?v=c40ea317"></script>
+  <script type="module" src="./dark.mjs?v=9c73ead0"></script>
 <script defer src="./controls.js?v=052c0407"></script>
 <script data-goatcounter="https://stats.dr.eamer.dev/count" data-goatcounter-pageviews async referrerpolicy="no-referrer" src="https://stats.dr.eamer.dev/count.js?v=20261102-pageviews"></script>
 </body>

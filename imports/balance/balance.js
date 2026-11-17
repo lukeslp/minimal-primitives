@@ -1,4 +1,4 @@
-/* Balance: the page. Rules live in engine.js; nothing here reads an answer. */
+/* Balance: the page. Rules live in engine.js; only Hint reads the answer, to pick a mark to change. */
 (function () {
   'use strict';
   const E = Balance, L = BalanceLevels, $ = s => document.querySelector(s);
@@ -251,11 +251,22 @@
       commit(before);
       return;
     }
-    const m = E.next(puzzle, S.cells);
+    // On a board with a mistake (a broken rule, a dead end, or a step the answer does not take) Hint rings a
+    // mark to change instead, so the second press always moves toward the answer.
+    let m = E.next(puzzle, S.cells);
+    if (!m || m.fault || m.value !== (E.answer(puzzle) || [])[m.i]) m = E.fix(puzzle, S.cells, m, recent()) || m;
     if (!m) { say('Nothing to deduce from these marks.'); return; }
     S.hint = m;
     say(m.text);
     render();
+  }
+  // Squares in the order they last changed, newest first, from the undo history.
+  function recent() {
+    const out = [];
+    for (let k = S.undo.length - 1, now = S.cells; k >= 0; now = S.undo[k], k--) {
+      S.undo[k].forEach((v, i) => { if (v !== now[i] && !out.includes(i)) out.push(i); });
+    }
+    return out;
   }
   function switchBoard(id) {
     save();

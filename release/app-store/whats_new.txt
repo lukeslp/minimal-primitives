@@ -1,7 +1,9 @@
-For ten games, finishing every board now puts that game's own solved board, in color, on its tile in the library. A check mark in the corner says the same without color.
+More balanced board counts: Towers has 42 boards, Tents 38 and Balance 39. Shoo, Tilt, Tilt · 3D, Cast and Bending play thirty boards that climb steadily, and Shoo and Bending then open New Game+.
 
-Cast has a new finish: when the three shadows match, the room fills with color.
+Akari, Bridges, Spiral Galaxies and Horologist play their boards in a smoother order, so difficulty rises more evenly.
 
-Fixes in Cube Maze, Tangles, Weaves, Towers, Balance, Horologist and Akari: clearer Help, status lines that follow the board, opening boards named in the board list, a still Horologist under Reduced motion, and a visible keyboard focus in Akari.
+In many games, pressing Hint a second time makes the hinted move.
 
-Boards and progress saved by earlier versions are kept. The privacy policy is now inside the app, in Settings.
+Hexsweeper Sphere: the far side of the sphere no longer shows through its edge, and photo credits sit under its themes.
+
+Each game's name now sits under its picture in the library. Boards and progress saved by earlier versions are kept.

@@ -331,7 +331,7 @@
     return { n, clues: p.clues, given: p.given, seed: seed >>> 0, level: g.level, version: VERSION };
   }
 
-  // Free play once all thirty are solved: a 5 x 5 like the campaign's last boards (no fixed towers,
+  // Free play once the whole campaign is solved: a 5 x 5 like campaign boards 28-30 (no fixed towers,
   // ten numbers, a line count or a count carried across needed). Seeds are walked from `seed` until a
   // board meets that slot, as build-levels.cjs walks them. generate() has proved one answer already;
   // the solver is asked again here, and Hint must finish it.
