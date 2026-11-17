@@ -36,6 +36,8 @@
   const reduced = () => prefs.motion === 'reduce' || motionQuery.matches;
   const dark = () => prefs.theme === 'dark' || prefs.theme === 'system' && darkQuery.matches;
   const pinned = (r, c) => board.pins.some(p => p[0] === r && p[1] === c);
+  // Counts are said as a person would: 1 hit, 2 hits; 1 loose stretch, 2 loose stretches.
+  const count = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`, hitsWord = () => count(hits, 'hit'), looseWord = n => count(n, 'loose stretch', 'loose stretches');
   function announce(text) { $('#announcement').textContent = text; }
   function save() {
     if (protectSave) return;
@@ -465,9 +467,9 @@
   function draw() { if (built !== board) build(); drawCloth(); drawRings(); }
   function chrome() {
     const loose = E.loose(board, grid), solved = E.solved(board, grid), [r, c] = focus;
-    boardNode.setAttribute('aria-label', `Board ${boards.indexOf(board) + 1}, ${board.rows} rows by ${board.cols} columns. ${solved ? 'Cloth finished.' : loose.length + ' loose stretches.'} ${hits} hits, par ${parOf(board)}. Focus row ${r + 1}, column ${c + 1}, ${grid[r][c] === 1 ? 'weft over' : 'warp over'}${pinned(r, c) ? ', pinned' : ', free'}.`);
+    boardNode.setAttribute('aria-label', `Board ${boards.indexOf(board) + 1}, ${count(board.rows, 'row')} by ${count(board.cols, 'column')}. ${solved ? 'Cloth finished.' : looseWord(loose.length) + '.'} ${hitsWord()}, par ${parOf(board)}. Focus row ${r + 1}, column ${c + 1}, ${grid[r][c] === 1 ? 'weft over' : 'warp over'}${pinned(r, c) ? ', pinned' : ', free'}.`);
     $('#readout').textContent = `${boards.indexOf(board) + 1} / ${boards.length} · ${hits} / ${parOf(board)}`;
-    $('#readout').setAttribute('aria-label', `Board ${boards.indexOf(board) + 1} of ${boards.length}; ${hits} hits; par ${parOf(board)}`);
+    $('#readout').setAttribute('aria-label', `Board ${boards.indexOf(board) + 1} of ${boards.length}; ${hitsWord()}; par ${parOf(board)}`);
     $('#undo-btn').disabled = history.length === 0;
     $('#hint-btn').disabled = solved;
     showNext(solved);
@@ -541,8 +543,8 @@
       // Then the dye flows along every thread, about a second, and holds.
       await tween(1100, t => { dye = Math.max(dye, t); draw(); });
       if (token !== epoch) return;
-      announce(`Cloth finished in ${hits} hits. Par ${parOf(board)}. ${allDone() ? endLine : 'Next board is available.'}`);
-    } else if (at) announce(`Row ${at[0] + 1}, column ${at[1] + 1} changed. ${hits} hits. ${E.loose(board, grid).length} loose stretches.`);
+      announce(`Cloth finished in ${hitsWord()}. Par ${parOf(board)}. ${allDone() ? endLine : 'Next board is available.'}`);
+    } else if (at) announce(`Row ${at[0] + 1}, column ${at[1] + 1} changed. ${hitsWord()}. ${looseWord(E.loose(board, grid).length)}.`);
   }
   async function act(action) {
     const token = epoch;
@@ -562,7 +564,7 @@
       else { hint = E.hint(board, grid); if (hint) { focus = [hint.r, hint.c]; announce(`Hint: flip row ${hint.r + 1}, column ${hint.c + 1}. Press Hint again to weave it.`); } }
     } else if (action.type === 'undo') {
       const previous = history.pop();
-      if (previous) { await change(previous.grid, previous.hits, false, token); announce(`Move undone. ${hits} hits.`); }
+      if (previous) { await change(previous.grid, previous.hits, false, token); announce(`Move undone. ${hitsWord()}.`); }
       else { rest(); announce('No move to undo.'); }
     } else if (action.type === 'restart' || action.type === 'go') {
       if (action.type === 'go') { const next = boards.find(b => b.id === action.id); if (!next || boards.indexOf(next) > reached) return; board = next; }

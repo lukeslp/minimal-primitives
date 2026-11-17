@@ -21,7 +21,8 @@ for(const game of games)test(`${game.id}: other boards and earned access survive
   } else {
     await a.keyMove(frame,id);
     await a.settings(frame,id,async()=>{
-      const next=await frame.locator('#campaign option').nth(1).getAttribute('value');
+      // The second numbered board; Balance lists the opening board a first visit is on ahead of them.
+      const next=await frame.locator('#campaign option:not([data-opening])').nth(1).getAttribute('value');
       await frame.locator('#campaign').selectOption(next);
     });
   }

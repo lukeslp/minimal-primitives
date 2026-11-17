@@ -32,7 +32,7 @@ MEDIAPIPE_NOTICE = NOTICES.splitlines(keepends=True)[7]
 
 # The library is drawn from index.json, the live Minimal index as imported by
 # tools/import-index.py: its tiles, order, names, lines, pictures, line drawings,
-# opening and stylesheet.
+# solved pictures, opening and stylesheet.
 
 
 def library_tiles(index, games, output):
@@ -69,6 +69,9 @@ def library_tiles(index, games, output):
                       'drawing': versioned(tile['lines']) if tile.get('lines') else None,
                       # Where the game keeps its record and how many boards make its whole set (finished-tile color).
                       'set': tile.get('set'),
+                      # The game's own solved board in color, shown in place of the picture once the set is finished.
+                      'solved': {'dark': versioned(tile['solved']['dark']), 'light': versioned(tile['solved']['light']),
+                                 'fill': tile['solved']['fill']} if tile.get('solved') else None,
                       'also': [{'label': l['label'], 'aria': l['aria'], 'game': l['game'], 'mode': l['mode']} for l in tile['also']]})
     if ids - reached:
         raise ValueError(f'Games with no tile on the index: {sorted(ids - reached)}')
@@ -76,6 +79,23 @@ def library_tiles(index, games, output):
 
 
 assert MEDIAPIPE_NOTICE.startswith('MediaPipe Face Landmarker'), 'NOTICES layout changed'
+
+
+def privacy_page(text, camera):
+    """web/privacy.html carries the paragraphs of both builds; each build keeps its own (camera input or none)."""
+    keep, drop = ('full', 'camera-free') if camera else ('camera-free', 'full')
+    marks = {name: (f'<!--{name}:begin-->\n', f'<!--{name}:end-->\n') for name in (keep, drop)}
+    for pair in marks.values():
+        for mark in pair:
+            if text.count(mark) != 1:
+                raise ValueError(f'{mark.strip()} anchor drift in web/privacy.html')
+    start, end = text.index(marks[drop][0]), text.index(marks[drop][1]) + len(marks[drop][1])
+    if not start < end or marks[keep][0] in text[start:end]:
+        raise ValueError('Build paragraphs overlap in web/privacy.html')
+    text = text[:start] + text[end:]
+    return text.replace(marks[keep][0], '').replace(marks[keep][1], '')
+
+
 CAMERA_FRAME = "frame.allow = 'fullscreen; camera';"
 CAMERA_FREE_NOTE = (b'> This copy is from the camera-free build of Minimal Primitives. Its camera input is\n'
                     b'> turned off and the MediaPipe files described below are not included.\n\n')
@@ -126,6 +146,8 @@ def build(variant='full', make_zip=True):
             dest = output / path.relative_to(ROOT / 'web')
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(path, dest)
+    # The privacy page says what this build does: the full build's camera use, or that there is no camera input.
+    (output / 'privacy.html').write_text(privacy_page((output / 'privacy.html').read_text(), spec.get('camera', True)))
     if not spec.get('camera', True):
         # The library frame no longer asks the browser for camera permission.
         library = (output / 'collection.js').read_text()

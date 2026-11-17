@@ -10,14 +10,18 @@ settings:
     DEVELOPMENT_TEAM: 596T7J7FB6
     SWIFT_VERSION: "5.9"
     CODE_SIGN_STYLE: Automatic
-    MARKETING_VERSION: "0.5.7"
-    CURRENT_PROJECT_VERSION: "25"
+    MARKETING_VERSION: "0.5.8"
+    CURRENT_PROJECT_VERSION: "27"
 targets:
   MinimalPrimitives:
     type: application
     platform: iOS
     sources:
       - path: MinimalPrimitives
+      # The privacy manifest: no tracking, no collected data, and no required-reason API (the release target uses
+      # none; UserDefaults appears only in DEBUG checks). Named here so it is always copied into the app.
+      - path: MinimalPrimitives/PrivacyInfo.xcprivacy
+        buildPhase: resources
       # The collection exactly as tools/build.py makes it, copied in by tools/ios.py.
       - path: www
         type: folder
@@ -47,6 +51,8 @@ targets:
         UIViewControllerBasedStatusBarAppearance: true
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
-        NSCameraUsageDescription: "Look and hold by head or eyes uses the camera to follow where you look. Pictures stay on this device and are never saved."
+        NSCameraUsageDescription: "Use the front camera to move the game pointer with your head or eyes. Camera images are processed on this device and are never saved or sent."
+        # Tilt · 3D's Phone tilt (its Settings) reads the phone's lean through the web view, which asks first.
+        NSMotionUsageDescription: "Lean the phone to steer Tilt · 3D once you turn on Phone tilt in its Settings. Motion readings steer the game and are never saved or sent."
         ITSAppUsesNonExemptEncryption: false
         LSApplicationCategoryType: public.app-category.puzzle-games

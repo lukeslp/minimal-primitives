@@ -59,6 +59,24 @@ async function transportTests() {
   a.ready = null; a.completion = null; a.result.score = { ...a.result.score, run: 'another-run' };
   equal((await handle(payload, context)).result, null);
   const count = calls.length; active = { game: { id: 'slant' } }; await assert.rejects(handle(payload, context)); equal(calls.length, count);
+  // No score service (every app build): the sheet is told so before it draws a sharing form, and a sharing
+  // preference is refused without changing the profile. A parent that says nothing has a service, as before.
+  active = { game: { id: 'bridges' } }; a = { id: 'attempt-local', identity, practice: true, optedIn: false, finished: false };
+  equal(JSON.parse(JSON.stringify(await handle({ request: 'request-2', action: 'service' }, context))), { service: true });
+  const local = { nickname: 'Luke', sharing: false, secret: profile.secret, scores: [] }, saved = saves;
+  const none = { ...context, profile: local, service: false, get attempt() { return a; }, get active() { return active; } };
+  equal(JSON.parse(JSON.stringify(await handle({ request: 'request-3', action: 'service' }, none))), { service: false });
+  await assert.rejects(handle({ ...payload, action: 'preference', nickname: 'Future' }, none), /^Error: Scores stay on this device\.$/);
+  equal(local, { nickname: 'Luke', sharing: false, secret: profile.secret, scores: [] }); equal(saves, saved); equal(calls.length, count);
+  // Without a service the state carries this device's own finished attempts at the board, newest first, and nothing
+  // of another board's; with one it carries none (the shared lists are read from the service).
+  const other = { ...identity, puzzleId: 'b02' };
+  const own = [{ identity, elapsedMs: 61999, assisted: false, repeat: false }, { identity: other, elapsedMs: 5000 }, { identity, elapsedMs: 400, assisted: true, repeat: true },
+    { identity, elapsedMs: 'soon' }, null, { identity, elapsedMs: 9000, assisted: true, repeat: false }];
+  const kept = { ...none, results: own, get attempt() { return a; }, get active() { return active; } };
+  equal(JSON.parse(JSON.stringify((await handle(payload, kept)).local)), [{ seconds: 9, category: 'assisted' }, { seconds: 1, category: 'repeat-assisted' }, { seconds: 61, category: 'unassisted' }]);
+  equal(JSON.parse(JSON.stringify((await handle(payload, none)).local)), []);
+  equal((await handle(payload, { ...context, results: own, get attempt() { return a; }, get active() { return active; } })).local, undefined); equal(calls.length, count);
   console.log('Parent contract: identity mapping, future-only preference, receipts, deletion and stale-attempt rejection passed.');
 }
 

@@ -1,4 +1,9 @@
-"""Camera-free variant: build-only changes that take head and eye input out.
+"""Camera changes for the package.
+
+Every build: the camera starts only after the player selects a camera control in
+the game that is open (`press_first`, below).
+
+Camera-free variant: build-only changes that take head and eye input out.
 
 Applies only when a variant sets "camera": false (variants.json). The full build
 is untouched. Every game stays, and every switch, touch and pointer
@@ -77,6 +82,60 @@ def once(text, old, new, path):
     if text.count(old) != 1:
         raise ValueError(f'Camera anchor drift in {path}: {old[:80]!r}, count={text.count(old)}')
     return text.replace(old, new, 1)
+
+
+# The camera starts only after a press. On the web a camera the browser already allows starts by itself when a game
+# opens: the five camera games do it on load, and the shared control frame does it in any game whose Access is Look
+# and hold by Head or Eyes. In the package, permission granted once (to another game, or on an earlier day) is not
+# the player asking for the camera now. Both places still wait in their "prompt" state, which shows one camera key,
+# and still fall back to the pointer when the camera is refused. What starts the camera is the player selecting that
+# key or the game's camera button (a tap, a click, or the pointer held on it), or choosing Head, Eyes, Look and hold
+# or Calibrate in that game's Settings. A camera the player started comes back on after the app was in the background.
+FRAME_AUTOSTART = "if(s==='granted')startCamera(false);else if(s==='denied')fallback();"
+FRAME_PRESS_FIRST = "if(s==='denied')fallback();"
+GAME_AUTOSTART = "if (state === 'granted') startCamera(prefs.input); else if (state === 'denied') fallback();"
+GAME_PRESS_FIRST = "if (state === 'denied') fallback();"
+
+
+def press_first(game, path, text):
+    """No camera without a press in the open game. Applies to every build."""
+    if path.endswith('/access.js') and path.count('/') == 1:
+        return once(text, FRAME_AUTOSTART, FRAME_PRESS_FIRST, path)
+    if game['id'] in CAMERA_GAMES and path == f"{game['id']}/{game['id']}.js":
+        return once(text, GAME_AUTOSTART, GAME_PRESS_FIRST, path)
+    return text
+
+
+# The Eye tracker choice in Look with reaches an eye tracker through a helper program on the same computer (the gaze
+# bridge, at ws://127.0.0.1:47913). No phone or tablet has that helper, and the Android app has no network permission,
+# so in the package the choice only ever answered "No eye tracker found yet: start the gaze bridge" and tried again
+# every five seconds. Every build: the frame is told the bridge cannot be reached, which is its own rule for showing
+# the choice unavailable with its own sentence beside it and for turning a saved Eye tracker choice back into
+# Pointer; and no page's policy allows the connection, since nothing else used it.
+GAZE_BRIDGE = 'ws://127.0.0.1:47913'
+NO_TRACKER = 'const camOK=cameraAllowed(),trackOK=false,'
+
+
+def no_gaze_policy(match):
+    directives = []
+    for part in match.group(2).split(';'):
+        words = [w for w in part.split() if w != GAZE_BRIDGE]
+        if words:
+            directives.append(' '.join(words))
+    return match.group(1) + '; '.join(directives) + match.group(3)
+
+
+def no_eye_tracker(game, path, text):
+    """No Eye tracker choice, and no way to the gaze bridge, in any build. Runs after `transform`."""
+    frame = (path.endswith('/controls.js') and path.count('/') == 1) or path in INLINE_FRAMES
+    # The camera-free variant has already taken every look but Pointer out of the frame.
+    if frame and game.get('camera', True):
+        text = once(text, SOURCES, NO_TRACKER, path)
+    if path.endswith('.html'):
+        text = POLICY.sub(no_gaze_policy, text)
+        if any(GAZE_BRIDGE in policy.group(2) for policy in POLICY.finditer(text)):
+            raise ValueError(f'The gaze bridge is still allowed in {path}')
+    return text
 
 
 def no_camera_policy(match):

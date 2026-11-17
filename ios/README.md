@@ -11,8 +11,17 @@ browser build makes it, like the Android app. Builds go out through TestFlight a
 - Nothing loads from the network. Web links open in Safari; anything else is
   refused.
 - The camera, for Look and hold by head or eyes, is offered only to the bundled
-  collection, and iOS asks the player first (`NSCameraUsageDescription`).
-- Identity: `com.oneimpossiblethingatatime.minimalprimitives`, version 0.5.7 (build 25), matching Android,
+  collection, and iOS asks the player first (`NSCameraUsageDescription`, which says
+  what the camera is for and that images stay on the device). The collection starts
+  the camera only after a press in the game that is open (`tools/camera_recipe.py`).
+- `PrivacyInfo.xcprivacy` declares no tracking, no collected data and no
+  required-reason API: the release code uses none (`UserDefaults` appears only in
+  DEBUG checks), and `tests/test_build.py` fails if one comes in. The policy itself
+  is in the app: Settings, Privacy policy (`web/privacy.html`).
+- If the collection cannot be loaded (a failed navigation, or a missing page), the
+  shell shows "The games could not load." with Retry instead of a blank screen. The
+  library does the same when its own data cannot be read.
+- Identity: `com.oneimpossiblethingatatime.minimalprimitives`, version 0.5.8 (build 27), matching Android,
   team 596T7J7FB6, iPhone and iPad.
 
 ## Build

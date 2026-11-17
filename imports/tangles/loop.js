@@ -53,7 +53,7 @@
     }
   } catch (_) { corrupt = true; }
   let current = boards.find(b => b.id === saved?.board) || boards[0], rots = saved?.rots.slice() || current.start.slice(), hits = saved?.hits || 0, offsets = saved?.offsets?.slice() || startOffsets(current);
-  let history = saved?.history || [], hint = null, focus = middle(current), hover = null, keyboard = false;
+  let history = saved?.history || [], hint = null, focus = middle(current), hover = null, keyboard = false, pressed = null;
   // A player can lock a tile they are sure of: a locked tile refuses every
   // turn until unlocked. Locks are not moves: no hits, no undo, kept per board
   // in the save and cleared by restart.
@@ -82,6 +82,8 @@
   const cubic = p => `C${xy(p[1])} ${xy(p[2])} ${xy(p[3])}`;
   const hex = (t, radius = .97) => { const c = E.center(t.q, t.r); return Array.from({ length: 6 }, (_, k) => { const v = E.vertex(k); return `${c.x + v.x * radius},${c.y + v.y * radius}`; }).join(' '); };
   function announce(message) { const n = $('#announcement'); n.textContent = ''; n.textContent = message; }
+  // Counts are said as a person would: 1 hit, 2 hits; 1 edge, 2 edges.
+  const count = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`, hitsWord = () => count(hits, 'hit'), looseWord = n => `${count(n, 'edge')} with loose ends`;
   function state() { const a = arranged(), out = { rots: rots.slice(), loose: E.loose(a, rots), solved: E.solved(a, rots), hits, par: pars.get(current.id) }; if (current.rings) out.offsets = offsets.slice(); return out; }
   function save() {
     if (corrupt) return;
@@ -112,12 +114,16 @@
     if (!locked) {
       const a = arranged();
       if (hover !== null) svg('polygon', { class: 'hover-ring', points: hex(a.tiles[hover]), 'aria-hidden': true }, marks);
+      // The tile under a press, with any tiles linked to it, is outlined in ink while the press lasts and for a
+      // moment after, so which piece turns is plain on boards whose tiles have no borders. It fades once let go;
+      // under reduced motion it stands and then goes. The marks are redrawn often, so the fade is placed in time.
+      if (pressed) for (const j of pressed.tiles) { const n = svg('polygon', { class: 'press-ring', points: hex(a.tiles[j]), 'data-tile': j, 'aria-hidden': true }, marks); if (pressed.released !== null) { n.dataset.fading = ''; n.style.animationDelay = `-${Math.round(performance.now() - pressed.released)}ms`; } }
       if (keyboard) svg('polygon', { class: 'focus-ring', points: hex(a.tiles[focus], .92), 'data-tile': focus, 'aria-hidden': true }, marks);
       // A hint marks the tile, its whole linked group, or every tile of a ring.
       if (hint) for (const i of hint.ring !== undefined ? a.tiles.map((t, i) => i).filter(i => E.ring(a.tiles[i].q, a.tiles[i].r) === hint.ring) : hint.tiles || [hint.tile]) svg('polygon', { class: 'hint-ring', points: hex(a.tiles[i], .84), 'aria-hidden': true }, marks);
     }
-    const s = state(), t = arranged().tiles[focus];
-    board.setAttribute('aria-label', `Board ${boards.indexOf(current) + 1} of ${boards.length}. ${s.solved ? 'Every line closed' : s.loose.length + ' edges with loose ends'}. ${hits} hits; par ${s.par}.` + (s.solved ? '' : ` Focus tile ${focus + 1}, ${t.q}, ${t.r}, turn ${rots[focus] + 1} of 6.`));
+    const s = state();
+    board.setAttribute('aria-label', `Board ${boards.indexOf(current) + 1} of ${boards.length}. ${s.solved ? 'Every line closed' : looseWord(s.loose.length)}. ${hitsWord()}; par ${s.par}.` + (s.solved ? '' : ` Focus tile ${focus + 1}, turn ${rots[focus] + 1} of 6.`));
   }
   function updateChrome() {
     $('#readout').textContent = `${boards.indexOf(current) + 1} / ${boards.length} · ${hits} / ${pars.get(current.id)}`;
@@ -855,8 +861,8 @@
       // A ring step counts as one gesture; a drag that carries it two steps counts two.
       if (steps !== 0) { history.push({ rots: rots.slice(), hits, ...(current.rings ? { offsets: offsets.slice() } : {}) }); ({ rots, offsets } = E.turnRing(current, rots, offsets, k, steps)); hits += Math.abs(steps); }
       render(false);
-      if (E.solved(arranged(), rots)) { finished.add(current.id); reached = Math.max(reached, Math.min(boards.length - 1, boards.indexOf(current) + 1)); announce(`Every line closed. ${hits} hits; par ${pars.get(current.id)}.`); save(); await finishPicture(token); }
-      else { shimmer(before); announce(steps ? `Ring ${k} turned ${Math.abs(steps) === 1 ? 'one step' : Math.abs(steps) + ' steps'} ${steps > 0 ? 'clockwise' : 'anticlockwise'}. ${hits} hits. ${E.loose(arranged(), rots).length} edges with loose ends.` : `Ring ${k} returned.`); save(); }
+      if (E.solved(arranged(), rots)) { finished.add(current.id); reached = Math.max(reached, Math.min(boards.length - 1, boards.indexOf(current) + 1)); announce(`Every line closed. ${hitsWord()}; par ${pars.get(current.id)}.`); save(); await finishPicture(token); }
+      else { shimmer(before); announce(steps ? `Ring ${k} turned ${Math.abs(steps) === 1 ? 'one step' : Math.abs(steps) + ' steps'} ${steps > 0 ? 'clockwise' : 'counterclockwise'}. ${hitsWord()}. ${looseWord(E.loose(arranged(), rots).length)}.` : `Ring ${k} returned.`); save(); }
       return;
     }
     const { i, steps, from } = action;
@@ -871,8 +877,8 @@
     if (steps !== 0) { history.push({ rots: rots.slice(), hits, ...(current.rings ? { offsets: offsets.slice() } : {}) }); rots = E.turnUnit(current, rots, i, steps); hits++; }
     render(false);
     const closed = E.solved(arranged(), rots);
-    if (closed) { finished.add(current.id); reached = Math.max(reached, Math.min(boards.length - 1, boards.indexOf(current) + 1)); announce(`Every line closed. ${hits} hits; par ${pars.get(current.id)}.`); save(); await finishPicture(token); }
-    else { shimmer(before); announce(steps ? `Tile ${i + 1}${members.length > 1 ? ` and ${members.length - 1} linked` : ''} turned ${Math.abs(steps)} steps ${steps > 0 ? 'clockwise' : 'anticlockwise'}. ${hits} hits. ${E.loose(arranged(), rots).length} edges with loose ends.` : `Tile ${i + 1} returned to its turn.`); save(); }
+    if (closed) { finished.add(current.id); reached = Math.max(reached, Math.min(boards.length - 1, boards.indexOf(current) + 1)); announce(`Every line closed. ${hitsWord()}; par ${pars.get(current.id)}.`); save(); await finishPicture(token); }
+    else { shimmer(before); announce(steps ? `Tile ${i + 1}${members.length > 1 ? ` and ${members.length - 1} linked` : ''} turned ${count(Math.abs(steps), 'step')} ${steps > 0 ? 'clockwise' : 'counterclockwise'}. ${hitsWord()}. ${looseWord(E.loose(arranged(), rots).length)}.` : `Tile ${i + 1} returned to its turn.`); save(); }
   }
   async function drain() {
     if (busy) return; busy = true; updateChrome();
@@ -882,12 +888,17 @@
   function enqueue(action) { return new Promise(resolve => { queue.push({ action, resolve }); drain(); }); }
   const turn = (i, steps = 1) => enqueue({ type: 'turn', i, steps });
   const turnRing = (k, steps = 1) => enqueue({ type: 'ring', k, steps });
+  // The press outline: shown from a press on a tile until PRESS_MS after it is let go.
+  const PRESS_MS = 700;
+  function showPress(i) { clearPress(); pressed = { tiles: E.group(current, i), released: null, timer: 0 }; }
+  function endPress() { if (!pressed || pressed.released !== null) return; const p = pressed; p.released = performance.now(); p.timer = setTimeout(() => { if (pressed === p) { pressed = null; rings(); } }, PRESS_MS); rings(); }
+  function clearPress() { if (pressed) clearTimeout(pressed.timer); pressed = null; }
   function clearInput() {
-    stopMotion(); clearTimeout(arrival); clearTimeout(shimmerTimer); shimmers.last = 0; shimmers.keys = []; epoch++; for (const job of queue) job.resolve(); queue = []; animation?.cancel(); animation = null;
+    clearPress(); stopMotion(); clearTimeout(arrival); clearTimeout(shimmerTimer); shimmers.last = 0; shimmers.keys = []; epoch++; for (const job of queue) job.resolve(); queue = []; animation?.cancel(); animation = null;
     stopDrift();
     if (gesture) clearTimeout(gesture.hold); gesture = null; if (wheel) clearTimeout(wheel.timer); wheel = null; hint = null; hover = null;
   }
-  function undo() { clearInput(); const old = history.pop(); if (old) { rots = old.rots.slice(); hits = old.hits; if (current.rings) offsets = old.offsets.slice(); } nextReady = E.solved(arranged(), rots); render(); save(); announce(old ? `Turn undone. ${hits} hits.` : 'No turns to undo.'); }
+  function undo() { clearInput(); const old = history.pop(); if (old) { rots = old.rots.slice(); hits = old.hits; if (current.rings) offsets = old.offsets.slice(); } nextReady = E.solved(arranged(), rots); render(); save(); announce(old ? `Turn undone. ${hitsWord()}.` : 'No turns to undo.'); }
   function restart() { clearInput(); locks.clear(); delete lockBook[current.id]; rots = current.start.slice(); offsets = startOffsets(current); hits = 0; history = []; nextReady = false; render(); save(); announce('Board restarted.'); }
   // The campaign's last board has no next arrow; the samples go round.
   const last = () => !sampling && current === boards[boards.length - 1];
@@ -979,7 +990,7 @@
       }
       // From a ring tile's core, a drag that leaves its hexagon carries the ring.
       const x = Math.abs(p.x - c.x), y = Math.abs(p.y - c.y), outside = x > 1 || y > Math.sqrt(3) / 2 || Math.sqrt(3) * x + y > Math.sqrt(3);
-      if (g.ring !== null && g.mode !== 'ring' && outside) { g.mode = 'ring'; for (const j of E.group(current, g.i)) spinTile(j, `rotate(0 ${xy(E.center(arranged().tiles[j].q, arranged().tiles[j].r))})`); board.dataset.cursor = 'grabbing'; }
+      if (g.ring !== null && g.mode !== 'ring' && outside) { g.mode = 'ring'; clearPress(); rings(); for (const j of E.group(current, g.i)) spinTile(j, `rotate(0 ${xy(E.center(arranged().tiles[j].q, arranged().tiles[j].r))})`); board.dataset.cursor = 'grabbing'; }
     }
     if (p && g.ring !== null) {
       const b = Math.atan2(p.y, p.x);
@@ -990,7 +1001,7 @@
   }
   function release(e) {
     const g = gesture; if (!g || e.pointerId !== g.id) return;
-    if (e.type !== 'lostpointercapture') track(e); gesture = null; clearTimeout(g.hold);
+    if (e.type !== 'lostpointercapture') track(e); gesture = null; clearTimeout(g.hold); endPress();
     try { board.releasePointerCapture(g.id); } catch (_) {}
     hideAid(); delete board.dataset.cursor;
     // A hold that locked the tile ends there.
@@ -1017,6 +1028,7 @@
     if (z.k !== undefined) showAid(z.k, gesture.centre);
     if (z.kind === 'ring') board.dataset.cursor = 'grabbing';
     else if (z.i !== null) nudge(z.i);
+    if (z.i !== null && z.kind !== 'ring') showPress(z.i);
     board.focus({ preventScroll: true }); keyboard = false; board.setPointerCapture(e.pointerId); rings();
   });
   let hovered = null;
@@ -1033,8 +1045,8 @@
     hovered = group;
   });
   window.addEventListener('pointerup', release);
-  board.addEventListener('lostpointercapture', e => { if (gesture?.id !== e.pointerId) return; if (e.buttons === 0) release(e); else { clearTimeout(gesture.hold); gesture = null; render(); } });
-  window.addEventListener('pointercancel', e => { if (gesture?.id === e.pointerId) { clearTimeout(gesture.hold); gesture = null; render(); } });
+  board.addEventListener('lostpointercapture', e => { if (gesture?.id !== e.pointerId) return; if (e.buttons === 0) release(e); else { clearTimeout(gesture.hold); gesture = null; clearPress(); render(); } });
+  window.addEventListener('pointercancel', e => { if (gesture?.id === e.pointerId) { clearTimeout(gesture.hold); gesture = null; clearPress(); render(); } });
   board.addEventListener('pointerleave', () => { hovered = null; if (!gesture) { hideAid(); delete board.dataset.cursor; } if (hover === null) return; hover = null; rings(); });
   let pointer = 'mouse'; window.addEventListener('pointerdown', e => { pointer = e.pointerType; }, true);
   board.addEventListener('contextmenu', e => { e.preventDefault(); if (locked || pointer !== 'mouse') return; const i = hit(e); if (i !== null) { focus = i; toggleLock(i); } });

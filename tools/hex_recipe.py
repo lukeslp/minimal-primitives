@@ -20,7 +20,8 @@ Escape/Fire/Plague/Water paths are verified through a test-only override, not
 unlocked by this transform. No registered root runtime assets were missing.
 Importer gaps outside those entries: skins/*.html need core.js from the same
 source commit; Sphere's hidden Water Wheel control targets the excluded wheel/
-directory. Report these to the import owner; do not alter raw source snapshots.
+directory, so tools/transforms.py cuts its three doors from the generated copy
+(WHEEL_HELP, WHEEL_CLICK, WHEEL_HOLD). Do not alter raw source snapshots.
 """
 from pathlib import Path
 import re

@@ -4,6 +4,12 @@
   const $ = id => document.getElementById(id);
   const PREFIX = 'lukesteuber.minimal.collection.v1:';
   const memory = new Map();
+  let noticeTimer;
+  const notice = message => { $('notice').textContent = message; $('notice').hidden = false; clearTimeout(noticeTimer); noticeTimer = setTimeout(() => { $('notice').hidden = true; }, 5000); };
+  // A save the device refuses (storage full, or storage turned off) is said once, quietly, the first time it happens:
+  // by the library for its own records, and by a game through its bridge (adapters/bootstrap.js, 'storage').
+  let saveWarned = false;
+  const warnSave = () => { if (saveWarned) return; saveWarned = true; notice('Could not save on this device. Progress may not be kept.'); };
   const read = (key, fallback) => {
     try {
       const raw=localStorage.getItem(PREFIX+key);if(raw===null)return fallback;
@@ -12,7 +18,8 @@
       if(!valid)throw Error('Invalid collection record');return value;
     } catch (_) { return memory.get(key) ?? fallback; }
   };
-  const write = (key, value) => { memory.set(key, value); try { localStorage.setItem(PREFIX + key, JSON.stringify(value)); } catch (_) {} };
+  // Returns whether the device stored it. A record it refused is still held for this session (`memory`).
+  const write = (key, value) => { memory.set(key, value); try { localStorage.setItem(PREFIX + key, JSON.stringify(value)); return true; } catch (_) { warnSave(); return false; } };
   const uuid = () => crypto.randomUUID();
   const secret = () => [...crypto.getRandomValues(new Uint8Array(32))].map(v => v.toString(16).padStart(2, '0')).join('');
   const profile = read('profile', null) || { secret: secret(), nickname: '', sharing: false, scores: [] };
@@ -22,11 +29,22 @@
   // The library's own settings: Look (the phone's, Dark, Light, Checkerboard) and Motion. library-theme.js applied them before the first paint.
   const settings=read('library',{});
   let catalog = [], tiles = [], active = null, frame = null, nonce = null, sequence = 0, busy = false, attempt = null;
-  let apiBase = '', noticeTimer;
+  let apiBase = '';
   const pending = new Map();
   let currentDocument=null; const seenDocuments=new Set();
-  const notice = message => { $('notice').textContent = message; $('notice').hidden = false; clearTimeout(noticeTimer); noticeTimer = setTimeout(() => { $('notice').hidden = true; }, 5000); };
-  const persist = () => { write('saves', saves); write('progress', progress); };
+  const persist = () => { const stored = write('saves', saves); write('progress', progress); return stored; };
+  // A save a game refused is set aside under `refused` before anything may take its place. On a device with no room
+  // for the copy, the save itself is the only one there is: `held` names its game, and while it is held nothing
+  // writes over it (not a move, not Home, not closing the app). Each time a save would be made the copy is tried
+  // again, so play is saved as before once there is room.
+  const held = new Map();
+  function setAside(key, saved, by) {
+    const refused = read('refused', {}); refused[key] = { ...saved, refusedAt: Date.now(), by };
+    if (write('refused', refused)) { held.delete(key); return true; }
+    held.set(key, { saved, by }); return false;
+  }
+  // Whether a new save for this game may be written now.
+  const free = key => !held.has(key) || setAside(key, held.get(key).saved, held.get(key).by);
   const keyFor = (game, mode) => game.id + (mode ? ':' + mode : '');
   // The last tile opens the motor-accessible puzzles, a second grid in the same package.
   const accessible = game => game.group === 'accessible';
@@ -102,7 +120,7 @@
       const also = spec.also.map(link => { const other = find(link.game, link.mode); return {label: link.label, aria: resume(link.aria, other.game, other.mode), key: keyFor(other.game, other.mode?.id), run: () => launch(other.game, other.mode)}; });
       const tile = tileFor({...spec, label: resume(spec.label, game, mode), also}, keyFor(game, mode?.id), () => launch(game, mode));
       tile.dataset.game = game.id; if (mode) tile.dataset.mode = mode.id;
-      tile._set = spec.set || null;
+      tile._set = spec.set || null; tile._pictures = spec.solved || null;
       $('tiles').append(tile);
     }
     for (const game of catalog.filter(accessible)) {
@@ -117,10 +135,16 @@
   // of the same color across its tiles, then another every twenty. Each bundled game keeps its own record under its
   // own namespace (adapters/bootstrap.js); the library only reads it. Color is a reward and a greeting: nothing is
   // told by it alone. Reduced motion, the system's or the library's, stops the shine and keeps the color.
+  // A finished game whose solved board is in color shows that board instead of the one color: a picture bundled with
+  // the app (tiles.json `solved`, the index's own captures), read from the package and never from the network.
   let life = {onDark: [], onLight: []}, shineTimer = null;
   const lifeTiles = () => [...$('tiles').querySelectorAll('.tile')];
+  // Most games keep a list of finished boards. Notan keeps a map of board to best time, which the index cannot
+  // read on the web (Notan lives on another site) and the package can.
+  const tally = list => Array.isArray(list) ? list.length
+    : list && typeof list === 'object' ? Object.values(list).filter(time => typeof time === 'number').length : 0;
   const finishedCount = value => !value || typeof value !== 'object' ? 0
-    : Math.max(...['completed', 'solved', 'finished', 'done'].map(k => Array.isArray(value[k]) ? value[k].length : 0));
+    : Math.max(...['completed', 'solved', 'finished', 'done'].map(k => tally(value[k])));
   function beaten(game, [name, total]) {
     const prefix = 'lukesteuber.minimal.' + game + ':';
     try {
@@ -142,20 +166,60 @@
       tile._wave = wave;
     });
   }
-  function markTiles() { for (const tile of lifeTiles()) tile.classList.toggle('won', !!tile._set && !!tile.querySelector('.art img') && beaten(tile.dataset.game, tile._set)); }
+  // The index's own picture(): the solved picture goes in for a finished tile and comes out again if the tile stops
+  // being finished. Nothing is read for a tile that is not finished. The tile changes its dress (.solved) only once
+  // the picture has arrived; one that cannot be had leaves the one-color mark. The fade-in is the index's, and its
+  // stylesheet drops it under reduced motion, the system's or the library's.
+  function picture(tile) {
+    const img = tile.querySelector('.art img'); if (!img) return;
+    const set = !tile._broken && tile.classList.contains('won') && tile._pictures;
+    const src = set ? set[tile.classList.contains('on-light') ? 'light' : 'dark'] : null;
+    if ((tile._solved || null) === src) return;
+    tile._solved = src;
+    if (!src) {
+      tile.classList.remove('pictured', 'solved'); tile.style.removeProperty('--fill');
+      tile._plain.sources.forEach(source => img.before(source));
+      img.setAttribute('src', tile._plain.src);
+      return;
+    }
+    if (!tile._plain) {
+      tile._plain = {src: img.getAttribute('src'), sources: [...tile.querySelectorAll('.art source')]};
+      img.addEventListener('load', () => { if (tile._solved && img.getAttribute('src') === tile._solved) { tile.style.setProperty('--fill', tile._pictures.fill); tile.classList.add('solved'); } });
+      img.addEventListener('error', () => { if (tile._solved && img.getAttribute('src') === tile._solved) { tile._broken = true; picture(tile); } });
+    }
+    tile.classList.add('pictured');
+    tile._plain.sources.forEach(source => source.remove());
+    img.setAttribute('src', src);
+  }
+  function markTiles() {
+    for (const tile of lifeTiles()) {
+      const won = !!tile._set && !!tile.querySelector('.art img') && beaten(tile.dataset.game, tile._set);
+      tile.classList.toggle('won', won); picture(tile);
+      // As on the index: the card's line says it in words (the link is described by that line); the corner check is CSS.
+      const line = tile.querySelector('.more .line'); let done = line?.querySelector('.done');
+      if (won && line && !done) { done = document.createElement('span'); done.className = 'done'; done.textContent = ' All boards finished.'; line.append(done); }
+      if (!won && done) done.remove();
+    }
+  }
   const stillLibrary = () => matchMedia('(prefers-reduced-motion: reduce)').matches || settings.motion === 'reduce';
+  let shinePass = [];
+  // Reduced motion asked for while a pass is under way: drop what is queued and clear what is lit.
+  function haltShine() { shinePass.forEach(clearTimeout); shinePass = []; for (const tile of lifeTiles()) tile.classList.remove('glint'); }
   function shine() {
-    if (stillLibrary()) return;
+    if (stillLibrary()) { haltShine(); return; }
     if (document.hidden || active || $('library').hidden || $('intro') || document.querySelector('dialog[open]')) { waitShine(10000); return; }
+    shinePass = [];
     for (const tile of lifeTiles()) {
       if (!tile.querySelector('.art img')) continue;
-      setTimeout(() => { tile.classList.add('glint'); setTimeout(() => tile.classList.remove('glint'), 1250); }, tile._wave * 110);
+      shinePass.push(setTimeout(() => { if (stillLibrary()) return; tile.classList.add('glint'); shinePass.push(setTimeout(() => tile.classList.remove('glint'), 1250)); }, tile._wave * 110));
     }
     waitShine(20000);
   }
+  matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', () => { if (stillLibrary()) { clearTimeout(shineTimer); haltShine(); } else waitShine(10000); });
   function waitShine(ms) { clearTimeout(shineTimer); if (!stillLibrary()) shineTimer = setTimeout(shine, ms); }
   for (const type of ['pointermove', 'pointerdown', 'keydown', 'scroll', 'touchstart', 'visibilitychange']) addEventListener(type, () => waitShine(10000), {passive: true, capture: true});
-  addEventListener('resize', dressTiles);
+  // A tile can change ground when the columns change, and its solved picture with it.
+  addEventListener('resize', () => { dressTiles(); lifeTiles().forEach(picture); });
   waitShine(10000);
   document.addEventListener('click', event => { if (!event.target.closest?.('.tile')) hideCard(); });
   // The opening, the Minimal index's own (its markup, styles and timings): the name, then the eight primitives one at a
@@ -182,7 +246,7 @@
     let done = false, clickUntil = 0, heldKey = null;
     const at = (ms, fn) => timers.push(setTimeout(fn, ms));
     const types = ['keydown', 'keyup', 'pointerdown', 'mousedown', 'touchstart', 'click', 'focusin'];
-    const remove = () => { types.forEach(type => removeEventListener(type, guard, true)); document.documentElement.classList.remove('opening'); intro.remove(); opening.skip = () => false; };
+    const remove = () => { types.forEach(type => removeEventListener(type, guard, true)); document.documentElement.classList.remove('opening'); intro.remove(); opening.skip = () => false; waitShine(10000); };
     // At the end the name moves up into the title's place while the ground and the words fade, then the title
     // takes over (the index's own ending). A press that skips the opening puts it there quickly.
     const finish = (fast = true) => {
@@ -246,10 +310,39 @@
   }
   $('set-motion').onchange = () => {
     if ($('set-motion').value === 'reduce') settings.motion = 'reduce'; else delete settings.motion;
+    if (stillLibrary()) { clearTimeout(shineTimer); haltShine(); } else waitShine(10000);
     write('library', settings); MinimalLibraryTheme.apply(settings); if (settings.motion === 'reduce') opening.end();
   };
   $('set-access').onchange = () => { try { localStorage.setItem(ACCESS, JSON.stringify({...sharedAccess(), mode: $('set-access').value})); } catch (_) {} };
   $('set-opening').onclick = () => { sheet.close(); gear.blur(); playOpening(true); };
+  // Privacy: a row in Settings, above About, that opens the page bundled with the app (privacy.html) in a sheet of
+  // the same kind, on top of Settings. The Settings markup is the index's own, so the row is added here. The sheet
+  // shows the page's own text; if that cannot be read, the row opens the page itself.
+  const privacy = $('privacy');
+  if (privacy) {
+    const body = sheet.querySelector('.sheet-body'), heading = el('h3', 'group', 'Privacy'), row = el('div', 'row'), button = el('button', '', 'Read');
+    button.type = 'button'; button.id = 'set-privacy'; button.setAttribute('aria-label', 'Read the privacy policy'); button.setAttribute('aria-haspopup', 'dialog');
+    row.append(el('span', '', 'Privacy policy'), button);
+    const about = [...body.querySelectorAll('h3.group')].find(node => node.textContent.trim() === 'About');
+    if (about) about.before(heading, row); else body.append(heading, row);
+    let loaded = false;
+    button.onclick = async () => {
+      if (!loaded) {
+        try {
+          const response = await fetch('privacy.html'); if (!response.ok) throw Error('Missing page');
+          const main = new DOMParser().parseFromString(await response.text(), 'text/html').querySelector('main');
+          // The sheet has its own title and Close; the page's section headings sit one level under the title.
+          const parts = [...main.children].filter(node => !node.matches('h1,.page-only')).map(node => {
+            if (node.tagName !== 'H2') return document.importNode(node, true);
+            const section = el('h3', node.className, node.textContent); return section;
+          });
+          $('privacy-body').replaceChildren(...parts); loaded = true;
+        } catch (_) { location.href = 'privacy.html'; return; }
+      }
+      privacy.showModal(); $('privacy-body').scrollTop = 0;
+    };
+    privacy.addEventListener('click', event => { if (event.target === privacy) privacy.close(); });
+  }
   function request(type, payload) {
     return new Promise((resolve, reject) => {
       const request = uuid();
@@ -262,21 +355,52 @@
     // Games without a resume adapter (the motor-accessible puzzles) keep their own saves.
     if (!frame || !active?.resumable) return;
     const data = await request('snapshot');
-    saves[active.key] = { source: data.source, state: data.state, mode: active.mode?.id, savedAt: Date.now() };
-    persist();
+    if (free(active.key)) { saves[active.key] = { source: data.source, state: data.state, mode: active.mode?.id, savedAt: Date.now() }; persist(); }
     if (attempt) attempt.practice = true;
+  }
+  // A game frame that has not reported ready after eight seconds (a page that failed to load, or one whose own Home
+  // never arrived) gets the collection's own way Home, over the frame. It goes when the game reports ready.
+  let stallTimer;
+  const stalled = shown => { clearTimeout(stallTimer); $('stalled').hidden = !shown; };
+  $('stalled-home').onclick = async () => { const key = active?.key; await library(); document.querySelector(`#tiles [data-open="${key}"], #access-tiles [data-open="${key}"]`)?.focus({preventScroll: true}); };
+  function close() {
+    const list = active && accessible(active.game) ? 'accessible' : 'library';
+    stalled(false); $('unsaved').hidden = true;
+    frame?.remove(); frame = null; active = null; attempt = null;
+    $('player').hidden = true; renderLibrary(); showList(list);
   }
   async function library() {
     if (busy) return;
     busy = true;
-    try {
-      await stash();
-      const list = active && accessible(active.game) ? 'accessible' : 'library';
-      frame?.remove(); frame = null; active = null; attempt = null;
-      $('player').hidden = true; renderLibrary(); showList(list);
-    } catch (error) { notice(error.message); }
+    try { await stash(); close(); }
+    catch (error) { notice(error.message); }
     finally { busy = false; }
   }
+  // The app shell's way out of a game whose own Home did not bring the library (Android's Back, some seconds after it
+  // pressed Home, or at once in a page that cannot answer). It never discards a board: the board is taken from the
+  // game as it stands, without waiting on it, and the library shows only once the device has stored it. A page with
+  // nothing of the collection's to save (no resume adapter in it, or a save still waiting to be restored) is simply
+  // left. Where the board cannot be saved, the player is asked, over the game: Leave anyway, or Keep playing.
+  // `opened` is the handshake of the game the shell means; another game, or none, is left alone.
+  function leave(opened) {
+    if (!frame || !active || (opened && opened !== nonce)) return 'library';
+    if (busy) return 'busy';
+    let adapter = null;
+    try { adapter = frame.contentWindow.MinimalAdapter || null; } catch (_) {}
+    if (!adapter || active.restorePending) { close(); return 'left'; }
+    try {
+      const state = adapter.checkpoint();
+      if (state && free(active.key)) {
+        saves[active.key] = { source: active.game.commit, state, mode: active.mode?.id, savedAt: Date.now() };
+        if (persist()) { close(); return 'saved'; }
+      }
+    } catch (_) {}
+    $('unsaved').hidden = false; $('unsaved-stay').focus({preventScroll: true});
+    return 'asked';
+  }
+  $('unsaved-leave').onclick = () => { const key = active?.key; close(); document.querySelector(`#tiles [data-open="${key}"], #access-tiles [data-open="${key}"]`)?.focus({preventScroll: true}); };
+  $('unsaved-stay').onclick = () => { $('unsaved').hidden = true; frame?.contentWindow.focus(); };
+  window.MinimalLibrary = { leave };
   async function launch(game, mode) {
     if (busy) return;
     busy = true;
@@ -293,11 +417,12 @@
       const url = new URL('games/' + entry, location.href); url.searchParams.set('minimal', nonce);
       if(game.id==='akari')url.searchParams.set('look','dark');
       frame.src = url.href; selectView(active.key);$('player').replaceChildren(frame); $('player').hidden = false; $('library').hidden = true; $('accessible').hidden = true;
+      stalled(false); $('unsaved').hidden = true; const opened = active; stallTimer = setTimeout(() => { if (active === opened && !opened.ready) stalled(true); }, 8000);
     } catch (error) { notice(error.message); }
     finally { busy = false; }
   }
   async function api(path, options = {}) {
-    if (!apiBase) throw new Error('Scores are local in this preview.');
+    if (!apiBase) throw new Error('Scores stay on this device.');
     const response = await fetch(apiBase + path, { signal:AbortSignal.timeout(6000),...options, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + profile.secret, ...options.headers } });
     if (!response.ok) {const error=new Error('Score service unavailable. Your game is unaffected.');error.status=response.status;throw error;}
     return response.status === 204 ? null : response.json();
@@ -331,7 +456,7 @@
       try { const response = await api(`runs/${encodeURIComponent(current.run)}/finish`, { method: 'POST', body });current.result=response;if (response.ranked && response.score) { if(!profile.scores.includes(response.score.id))profile.scores.push(response.score.id); write('profile', profile);if(!profile.sharing){try{await api('scores/'+encodeURIComponent(response.score.id),{method:'DELETE'});profile.scores=profile.scores.filter(id=>id!==response.score.id);response.ranked=false;write('profile',profile);}catch(_){}} } return response; }
       catch (_) { if (n < 2) await new Promise(resolve => setTimeout(resolve, 1000 * (n + 1))); }
     }
-    notice('Score saved on this device. Online sharing was unavailable.');
+    notice(apiBase ? 'Score saved on this device. Online sharing was unavailable.' : 'Score saved on this device.');
   }
   window.addEventListener('message', async event => {
     const data = event.data;
@@ -345,7 +470,7 @@
     sequence = data.sequence;
     if(data.type==='scores-request'){
       const target=frame.contentWindow,requestNonce=nonce;
-      const context={api,profile,persistProfile:()=>{write('profile',profile);renderLibrary();},get attempt(){return attempt;},get active(){return active;}};
+      const context={api,profile,persistProfile:()=>{write('profile',profile);renderLibrary();},get attempt(){return attempt;},get active(){return active;},get service(){return !!apiBase;},get results(){return results;}};
       try{const result=await MinimalScoresTransport.handle(data.payload,context);target.postMessage({v:1,nonce:requestNonce,type:'scores-response',payload:{request:data.payload.request,result}},location.origin);}
       catch(error){target.postMessage({v:1,nonce:requestNonce,type:'scores-response',payload:{request:data.payload.request,error:error.message}},location.origin);}
       return;
@@ -353,32 +478,50 @@
     const waiting = pending.get(data.payload?.request);
     if (waiting) { clearTimeout(waiting.timeout); pending.delete(data.payload.request); if (data.type === 'error') waiting.reject(new Error(data.payload.message)); else waiting.resolve(data.payload); }
     if (data.type === 'ready') {
+      active.ready = true; stalled(false);
       active.resumable = !!data.payload.resumable;
       const saved = active.restorePending&&data.payload.resumable?active.initialSave:null;
       if(data.payload.resumable)active.restorePending=false;
       // A save made by an earlier build of the game (another source commit) is offered to the game too: its
-      // restore checks the state and refuses what it cannot read, and then the game simply starts as new.
-      if (saved) { try { await request('restore', saved); if (attempt) attempt.practice = true; } catch (error) { if (saved.source === active.game.commit) notice(error.message); } }
+      // restore checks the state and refuses what it cannot read. A refused save is never lost, whichever build
+      // made it (an update does not move every game to a new commit, and a save can be damaged in this one): it is
+      // kept under `refused`, out of the way of the new board that the next move or Home will save in its place,
+      // and the player is told.
+      const opened = active;
+      if (saved) { try { await request('restore', saved); if (attempt) attempt.practice = true; } catch (error) {
+        const which = saved.source === opened.game.commit ? 'A saved board' : 'A board saved by an earlier version';
+        if (setAside(opened.key, saved, opened.game.commit)) notice(which + ' could not be opened. It has been kept, and this game starts new.');
+        else notice(which + ' could not be opened, and this device has no room to set it aside. It is left as it was, and new moves in this game are not saved for now.');
+      } }
       frame?.contentWindow.focus();
     } else if (data.type === 'library') library();
     else if (data.type === 'scores') openScores();
+    else if (data.type === 'storage') warnSave();
+    else if (data.type === 'share-failed') notice('The picture could not be shared. Try again.');
     else if (data.type === 'open') openAttempt(data.payload,data.attempt);
     else if (data.type === 'assist') { if (attempt){attempt.assisted=true;ledger[attempt.key]={finished:!!attempt.finished,assisted:true};write('attempts',ledger);} }
     else if (data.type === 'restart') { if(attempt)openAttempt({identity:attempt.identity,repeat:true,assisted:attempt.assisted},data.attempt,true); }
     else if (data.type === 'interrupted') { if (attempt) attempt.practice = true; }
     else if (data.type === 'complete' && data.attempt === attempt?.remote) {const token=attempt;token.completion=complete(data.payload);}
-    else if (data.type === 'commit' && !active.restorePending && data.payload.snapshot) { saves[active.key] = { source: active.game.commit, state: data.payload.snapshot, savedAt: Date.now() }; persist(); }
+    else if (data.type === 'commit' && !active.restorePending && data.payload.snapshot && free(active.key)) { saves[active.key] = { source: active.game.commit, state: data.payload.snapshot, savedAt: Date.now() }; persist(); }
   });
   window.addEventListener('pagehide',()=>{
     if(!frame||!active||active.restorePending)return;
     try {
       const state=frame.contentWindow.MinimalAdapter?.checkpoint();
-      if(state){saves[active.key]={source:active.game.commit,state,mode:active.mode?.id,savedAt:Date.now()};persist();}
+      if(state&&free(active.key)){saves[active.key]={source:active.game.commit,state,mode:active.mode?.id,savedAt:Date.now()};persist();}
     } catch(_) {}
   });
   window.addEventListener('offline', () => { if (attempt) attempt.practice = true; });
   document.addEventListener('visibilitychange', () => { if (document.hidden && attempt) attempt.practice = true; });
   function openScores() {
+    // With no score service (every app build, and the default ZIP) nothing can be shared: say so and leave the
+    // nickname and sharing controls out, so a ticked box never suggests scores went online.
+    $('scores-local').hidden = !!apiBase; document.querySelector('#scores .sharing').hidden = !apiBase;
+    // The picker chooses among shared boards and this device's own list. Without a service only the device's list
+    // exists, and at the library (no board open) the sheet lists recent results instead: no picker in either case.
+    if (!apiBase) $('score-category').value = 'local';
+    $('score-category').hidden = !apiBase || !attempt?.identity;
     $('nickname').value = profile.nickname; $('share-opt-in').checked = profile.sharing; $('profile-status').textContent = '';
     $('scores').showModal(); showScores();
   }
@@ -395,20 +538,42 @@
     profile.scores = remaining; write('profile', profile); $('share-opt-in').checked = false; renderLibrary();
     $('profile-status').textContent = remaining.length ? 'Sharing is off. Some scores could not be removed; try again when online.' : 'Sharing is off. Your shared scores have been removed.';
   };
+  // What a result was scored by, in words: the count for the games that count, the time for the rest.
+  const COUNTS = {'hits-v1': ['hit', 'hits'], 'moves-v1': ['move', 'moves'], 'folds-v1': ['fold', 'folds'], 'cleared-v1': ['cleared', 'cleared']};
+  const scored = result => {
+    const policy = result.identity?.scoringPolicy;
+    if (policy === 'depth-v1' && Number.isFinite(result.value)) return 'depth ' + result.value;
+    if (COUNTS[policy] && Number.isFinite(result.value)) return result.value + ' ' + COUNTS[policy][result.value === 1 ? 0 : 1];
+    return Math.round(result.elapsedMs / 1000) + 's';
+  };
+  // At the library no board is open, so the sheet shows the last few boards finished on this device, across games,
+  // newest first. They are the collection's own records (`results`), which never leave the device.
+  function showRecent() {
+    const recent = results.filter(r => r && r.identity && Number.isFinite(r.elapsedMs)).map(r => ({result: r, game: catalog.find(g => g.id === r.identity.game)})).filter(r => r.game).slice(-8).reverse();
+    $('score-context').textContent = recent.length ? 'Recently finished on this device' : 'No finished boards yet. Finish one and it is listed here.';
+    for (const {result, game} of recent) {
+      const row = el('div', 'score-row recent');
+      row.append(el('span', '', game.title), el('span', '', String(result.identity.puzzleId)), el('span', '', scored(result)));
+      $('score-list').append(row);
+    }
+  }
   async function showScores() {
-    $('score-list').replaceChildren(); $('score-context').textContent = attempt?.identity ? `${active.game.title} · ${attempt.identity.puzzleId}` : 'Choose a game and a board to see its scores.';
-    if (!attempt?.identity) return;
+    $('score-list').replaceChildren();
+    if (!attempt?.identity) { showRecent(); return; }
+    $('score-context').textContent = `${active.game.title} · ${attempt.identity.puzzleId}`;
     try {
       const category=$('score-category').value;
       const query = new URLSearchParams({ ...attempt.identity, category });
-      const data=category==='local'?{entries:results.filter(r=>Object.keys(attempt.identity).every(k=>r.identity?.[k]===attempt.identity[k])).reverse().map((r,n)=>({rank:n+1,nickname:r.practice?'Practice':r.assisted?'Assisted':'Unassisted',value:['hits-v1','moves-v1','folds-v1','cleared-v1','depth-v1'].includes(r.identity.scoringPolicy)?r.value:Math.round(r.elapsedMs/1000)+'s'}))}:await api('boards?' + query);
+      const data=category==='local'?{entries:results.filter(r=>Object.keys(attempt.identity).every(k=>r.identity?.[k]===attempt.identity[k])).reverse().map((r,n)=>({rank:n+1,nickname:apiBase&&r.practice?'Practice':r.assisted?'Assisted':'Unassisted',value:['hits-v1','moves-v1','folds-v1','cleared-v1','depth-v1'].includes(r.identity.scoringPolicy)?r.value:Math.round(r.elapsedMs/1000)+'s'}))}:await api('boards?' + query);
       for (const item of data.entries) { const row = document.createElement('div'); row.className = 'score-row'; for (const value of [item.rank, item.nickname, item.value]) { const span = document.createElement('span'); span.textContent = value; row.append(span); } $('score-list').append(row); }
       if (!data.entries.length) $('score-context').textContent += category==='local'?' · No results yet.':' · No shared scores yet.';
     } catch (error) { $('score-context').textContent = error.message; }
   }
   $('scores-button').onclick=openScores;$('score-category').onchange=showScores;
   $('access-back').onclick=()=>{showList('library');$('access-open')?.focus({preventScroll:true});};
-  Promise.all([fetch('catalog.json').then(r => r.json()), fetch('settings.json').then(r => r.ok ? r.json() : {}).catch(() => ({})), fetch('tiles.json').then(r => r.json()), fetch('life.json').then(r => r.ok ? r.json() : null).catch(() => null)]).then(([games, settings, index, colors]) => { catalog = games; tiles = index; if (colors) life = colors;if(typeof settings.apiBase==='string'&&settings.apiBase){const url=new URL(settings.apiBase,location.href);if(url.protocol==='https:'||url.protocol==='http:'&&['127.0.0.1','localhost','[::1]'].includes(url.hostname))apiBase=url.href.replace(/\/?$/,'/');} renderLibrary();
+  // The library's data. If it cannot be read the opening's ground must not stay up over an empty page: the opening is
+  // cleared, and a message stays with a Retry button until a load works.
+  const load = () => Promise.all([fetch('catalog.json').then(r => r.json()), fetch('settings.json').then(r => r.ok ? r.json() : {}).catch(() => ({})), fetch('tiles.json').then(r => r.json()), fetch('life.json').then(r => r.ok ? r.json() : null).catch(() => null)]).then(([games, settings, index, colors]) => { catalog = games; tiles = index; if (colors) life = colors;if(typeof settings.apiBase==='string'&&settings.apiBase){const url=new URL(settings.apiBase,location.href);if(url.protocol==='https:'||url.protocol==='http:'&&['127.0.0.1','localhost','[::1]'].includes(url.hostname))apiBase=url.href.replace(/\/?$/,'/');} renderLibrary();
     const hash=new URLSearchParams(location.hash.slice(1));
     if(hash.get('view')==='accessible')showList('accessible');
     let selected=hash.get('game');
@@ -419,5 +584,12 @@
       else selectView(null);
     }
     if(!active&&!$('library').hidden)playOpening();else{$('intro')?.remove();document.documentElement.classList.remove('opening');}
-  }).catch(() => notice('The library could not load. Please reload.'));
+    $('load-failed').hidden = true;
+  }).catch(() => {
+    opening.end(); $('intro')?.remove(); document.documentElement.classList.remove('opening');
+    catalog = []; tiles = []; $('tiles').replaceChildren(); $('access-tiles').replaceChildren();
+    $('load-failed').hidden = false;
+  });
+  let loading = load().finally(() => { loading = null; });
+  $('load-retry').onclick = () => { if (!loading) loading = load().finally(() => { loading = null; }); };
 })();

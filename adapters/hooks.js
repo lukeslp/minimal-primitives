@@ -12,8 +12,8 @@
         bridge.emit('snapshot', { request, source: bridge.config.source, state });
       } else if (type === 'restore') {
         if (!window.MinimalAdapter) throw new Error('This game’s resume adapter is not ready.');
-        // A save from an earlier source commit is tried too: each adapter's restore checks the state and throws on
-        // what it cannot read, and the library then leaves the game as new.
+        // A save from an earlier source commit is tried too. An adapter's restore throws on a state it cannot
+        // read (how strictly varies by game), and the library then keeps that save aside and starts the game new.
         await window.MinimalAdapter.restore(payload.state);
         bridge.emit('restored', { request });
       }

@@ -60,6 +60,7 @@
   function announce(message) { const n = $('#announcement'); n.textContent = ''; n.textContent = message; }
   const svg = $('#board'), pic = D.makePic($('#finish'), false);
   let k, here, data, board, answer, rots, hits, history, locks, solved, lay, picture, view, groups, inkLayer, ends, sheen, marks, rimLayer;
+  const hitsWord = () => `${hits} ${hits === 1 ? 'hit' : 'hits'}`;
   let focus = 0, keyboard = false, hover = null, hint = null, turning = null, gesture = null, wheel = null, S = 1, clock = 0;
   // The line shown once, on the solve that finishes the last of the sixty.
   let ending = '';
@@ -165,7 +166,7 @@
     if (keyboard && document.activeElement === svg) el('polygon', { class: 'focus', points: points(board.tiles[focus], 0.94) }, marks);
     if (hint) el('polygon', { class: 'hint', points: points(board.tiles[hint.tile], 0.8) }, marks);
     const loose = L.loose(board, rots).length;
-    svg.setAttribute('aria-label', `${mode === 'plus' ? `New Game+, board ${k + 1} of ${PLUS.length}, ${here.run.name} ${here.index + 1}` : `${run.name}, board ${k + 1} of ${run.boards.length}`}. ${solved ? 'Every line closed' : `${loose} ${loose === 1 ? 'edge' : 'edges'} with loose ends`}. ${hits} hits; par ${data.stats.par}.${solved ? '' : ` Focus tile ${focus + 1}${locks.has(focus) ? ', locked' : ''}.`}`);
+    svg.setAttribute('aria-label', `${mode === 'plus' ? `New Game+, board ${k + 1} of ${PLUS.length}, ${here.run.name} ${here.index + 1}` : `${run.name}, board ${k + 1} of ${run.boards.length}`}. ${solved ? 'Every line closed' : `${loose} ${loose === 1 ? 'edge' : 'edges'} with loose ends`}. ${hitsWord()}; par ${data.stats.par}.${solved ? '' : ` Focus tile ${focus + 1}${locks.has(focus) ? ', locked' : ''}.`}`);
   }
   const atEnd = () => k === list().length - 1;
   // New Game+ never dead-ends: past its last board, Next goes to the first
@@ -224,7 +225,7 @@
       const t = track(); t.reached = Math.max(t.reached, Math.min(list().length - 1, k + 1));
       const own = tracks[here.run.id]; own.reached = Math.max(own.reached, Math.min(here.run.boards.length - 1, here.index + 1));
       drawRims(); drawEnds(); drawMarks(); const shown = chrome(); save();
-      announce(`Every line closed. ${hits} hits; par ${data.stats.par}. ${ending || (replay() ? 'Replay New Game+ is ready.' : atEnd() && mode !== 'plus' ? `${onward().label}.` : 'Next board is ready.')}`);
+      announce(`Every line closed. ${hitsWord()}; par ${data.stats.par}. ${ending || (replay() ? 'Replay New Game+ is ready.' : atEnd() && mode !== 'plus' ? `${onward().label}.` : 'Next board is ready.')}`);
       if (shown && keyboard) $('#next-btn').focus();
       reveal(); return;
     }
@@ -232,7 +233,7 @@
     const fresh = L.closedLoops(board, rots).filter(l => !before.has(loopKey(l)));
     if (fresh.length) shimmer(fresh);
     const loose = L.loose(board, rots).length;
-    announce(`Tile ${i + 1} turned ${Math.abs(steps)} ${Math.abs(steps) === 1 ? 'step' : 'steps'} ${steps > 0 ? 'clockwise' : 'anticlockwise'}. ${hits} hits. ${loose} ${loose === 1 ? 'edge' : 'edges'} with loose ends.`);
+    announce(`Tile ${i + 1} turned ${Math.abs(steps)} ${Math.abs(steps) === 1 ? 'step' : 'steps'} ${steps > 0 ? 'clockwise' : 'counterclockwise'}. ${hitsWord()}. ${loose} ${loose === 1 ? 'edge' : 'edges'} with loose ends.`);
   }
   function toggleLock(i) {
     if (solved || !board.tiles[i]) return;
@@ -282,7 +283,7 @@
     const old = history.pop(); if (!old) { announce('No turns to undo.'); return; }
     rots = old.rots.slice(); hits = old.hits; hint = null;
     if (solved) { solved = false; stopReveal(); paint(); }
-    ending = ''; inkLayer.style.opacity = ''; render(); save(); announce(`Turn undone. ${hits} hits.`);
+    ending = ''; inkLayer.style.opacity = ''; render(); save(); announce(`Turn undone. ${hitsWord()}.`);
   }
   function restart() {
     if (turning) turning.finish();

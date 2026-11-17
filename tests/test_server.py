@@ -279,7 +279,8 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual((result["score"]["value"], result["score"]["elapsedMs"]), (3210, 3210))
 
     def test_native_ascending_and_infinite_descending_order_and_ties(self):
-        for game in ("horologist", "tilt", "fold", "hexsweeper"):
+        # Every count-scored game ranks by the replayed count, lowest first: the two newest included.
+        for game in ("horologist", "tilt", "fold", "cast", "shoo-minimal", "tilt-3d", "cube-maze", "tangles", "weaves", "hexsweeper"):
             board = {**BOARD, "game": game, "mode": "infinite" if game == "hexsweeper" else "campaign"}
             for value, elapsed in ((7, 1000), (5, 2000), (5, 2000), (9, 4000)):
                 self.publish(board=board, value=value, elapsed=elapsed)

@@ -75,3 +75,13 @@ html, body { touch-action: manipulation; }
 
 /* The alternate board is a native link, with the same reachable target as settings controls. */
 .row .look-link{display:inline-flex;align-items:center;min-height:44px;padding:8px;color:inherit;text-underline-offset:4px}.look-link:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+/* Keyboard focus on a board cell (it had none: the outline was removed and nothing took its place). A white ring
+   between two black bands, the same on every ground: the unlit floor, a wall, and lit floor from near white
+   beside a lamp down to dim. The unlit floor's gray veil steps in from the ring so it does not dull it. A cell a
+   hint points at keeps the hint's color, drawn solid. A tap or a click also leaves focus on its cell, and that
+   stays unmarked as before: akari.js sets data-input only while the keyboard was the last thing used. */
+:root[data-input=keys] #board .cell:focus-visible{outline:2px solid #fff;outline-offset:-4px;box-shadow:inset 0 0 0 5px #000;z-index:2}
+:root[data-input=keys] #board .cell:focus-visible:not(.wall):not(.conflict):not(.hint-target)::after{inset:5px}
+:root[data-input=keys] #board .cell.evidence:focus-visible{outline-color:#a6def5}
+@media(forced-colors:active){:root[data-input=keys] #board .cell:focus-visible{outline:2px solid Highlight;outline-offset:-3px;box-shadow:none}}

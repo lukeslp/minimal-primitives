@@ -49,6 +49,32 @@ class MainActivity : Activity() {
     private var pageShown = false
     private var rendererGone = false
     private var cameraRequest: PermissionRequest? = null
+    /** The handshake of the game Back pressed Home in, while the check below is waiting for it. */
+    private var pendingHome: String? = null
+
+    /**
+     * Home is handled once the library is showing. Some seconds after Back pressed Home, the library is asked to
+     * leave that same game if it is still on screen (LEAVE_SCRIPT): it saves the board as it stands and shows
+     * itself, or asks the player when the board cannot be saved. The check is for one game, named by its
+     * handshake; another game, or the library, is left alone.
+     */
+    private val confirmHome = Runnable {
+        val opened = pendingHome ?: return@Runnable
+        pendingHome = null
+        if (!rendererGone) webView.evaluateJavascript(LEAVE_SCRIPT.replace(OPENED, "'$opened'"), null)
+    }
+
+    private fun awaitHome(opened: String) {
+        if (!HANDSHAKE.matches(opened) || pendingHome == opened) return
+        forgetHome()
+        pendingHome = opened
+        webView.postDelayed(confirmHome, HOME_LIMIT_MS)
+    }
+
+    private fun forgetHome() {
+        webView.removeCallbacks(confirmHome)
+        pendingHome = null
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -197,6 +223,7 @@ class MainActivity : Activity() {
             backCallback?.let(onBackInvokedDispatcher::unregisterOnBackInvokedCallback)
             backCallback = null
         }
+        webView.removeCallbacks(confirmHome)
         container.removeView(webView)
         webView.stopLoading()
         webView.webViewClient = WebViewClient()
@@ -208,7 +235,10 @@ class MainActivity : Activity() {
      * Back follows the collection: it skips the library's opening, closes the scores dialog, then inside a
      * game it presses the game's own Home control (which saves the board and
      * Undo before showing the library), from the accessible grid it returns to
-     * all games, and from the library it leaves.
+     * all games, and from the library it leaves. A press of Home counts only once
+     * the library is showing (confirmHome); a game whose Home cannot answer
+     * (a page without the collection's handshake) is left at once, the same way.
+     * No path here reloads over a board: the library saves it or asks the player.
      */
     private fun handleBack() {
         if (rendererGone) {
@@ -216,10 +246,20 @@ class MainActivity : Activity() {
             return
         }
         webView.evaluateJavascript(BACK_SCRIPT) { result ->
-            when (result?.trim('"')) {
-                "opening", "dialog", "home", "grid", "loading" -> Unit
-                "stuck" -> webView.evaluateJavascript(LIBRARY_SCRIPT, null)
-                else -> leaveApp()
+            val answer = result?.trim('"').orEmpty()
+            when {
+                answer.startsWith("home:") -> awaitHome(answer.removePrefix("home:"))
+                answer == "opening" || answer == "dialog" || answer == "loading" || answer == "asked" -> Unit
+                // The game is no longer on screen: a check still waiting for it has nothing to do.
+                answer == "grid" -> forgetHome()
+                answer == "stuck" -> {
+                    forgetHome()
+                    webView.evaluateJavascript(LEAVE_SCRIPT.replace(OPENED, "null"), null)
+                }
+                else -> {
+                    forgetHome()
+                    leaveApp()
+                }
             }
         }
     }
@@ -354,6 +394,13 @@ class MainActivity : Activity() {
         const val SPLASH_LIMIT_MS = 1500L
         const val CAMERA_REQUEST_CODE = 41
 
+        // The library waits up to five seconds for a game's board before it gives up on Home (web/collection.js).
+        const val HOME_LIMIT_MS = 6000L
+
+        // The collection's handshake is a UUID; nothing else is put into a script.
+        val HANDSHAKE = Regex("^[0-9a-fA-F-]{36}$")
+        const val OPENED = "OPENED_HANDSHAKE"
+
         val MIME_TYPES = mapOf(
             "woff2" to "font/woff2",
             "woff" to "font/woff",
@@ -380,6 +427,12 @@ class MainActivity : Activity() {
          * Reports what Back should do. Inside a game it clicks the game's Home
          * control (#minimal-home, added by the collection's hooks), the same
          * path a tap on Home takes, so the board and Undo are saved first.
+         * Home answers only in a page that carries the handshake its frame was
+         * opened with (?minimal= in the frame's address, MinimalBridge.nonce in
+         * the page); in any other page Back reports 'stuck'. A press of Home is
+         * reported with that handshake, which names the game for the later check.
+         * While the library is asking about an unsaved board, Back leaves the
+         * question up.
          */
         const val BACK_SCRIPT = """(function () {
   if (window.MinimalOpening && window.MinimalOpening.skip()) return 'opening';
@@ -391,15 +444,23 @@ class MainActivity : Activity() {
     if (grid && !grid.hidden && back) { back.click(); return 'grid'; }
     return 'library';
   }
-  var frame = player.querySelector('iframe'), doc = null;
-  try { doc = frame && frame.contentDocument; } catch (e) {}
+  var asking = document.getElementById('unsaved');
+  if (asking && !asking.hidden) return 'asked';
+  var frame = player.querySelector('iframe'), doc = null, bridge = null, sent = null;
+  try { doc = frame && frame.contentDocument; bridge = frame.contentWindow.MinimalBridge; sent = new URL(frame.src).searchParams.get('minimal'); } catch (e) {}
   var home = doc && doc.getElementById('minimal-home');
-  if (home) { home.click(); return 'home'; }
+  if (home && bridge && bridge.nonce && bridge.nonce === sent) { home.click(); return 'home:' + sent; }
   return doc && doc.readyState === 'complete' ? 'stuck' : 'loading';
 })()"""
 
-        /** A game that loaded without its Home control has nothing to save: show the library. */
-        const val LIBRARY_SCRIPT = """(function () {
+        /**
+         * Leaves the game that is on screen through the library (MinimalLibrary.leave in web/collection.js), which
+         * saves the board as it stands before it shows itself, and asks the player where it cannot. OPENED_HANDSHAKE
+         * is replaced by the quoted handshake of the one game meant, or by null for whichever is showing. Only a
+         * library that never started (so no game is open) is loaded again.
+         */
+        const val LEAVE_SCRIPT = """(function (opened) {
+  if (window.MinimalLibrary && typeof window.MinimalLibrary.leave === 'function') return window.MinimalLibrary.leave(opened);
   try {
     for (var i = sessionStorage.length - 1; i >= 0; i--) {
       var key = sessionStorage.key(i);
@@ -407,6 +468,7 @@ class MainActivity : Activity() {
     }
   } catch (e) {}
   location.replace(location.pathname);
-})()"""
+  return 'reloaded';
+})(OPENED_HANDSHAKE)"""
     }
 }

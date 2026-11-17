@@ -1,3 +1,7 @@
-The library has a new look. It opens with the name and eight words, follows your phone's light or dark setting, and has Settings at the top for Look, Motion and Access. Finish every board of a game and its tile takes a color. Leave the library still and a little color passes across it.
+For ten games, finishing every board now puts that game's own solved board, in color, on its tile in the library. A check mark in the corner says the same without color.
 
-Three more games: Cube Maze, on the Tilt card beside Tilt · 3D, and Tangles and Weaves on tiles of their own. Settings is laid out the same way in every game. An update now keeps your unfinished boards and progress.
+Cast has a new finish: when the three shadows match, the room fills with color.
+
+Fixes in Cube Maze, Tangles, Weaves, Towers, Balance, Horologist and Akari: clearer Help, status lines that follow the board, opening boards named in the board list, a still Horologist under Reduced motion, and a visible keyboard focus in Akari.
+
+Boards and progress saved by earlier versions are kept. The privacy policy is now inside the app, in Settings.

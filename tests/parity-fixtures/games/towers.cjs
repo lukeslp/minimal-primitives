@@ -1,8 +1,11 @@
 'use strict';
 // Towers parity steps. A first visit opens on the opening boards; the campaign
-// select leads to the numbered boards, which keep their own saves.
+// select leads to the numbered boards, which keep their own saves. While an
+// opening board is on the page the list names it first (data-here); the steps
+// below pick among the numbered boards only.
+const numbered='#campaign option:not([data-here])';
 const pick=index=>async(f,h)=>h.settings(f,'towers',async()=>{
-  const value=await f.locator('#campaign option').nth(index).getAttribute('value');
+  const value=await f.locator(numbered).nth(index).getAttribute('value');
   await f.locator('#campaign').selectOption(value);
 });
 module.exports={
@@ -22,7 +25,7 @@ module.exports={
   async nextBoard(f,{keyMove,settings,tick}){
     await keyMove(f,'towers');
     await settings(f,'towers',async()=>{
-      const value=await f.locator('#campaign option').nth(1).getAttribute('value');
+      const value=await f.locator(numbered).nth(1).getAttribute('value');
       await f.locator('#campaign').selectOption(value);
     });
     await tick(typeof f.page==='function'?f.page():f);

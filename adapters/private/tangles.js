@@ -51,10 +51,5 @@ const __minimal=MinimalBridge.install({
 });
 const __minimalSave=save;save=function(){const value=__minimalSave.apply(this,arguments);__minimal.changed();return value;};
 // Experiments and New Game+ are pages of this game (experiments.html). A link to one carries the collection's
-// handshake, so Home, Scores and the access keys keep working there.
-document.addEventListener('click',event=>{
-  const a=event.target.closest?.('a[href]');if(!a||!MinimalBridge.nonce)return;
-  const url=new URL(a.href,location.href);
-  if(url.origin!==location.origin||!url.pathname.endsWith('/experiments.html'))return;
-  url.searchParams.set('minimal',MinimalBridge.nonce);a.href=url.href;
-},true);
+// handshake, so Home, Scores and the access keys keep working there: adapters/bootstrap.js does that for every
+// link to a packaged page, in every game.

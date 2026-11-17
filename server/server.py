@@ -30,8 +30,14 @@ from urllib.parse import parse_qs, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 IDENTITY_FIELDS = ("game", "mode", "puzzleId", "layoutHash", "rulesVersion", "scoringPolicy")
-GAMES = {"hexsweeper", "notan", "akari", "spiral-galaxies", "galaxies", "bridges",
-         "slant", "fold", "bending", "tilt", "horologist"}
+# Every game with a resume adapter can post a score. Both sets are read from the files the validator itself
+# uses, so a game added to the package cannot be left out here. "spiral-galaxies" is an older id for galaxies.
+GAMES = {g["id"] for g in json.loads((ROOT / "sources.json").read_text())["games"]
+         if g.get("group") != "accessible"} | {"spiral-galaxies"}
+# Games ranked by a count the validator replays (hits, moves, folds) instead of by the server's clock.
+COUNTED = set(re.findall(r"'?([a-z0-9-]+)'?:'(?:hits|moves|folds)-v1'",
+                         re.search(r"const POLICY=\{([^}]*)\}", (ROOT / "adapters/validators.mjs").read_text()).group(1)))
+assert {"horologist", "tilt", "fold"} <= COUNTED <= GAMES, "validators.mjs POLICY is out of step with sources.json"
 CATEGORIES = {"unassisted", "assisted", "repeat", "repeat-assisted", "practice"}
 DEFAULT_ORIGINS = frozenset({"https://html-classic.itch.zone"})
 RETENTION_MS = 90 * 86400 * 1000
@@ -123,7 +129,7 @@ def infinite(board):
 
 
 def measured(board):
-    return board["game"] in {"horologist", "tilt", "fold"} or infinite(board)
+    return board["game"] in COUNTED or infinite(board)
 
 
 def checked_result(result):

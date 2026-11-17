@@ -23,7 +23,10 @@ for(const [size,viewport] of Object.entries({narrow:{width:320,height:568},phone
   assert(await page.locator('#scores').evaluate(d=>d.open));
   assert.equal(await page.locator('dialog[open]').count(),1,'scores and sharing use one modal');
   assert.equal(await page.locator('#scores select, #scores input').count(),3,'the scores sheet holds the attempts, nickname and sharing controls');
-  assert.equal(await page.locator('#nickname').isVisible(),true);assert.equal(await page.locator('#share-opt-in').isChecked(),false);
+  // This build has no score service: the sheet says scores stay here and offers nothing to share.
+  assert.equal(await page.locator('#scores-local').innerText(),'Scores stay on this device.');
+  assert.equal(await page.locator('#scores .sharing').isVisible(),false,'no sharing controls without a score service');
+  assert.equal(await page.locator('#nickname').isVisible(),false);assert.equal(await page.locator('#share-opt-in').isChecked(),false);
   assert(await page.locator('#scores').evaluate(d=>d.scrollWidth<=d.clientWidth),'modal has no horizontal overflow');
   assert(await page.evaluate(()=>document.activeElement.closest('dialog')?.id==='scores'),'focus enters modal');
   await page.keyboard.press('Escape');
@@ -57,8 +60,10 @@ for(const kind of ['malformed','wrong-type','unavailable'])test(`library ${kind}
   const seed={localStorage:Object.fromEntries(['profile','saves','progress','results'].map(k=>['lukesteuber.minimal.collection.v1:'+k,kind==='wrong-type'?'true':'{damaged']))};
   const ctx=await h.context(await getBrowser(),{width:390,height:844},{storage:kind==='unavailable'?'unavailable':'normal',seed:kind==='unavailable'?{}:seed});t.after(()=>ctx.close());
   const {page,frame}=await h.shell(ctx,h.games[0]);await a.keyMove(frame,'notan');const state=await h.snapshot(frame);
-  await frame.locator('#minimal-home').click();await page.waitForFunction(()=>!document.querySelector('iframe')||!document.querySelector('#notice').hidden);
+  // With storage unavailable the library says once that it could not save, so a notice alone is no sign of failure here.
+  await frame.locator('#minimal-home').click();await page.locator('#library:visible').waitFor().catch(()=>{});
   assert.equal(await page.locator('iframe').count(),0,'Library failed: '+await page.locator('#notice').textContent());
+  if(kind==='unavailable')assert.equal(await page.locator('#notice').textContent(),'Could not save on this device. Progress may not be kept.');
   await page.locator('.tile').filter({hasText:'Notan'}).locator('.go').focus();await page.keyboard.press('Enter');
   const restored=await (await page.locator('iframe').elementHandle()).contentFrame();await h.ready(restored,true);await h.restored(restored);
   h.sameSnapshot(await h.snapshot(restored),state);assert.deepEqual(ctx.parity.errors,[]);
@@ -201,10 +206,10 @@ for(const [size,viewport] of Object.entries({phone:{width:390,height:844},tablet
     assert.deepEqual(grounds,['rgb(0, 0, 0)']);
     await page.locator('#access-back').click();
   });
-  await t.test("Settings is the index's sheet: Display, Access and About; the trophy sheet keeps scores and sharing",async()=>{
+  await t.test("Settings is the index's sheet, Display, Access and About, with the package's Privacy row; the trophy sheet keeps scores and sharing",async()=>{
     await page.locator('#gear').focus();await page.keyboard.press('Enter');
     assert.equal(await page.locator('#settings').evaluate(e=>e.open),true,'the gear opens it from the keyboard');
-    assert.deepEqual(await page.locator('#settings .group').allTextContents(),['Display','Access','About']);
+    assert.deepEqual(await page.locator('#settings .group').allTextContents(),['Display','Access','Privacy','About']);
     assert.equal(await page.locator('#set-access').inputValue(),'off');
     await page.locator('#set-access').selectOption('switch');
     assert.equal(JSON.parse(await page.evaluate(()=>localStorage.getItem('lukesteuber.minimal.shared:minimal-access.v1:default'))).mode,'switch','the games\' shared starting choice');
@@ -285,17 +290,83 @@ test('a scripted open (the app shells, the capture tools) ends the opening and g
 // namespace), and a still library gets a passing shine after ten seconds, then every twenty.
 const LIFE=JSON.parse(fs.readFileSync(path.join(h.ROOT,'index.json'))),done=n=>JSON.stringify({completed:Array.from({length:n},(_,i)=>'b'+i)});
 const seen={[OPENING_KEY]:'1'};
-test('a finished game colors its tile; one board short does not; reduced motion keeps the color',async t=>{
+// What a tile shows: its picture's file, whether it arrived, the tile's dress, and the corner check and words that say "finished" without color.
+const tileState=(page,cls)=>page.locator('#tiles .tile.'+cls).evaluate(e=>{const img=e.querySelector('.art img'),art=getComputedStyle(e.querySelector('.art')),check=getComputedStyle(e,'::after');
+  return{won:e.classList.contains('won'),pictured:e.classList.contains('pictured'),solved:e.classList.contains('solved'),src:img.getAttribute('src').split('?')[0].split('/').pop(),wide:img.naturalWidth,fill:e.style.getPropertyValue('--fill'),
+    ground:art.backgroundColor,blend:getComputedStyle(img).mixBlendMode,filter:getComputedStyle(img).filter,fade:getComputedStyle(img).animationName,
+    check:check.content!=='none'&&check.width==='18px'&&check.backgroundColor!==getComputedStyle(e).backgroundColor,words:e.querySelector('.more .line .done')?.textContent||''};});
+const NOTAN=[...require(path.join(h.ROOT,'imports/notan/levels.js')),...require(path.join(h.ROOT,'imports/notan/plus-levels.js'))].map(b=>b.id),ink=n=>JSON.stringify({solved:Object.fromEntries(NOTAN.slice(0,n).map(id=>[id,30])),boards:{[NOTAN[0]]:{cells:[]}}});
+const file=art=>art.file.split('/').pop();
+test('a finished game shows its solved board in color, or one color where it has no picture; an unfinished tile reads no picture',async t=>{
   const sets=Object.fromEntries(LIFE.tiles.filter(x=>x.set).map(x=>[x.name,x]));
-  assert.deepEqual([sets.Slant.set,sets.Cast.set,sets.Horologist.set],[['slant',54],['cast-3d',50],['horologist-plate',50]],"the index's own table");
+  assert.deepEqual([sets.Slant.set,sets.Notan.set,sets.Cast.set,sets.Tilt.set,sets.Horologist.set],[['slant',54],['ink',73],['cast-3d',50],['tilt-levels-grok',50],['horologist-plate',50]],"the index's own table, with Notan's from the package");
+  assert.equal(NOTAN.length,sets.Notan.set[1],"Notan's whole set is every board in its pinned source");
+  assert.deepEqual(LIFE.tiles.filter(x=>x.solved).map(x=>x.name),['Slant','Notan','Bridges','Spiral Galaxies','Cast','Folding','Towers','Tents','Shoo','Balance']);
   const ctx=await h.context(await getBrowser(),{width:390,height:844},{seed:{localStorage:{...seen,
-    'lukesteuber.minimal.slant:slant.progress.v1':done(54),'lukesteuber.minimal.tilt:tilt.progress.v1':done(39),
+    'lukesteuber.minimal.slant:slant.progress.v1':done(54),'lukesteuber.minimal.notan:ink.v1':ink(73),'lukesteuber.minimal.akari:akari.progress.v1':done(50),
+    'lukesteuber.minimal.bridges:bridges.progress.v1':done(49),'lukesteuber.minimal.tilt:tilt-levels-grok.v1':JSON.stringify({done:Array.from({length:49},(_,i)=>i)}),
     'lukesteuber.minimal.cast:cast-3d.v1':JSON.stringify({finished:Array.from({length:50},(_,i)=>i)}),'lukesteuber.minimal.towers:slant.progress.v1':done(99)}}});t.after(()=>ctx.close());
+  const fetched=[];ctx.on('request',r=>{if(/-solved[^/]*\.webp/.test(r.url()))fetched.push(new URL(r.url()).pathname.split('/').pop());});
+  // Cast's picture cannot be had here: the tile keeps the one-color mark and its own drawing.
+  await ctx.route(/cast-3d-solved/,route=>route.fulfill({status:404,body:'Missing'}));
   const page=await library(ctx);
-  assert.deepEqual(await page.locator('#tiles .tile.won').evaluateAll(n=>n.map(e=>e.dataset.game)),['slant','cast'],'only whole sets, each from its own game\'s record');
-  const slant=await page.locator('#tiles .tile.won').first().evaluate(e=>({win:e.style.getPropertyValue('--win'),ground:getComputedStyle(e.querySelector('.art')).backgroundColor,blend:getComputedStyle(e.querySelector('.art img')).mixBlendMode,dark:e.classList.contains('on-dark')}));
-  assert.deepEqual(slant,{win:LIFE.life.onDark[0],ground:'rgb(23, 104, 255)',blend:'multiply',dark:true});
-  assert.equal(await page.locator('#tiles .tile.glint').count(),0);assert.deepEqual(ctx.parity.errors,[]);
+  await page.locator('#tiles .tile.slant.solved').waitFor();await page.locator('#tiles .tile.notan.solved').waitFor();
+  await page.waitForFunction(()=>document.querySelector('#tiles .tile.cast-3d')._broken===true);
+  assert.deepEqual(await page.locator('#tiles .tile.won').evaluateAll(n=>n.map(e=>e.dataset.game)),['slant','notan','akari','cast'],'only whole sets, each from its own game\'s record');
+  const shown={won:true,pictured:true,solved:true,wide:1200,ground:'rgba(0, 0, 0, 0)',blend:'normal',filter:'none',fade:'none',check:true,words:' All boards finished.'};
+  assert.deepEqual(await tileState(page,'slant'),{...shown,src:file(sets.Slant.solved.dark),fill:'0.64'},'Slant: its solved board, unfiltered, with the check and the words');
+  assert.deepEqual(await tileState(page,'notan'),{...shown,src:file(sets.Notan.solved.dark),fill:'0.68'},'Notan: the lion solved, from the record the package can read');
+  const tint={won:true,pictured:false,solved:false,fill:'',blend:'multiply',check:true,words:' All boards finished.'};
+  const akari=await tileState(page,'akari'),cast=await tileState(page,'cast-3d');
+  assert.deepEqual({...akari,wide:0,ground:'',filter:'',fade:''},{...tint,src:'akari-lines.svg',wide:0,ground:'',filter:'',fade:''},'Akari finishes without color and keeps the one-color mark');
+  assert.match(akari.ground,/^rgb\(/);assert.equal(akari.ground,await page.locator('#tiles .tile.akari').evaluate(e=>{const probe=document.createElement('i');probe.style.color=e.style.getPropertyValue('--win');e.append(probe);const c=getComputedStyle(probe).color;probe.remove();return c;}));
+  assert.deepEqual({...cast,wide:0,ground:'',filter:'',fade:''},{...tint,src:'cast-lines.svg',wide:0,ground:'',filter:'',fade:''},'a picture that cannot be had leaves the one-color mark');
+  for(const name of ['bridges','tilt','towers']){const plain=await tileState(page,name);assert.deepEqual([plain.won,plain.pictured,plain.solved,plain.check,plain.words,plain.src],[false,false,false,false,'',name+'-lines.svg'],name+' is not finished');}
+  assert.deepEqual(fetched.sort(),[file(sets.Cast.solved.dark),file(sets.Notan.solved.dark),file(sets.Slant.solved.dark)].sort(),'a solved picture is read only for a finished tile');
+  assert.equal(await page.locator('#tiles .tile.glint').count(),0);
+  await page.screenshot({path:path.join(h.EVIDENCE,'finished-tiles-dark.png')});assert.deepEqual(ctx.parity.errors,[]);
+});
+test('a solved picture follows the tile\'s ground, fades in, and holds still under reduced motion',async t=>{
+  const sets=Object.fromEntries(LIFE.tiles.filter(x=>x.solved).map(x=>[x.name,x]));
+  const ctx=await h.context(await getBrowser(),{width:390,height:844},{scheme:'dark',motion:'no-preference',seed:{localStorage:{...seen,[THEME_KEY]:JSON.stringify({theme:'light'}),
+    'lukesteuber.minimal.notan:ink.v1':ink(73),'lukesteuber.minimal.slant:slant.progress.v1':done(53)}}});t.after(()=>ctx.close());
+  const page=await library(ctx);await page.locator('#tiles .tile.notan.solved').waitFor();
+  const light=await tileState(page,'notan');
+  assert.deepEqual([light.src,light.fade,light.wide,light.check],[file(sets.Notan.solved.light),'solved-in',1200,true],'on white, the picture made for white, fading in');
+  assert.equal((await tileState(page,'slant')).won,false,'one board short');
+  // The library's own Motion setting stills it, as the phone's does.
+  await page.locator('#gear').click();await page.locator('#set-motion').selectOption('reduce');await page.keyboard.press('Escape');
+  assert.deepEqual([(await tileState(page,'notan')).fade,(await tileState(page,'notan')).solved],['none',true]);
+  // Dark: the tiles are drawn again, and Notan takes the picture made for black.
+  await page.locator('#gear').click();await page.locator('#set-look').selectOption('dark');await page.keyboard.press('Escape');
+  await page.locator('#tiles .tile.notan.solved').waitFor();
+  assert.equal((await tileState(page,'notan')).src,file(sets.Notan.solved.dark));
+  // Checkerboard: Notan's tile is on black there too, and an unfinished record takes the picture away at the next drawing.
+  await page.evaluate(()=>localStorage.removeItem('lukesteuber.minimal.notan:ink.v1'));
+  await page.locator('#gear').click();await page.locator('#set-look').selectOption('checkerboard');await page.keyboard.press('Escape');
+  await page.locator('#tiles .tile.notan').waitFor();
+  const plain=await tileState(page,'notan');assert.deepEqual([plain.won,plain.pictured,plain.src,plain.check],[false,false,'notan.png',false]);
+  assert.deepEqual(ctx.parity.errors,[]);
+});
+test('the phone\'s reduced motion keeps the solved picture and drops its fade',async t=>{
+  const ctx=await h.context(await getBrowser(),{width:1280,height:900},{scheme:'light',motion:'reduce',seed:{localStorage:{...seen,'lukesteuber.minimal.slant:slant.progress.v1':done(54)}}});t.after(()=>ctx.close());
+  const page=await library(ctx);await page.locator('#tiles .tile.slant.solved').waitFor();
+  const slant=await tileState(page,'slant');assert.deepEqual([slant.fade,slant.wide,slant.check,slant.words],['none',1200,true,' All boards finished.']);
+  await page.screenshot({path:path.join(h.EVIDENCE,'finished-tiles-light-desktop.png')});assert.deepEqual(ctx.parity.errors,[]);
+});
+test("the library's own Reduced motion keeps the solved picture and drops its fade, where the phone asks for nothing",async t=>{
+  // The index's stylesheet stills everything under html[data-motion="reduce"] (one rule, after the picture's own),
+  // which library-theme.js sets before the first paint. The phone's setting is left at normal motion here.
+  const ctx=await h.context(await getBrowser(),{width:390,height:844},{scheme:'dark',motion:'no-preference',seed:{localStorage:{...seen,[THEME_KEY]:JSON.stringify({motion:'reduce'}),'lukesteuber.minimal.slant:slant.progress.v1':done(54)}}});t.after(()=>ctx.close());
+  const page=await library(ctx);await page.locator('#tiles .tile.slant.solved').waitFor();
+  assert.deepEqual(await page.evaluate(()=>[matchMedia('(prefers-reduced-motion: reduce)').matches,document.documentElement.getAttribute('data-motion')]),[false,'reduce']);
+  const slant=await tileState(page,'slant');assert.deepEqual([slant.fade,slant.solved,slant.wide,slant.check],['none',true,1200,true]);
+  assert.equal(await page.locator('#tiles .tile.slant .art img').evaluate(img=>img.getAnimations().length),0,'nothing is running on the picture');
+  // Back to the phone's setting, the next picture drawn fades in again.
+  await page.locator('#gear').click();await page.locator('#set-motion').selectOption('system');await page.locator('#set-look').selectOption('light');await page.keyboard.press('Escape');
+  await page.locator('#tiles .tile.slant.solved').waitFor();
+  assert.equal((await tileState(page,'slant')).fade,'solved-in');
+  assert.deepEqual(ctx.parity.errors,[]);
 });
 test('a still library shines once after ten seconds and again every twenty; input, a sheet or reduced motion holds it',async t=>{
   const ctx=await h.context(await getBrowser(),{width:390,height:844},{scheme:'dark',motion:'no-preference',seed:{localStorage:seen}});t.after(()=>ctx.close());
