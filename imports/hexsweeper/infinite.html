@@ -693,6 +693,13 @@ body[data-mode="dark"] #plate-toggle .plate-icon-moon { display: block !importan
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.18s ease;
+  /* Keep the open sheet on a compositor layer of its own. Without it, once the
+     fade ends the sheet merges into the page's full-screen layer and is drawn
+     into that layer's tiles; Android's WebView on the emulator then left some
+     of those tiles stale (a ghost of the sheet's own header in its empty lower
+     part, or the sphere showing through after a tab switch) once the sheet
+     grew taller. On its own layer the sheet is drawn whole each time it opens. */
+  will-change: opacity;
 }
 .help-overlay.open { opacity: 1; pointer-events: auto; }
 .help-overlay[hidden] { display: none; }

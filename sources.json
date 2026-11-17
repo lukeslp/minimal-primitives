@@ -5,7 +5,7 @@
       "id": "hexsweeper",
       "title": "Hexsweeper",
       "repository": "lukeslp/hexsweeper-private-history",
-      "commit": "f4ea5ca06333accd803fd4378a0c9a699add5f53",
+      "commit": "b8ad354298fd07398f383e25f240db8e9346c86f",
       "entry": "hexsweeper/sphere/index.html",
       "modes": [
         {
@@ -94,8 +94,8 @@
         {
           "path": "hexsweeper/infinite.html",
           "source": "infinite.html",
-          "sha256": "91ec62a9f19c9e280ba858ed69884f930b73795a454bead8848ff3aeaf4c8700",
-          "bytes": 549997
+          "sha256": "57c0eb11c079af4b497f6d19cc3e3ed4390062d6bdcb8c61f74186d95494f7e5",
+          "bytes": 550498
         },
         {
           "path": "hexsweeper/skin-chrome.css",
@@ -262,8 +262,8 @@
         {
           "path": "hexsweeper/sphere/index.html",
           "source": "sphere/index.html",
-          "sha256": "7016ee7210c6b027c95182b29d39396443595c6e42fe401afd6998496aaffa56",
-          "bytes": 50862
+          "sha256": "f37a9e678046de1433fadb66920b312a967d4b94349f7c572e76dfd88e9353ab",
+          "bytes": 51363
         },
         {
           "path": "hexsweeper/sphere/mirror-material.js",

@@ -80,7 +80,7 @@ def main():
     parser.add_argument('--hex', type=Path, default=ROOT.parent / 'hexsweeper')
     parser.add_argument('--games-ref', default='d3d9b9e')
     parser.add_argument('--new-ref', default='d3d9b9e')
-    parser.add_argument('--hex-ref', default='f4ea5ca')
+    parser.add_argument('--hex-ref', default='b8ad354')
     parser.add_argument('--accessible-art', type=Path, default=None, help="defaults to the games checkout's accessible/art")
     args = parser.parse_args()
     args.accessible_art = args.accessible_art or args.games / 'accessible/art'

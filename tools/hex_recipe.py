@@ -27,7 +27,7 @@ from pathlib import Path
 import re
 
 ROOT = Path(__file__).resolve().parents[1]
-PIN = 'f4ea5ca06333accd803fd4378a0c9a699add5f53'
+PIN = 'b8ad354298fd07398f383e25f240db8e9346c86f'
 
 
 def exact(text, anchor, replacement, path):

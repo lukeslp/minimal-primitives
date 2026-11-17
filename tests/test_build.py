@@ -113,6 +113,8 @@ class CameraFreeVariantTests(unittest.TestCase):
         self.assertFalse([n for n in self.names if 'assets/reflections/' in n or 'classic-minesweeper' in n])
         sphere = self.texts['games/hexsweeper/sphere/index.html']
         self.assertIn('const ROSTER = ["light", "dark", "mercury", "aurora"];', sphere)
+        # Hexsweeper b8ad354: the open sheet keeps its own compositor layer (Android WebView left it half painted).
+        self.assertIn('  will-change: opacity;\n}\n.help-overlay.open', sphere)
         for gone in ['classic-minesweeper', 'class="help-history-row"', 'id="history-lightbox"', 'id="help-history-btn"', 'help-theme-credit']:
             self.assertNotIn(gone, sphere)
         engine = self.texts['games/hexsweeper/sphere/sphere.js']
@@ -155,6 +157,7 @@ class CameraFreeVariantTests(unittest.TestCase):
             self.assertNotIn(path, recorded)
             self.assertFalse((ROOT / 'imports' / path).exists())
         self.assertIn('const ROSTER = ["light", "dark", "mercury", "ion-storm", "aurora", "galaxy", "heat-lightning"];', page)
+        self.assertIn('  will-change: opacity;\n}\n.help-overlay.open', page)
         self.assertIn('    THEME_MERCURY,\n    THEME_ION_STORM,\n    THEME_AURORA,\n', engine)
         for gone in ['class="help-history-row"', 'id="history-lightbox"', 'id="help-history-btn"']:
             self.assertNotIn(gone, page)
