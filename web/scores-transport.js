@@ -23,6 +23,10 @@
    * settles its finish/retries and returns {score,ranked} or null. Main assigns
    * completion synchronously when finishing and retains its receipt in result.
    * These promises must settle even on failure. Nothing here starts/finishes a run.
+   * Optional service: false when no score service is configured (every app build). The 'service' action
+   * reports it, so the game's sheet can leave its sharing form out, and a sharing preference is then refused.
+   * The state then carries `local`: this device's own finished attempts at the board, newest first, from the
+   * optional results list ([{identity,elapsedMs,assisted,repeat}], the collection's record of finished boards).
    * Actions: state, board (+category), preference (+nickname), remove (+id).
    * Every request carries board:{game,puzzle,mode,layoutHash}; layoutHash is the
    * canonical shape hash, NOT the old order-dependent native digest. An optional
@@ -30,7 +34,8 @@
    */
   async function handle(payload, context) {
     if (!object(payload) || typeof payload.request !== 'string' || !/^[\w.:-]{1,128}$/.test(payload.request) ||
-        !['state', 'board', 'preference', 'remove'].includes(payload.action)) fail('Invalid Scores request.');
+        !['service', 'state', 'board', 'preference', 'remove'].includes(payload.action)) fail('Invalid Scores request.');
+    if (payload.action === 'service') return { service: context.service !== false };
     const { profile } = context;
     const attempt = context.attempt;
     const board = payload.board;
@@ -63,6 +68,7 @@
       };
     };
     if (payload.action === 'preference') {
+      if (context.service === false) fail('Scores stay on this device.');
       if (typeof payload.nickname !== 'string') fail('Choose a nickname of 1–20 letters, numbers, spaces, underscores, dots or dashes.');
       const nickname = payload.nickname.normalize('NFKC').trim();
       if (!/^[\p{L}\p{N}_. -]{1,20}$/u.test(nickname)) fail('Choose a nickname of 1–20 letters, numbers, spaces, underscores, dots or dashes.');
@@ -88,7 +94,14 @@
       check();
       const receipt = attempt.completion ? await attempt.completion : attempt.result;
       check();
-      return snapshot(receipt);
+      const state = snapshot(receipt);
+      if (context.service === false) {
+        const own = Array.isArray(context.results) ? context.results : [];
+        state.local = own.filter(r => object(r) && object(r.identity) && identityKeys.every(k => r.identity[k] === attempt.identity[k]) &&
+          Number.isFinite(r.elapsedMs) && r.elapsedMs >= 0).reverse().map(r => ({ seconds: Math.max(1, Math.floor(r.elapsedMs / 1000)),
+          category: r.repeat ? (r.assisted ? 'repeat-assisted' : 'repeat') : r.assisted ? 'assisted' : 'unassisted' }));
+      }
+      return state;
     }
     const receipt = attempt.completion ? await attempt.completion : attempt.result;
     check();

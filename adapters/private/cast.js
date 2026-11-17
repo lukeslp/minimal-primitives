@@ -9,8 +9,11 @@ const __minimal=MinimalBridge.install({
     const boardFor=(id,seed)=>id!=null?boards.find(b=>b.id===id):(Free&&Number.isInteger(seed)?Free.fromSeed(seed):null);
     const free=d&&d.mode==='free',b=d&&boardFor(free?null:d.board,free?d.seed:null);
     const pb=d&&d.parked&&boardFor(free?d.parked.board:null,free?null:d.parked.seed);
-    if(d&&d.parked&&(!pb||!validHeights(d.parked.heights,pb)||!validHits(d.parked.hits)||!Array.isArray(d.parked.history)))throw Error('Invalid Cast snapshot');
-    if(!b||!validHeights(d.heights,b)||!validHits(d.hits)||!Array.isArray(d.history)||!d.history.every(s=>validHeights(s.heights,b)&&validHits(s.hits))||!Array.isArray(d.finished)||!['system','reduce'].includes(d.motion)||!Array.isArray(d.focus)||!Number.isInteger(d.reached))throw Error('Invalid Cast snapshot');
+    // Every Undo step is checked against its own board, the waiting board's as well as the open one's: a step the
+    // engine cannot read would otherwise pass here and throw at a later Undo.
+    const steps=(list,board)=>Array.isArray(list)&&list.every(s=>s&&validHeights(s.heights,board)&&validHits(s.hits));
+    if(d&&d.parked&&(!pb||!validHeights(d.parked.heights,pb)||!validHits(d.parked.hits)||!steps(d.parked.history,pb)))throw Error('Invalid Cast snapshot');
+    if(!b||!validHeights(d.heights,b)||!validHits(d.hits)||!steps(d.history,b)||!Array.isArray(d.finished)||!['system','reduce'].includes(d.motion)||!Array.isArray(d.focus)||!Number.isInteger(d.reached))throw Error('Invalid Cast snapshot');
     for(const dialog of document.querySelectorAll('dialog[open]'))dialog.close();
     clearPending();
     const changedBoard=b!==puzzle;
@@ -20,7 +23,9 @@ const __minimal=MinimalBridge.install({
     finished=new Set(d.finished.filter(id=>boards.some(b=>b.id===id)));prefs.motion=d.motion;
     reached=Math.max(0,Math.min(boards.length-1,d.reached));
     hint=d.hint;focus=d.focus.slice();hover=null;
-    glow=success=lift=tint=solvedNow()?1:0;
+    // The finish is one value since game-riffs e558e7f (the room takes its color): 1 on a finished board. cast.json
+    // carries its declaration as a hook that changes nothing, so the build stops if the game renames it.
+    tint=solvedNow()?1:0;
     const v=Number.isInteger(d.view)&&d.view>=0&&d.view<RESTS.length?d.view:FRONT;
     viewRest=v;board.dataset.view=RESTS[v].name;
     if(renderer&&changedBoard)buildRoom();

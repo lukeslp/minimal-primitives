@@ -167,6 +167,7 @@
     $('#feedback').classList.toggle('sr-only', S.solved);
     $('#previous').disabled = k <= 0;
     $('#following').disabled = k < 0 || k === TOTAL - 1;
+    $('#replay-opening').textContent = replaying && openingAt(at) >= 0 ? 'Back to board ' + (campaignAt(store.at) + 1) : REPLAY;
   }
   function fit() {
     const shell = $('#board-shell'), n = puzzle.n;
@@ -260,6 +261,7 @@
     save();
     at = id;
     puzzle = board(id);
+    if (openingAt(id) < 0) replaying = false;
     S.cells = (store.boards[id] || E.start(puzzle)).slice();
     S.undo = [];
     S.focus = 0;
@@ -274,6 +276,9 @@
     save();
     if (location.search) history.replaceState(null, '', location.pathname);
   }
+  // Help's replay button takes a player back from the opening boards it brought them to.
+  let replaying = false;
+  const REPLAY = 'Play the opening boards again';
   function advance(event) {
     if (!S.solved) return;
     const byKey = !event || event.detail === 0, o = openingAt(at), k = campaignAt(at);
@@ -338,7 +343,11 @@
         option.textContent = (i + 1) + ' · ' + p.n + '×' + p.n + (progress.completed.includes(p.id) ? ' ✓' : '');
         return option;
       }));
-      $('#campaign').value = ids.has(at) ? at : store.at;
+      // An opening board is listed as what it is, at the head of the list: the list no longer shows a campaign
+      // board's number and size over one. Choosing a campaign board from it leaves the opening boards as before.
+      const o = openingAt(at);
+      if (o >= 0) { const intro = document.createElement('option'); intro.value = at; intro.dataset.opening = ''; intro.textContent = 'Opening board ' + (o + 1) + ' of ' + opening.length; $('#campaign').prepend(intro); }
+      $('#campaign').value = at;
     }
     $('#' + id).showModal();
   }
@@ -346,7 +355,7 @@
     $('#' + id + '-btn').addEventListener('click', () => openSheet(id, $('#' + id + '-btn')));
     $('#' + id).addEventListener('close', () => { if (!document.activeElement.closest('.board,dialog[open]') && invoker) invoker.focus({ preventScroll: true }); });
   }
-  $('#campaign').addEventListener('change', e => { switchBoard(e.target.value); $('#settings').close(); });
+  $('#campaign').addEventListener('change', e => { if (openingAt(e.target.value) < 0) switchBoard(e.target.value); $('#settings').close(); });
   for (const [id, step] of [['previous', -1], ['following', 1]]) {
     $('#' + id).addEventListener('click', () => {
       const k = campaignAt(at) + step;
@@ -355,7 +364,13 @@
     });
   }
   $('#reset').addEventListener('click', () => { restart(); $('#settings').close(); });
-  $('#replay-opening').addEventListener('click', () => { $('#help').close(); switchBoard(opening[0].id); });
+  // From a campaign board the button replays the opening boards; from an opening board it reached that way, it goes
+  // back to the board the player was on. Finishing the opening boards, or a reload, goes back there too.
+  $('#replay-opening').addEventListener('click', () => {
+    $('#help').close();
+    if (replaying && openingAt(at) >= 0) { switchBoard(store.at); return; }
+    replaying = true; switchBoard(opening[0].id);
+  });
   function applyPrefs() {
     const html = document.documentElement;
     if (prefs.theme === 'system') delete html.dataset.theme; else html.dataset.theme = prefs.theme;

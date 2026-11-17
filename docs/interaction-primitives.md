@@ -61,8 +61,8 @@ review on 2026-11-13 (one outside model and this repository's own read)
 sharpened it:
 
 - On and off are outcomes. The action that produces them is **toggle**: a
-  physical two-position control. Not "switch", which also names the
-  assistive input device and could mean swapping or rerouting.
+  physical two-position control. (Among these finer verbs toggle is the
+  precise one; the public word for it is `switch`, as above.)
 - **Release** is the root action; drop is release under gravity, kept as an
   everyday variant.
 - Missing actions that both reviewers named: **point** (aim), **turn**

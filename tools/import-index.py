@@ -11,11 +11,16 @@ This reads that page at a pinned commit and writes:
                           markup of the opening, the title with its Settings
                           gear, and the Settings sheet
   web/index-tiles.css     the index's own stylesheet, verbatim
-  web/assets/tiles/       the index's tile pictures and line drawings, by their own file names
+  web/assets/tiles/       the index's tile pictures, line drawings and solved pictures, by their own file names
 
 The line drawings (minimal/art/*-lines.svg) are made by minimal/art/linework.py in
 luke-portfolio; only the drawings are imported, never the generator. Which tile
 takes which drawing comes from the `lines` map in the page's own script.
+
+A finished game's tile shows that game's own solved board in color. The pictures
+(minimal/art/*-solved*.webp, captures made by minimal/art/solved-capture.cjs) and
+which tile takes which come from the `solved` table in the page's "Signs of life"
+script; the capture script is not imported.
 
 `--check` compares the pin with another ref (default origin/main) and fails
 when the index has moved on. Run it before every release.
@@ -30,7 +35,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PIN = '8f5dd84'
+PIN = '8cdf938'
 PAGE = 'minimal/index.html'
 
 # Where each index link leads inside the package: (game id, Hexsweeper mode). A tile's own
@@ -78,6 +83,15 @@ NOT_BUNDLED = {
     # collection's Home and Scores) and has no runtime.json, so the package cannot carry it as it is.
     'https://lukesteuber.com/games/quipu-nonogram/': 'Quipu (game-riffs weave/) has no shared control frame (switch and Look and hold access) and no runtime.json yet',
 }
+# Finished-tile facts the index's own tables cannot hold. The web page cannot read a record kept on another site,
+# so its `sets` and `solved` tables leave Notan (playnotan.com) out; the package reads every bundled game's own
+# record. By tile class: where the game keeps its record and how many boards make its whole set, and the solved
+# pictures the index's art folder carries for the app (on black, on white, the share of the tile's side filled).
+# Notan keeps a map of board to best time under ink.v1; its set is the ramp and New Game+ together, the boards
+# its own "All 73 boards solved." counts (tests/test_build.py counts them in the pinned source).
+APP_LIFE = {
+    'notan': {'set': ['ink', 73], 'solved': ['notan-solved-7725aca98610.webp', 'notan-solved-light-535dc40e3591.webp', 0.68]},
+}
 
 
 def git(repo, *args):
@@ -115,7 +129,11 @@ def parse(html):
     def literal(name):
         text = re.search(r'\b%s = (\[[^\]]*\]|\{.*?\});' % name, html, re.S) or re.search(r'\b%s = (\[[^\]]*\])' % name, html)
         return json.loads(re.sub(r"([{,]\s*)([A-Za-z_][\w]*)\s*:", r'\1"\2":', text.group(1).replace("'", '"')))
-    life = {'onDark': literal('onDark'), 'onLight': literal('onLight'), 'sets': literal('sets')}
+    life = {'onDark': literal('onDark'), 'onLight': literal('onLight'), 'sets': literal('sets'), 'solved': literal('solved')}
+    for name, extra in APP_LIFE.items():
+        if name in life['sets'] or name in life['solved']:
+            sys.exit(f'The index now has its own finished-tile entry for {name!r}: take it out of APP_LIFE in tools/import-index.py.')
+        life['sets'][name], life['solved'][name] = extra['set'], extra['solved']
     return style, tiles, lines, opening, header, settings, life
 
 
@@ -168,14 +186,27 @@ def main():
         drawing = next((lines[c] for c in tile['classes'] if c in lines), None)
         tile['lines'] = f'art/{drawing}-lines.svg' if drawing else None
         tile['set'] = next((life['sets'][c] for c in tile['classes'] if c in life['sets']), None)
+        def carry(source):
+            data = git(args.index, 'show', f'{sha}:minimal/{source}')
+            name = Path(source).name
+            (art_dir / name).write_bytes(data)
+            return {'file': 'assets/tiles/' + name, 'sha256': hashlib.sha256(data).hexdigest()}
         for key in ('art', 'artWide', 'lines'):
             if tile[key]:
-                data = git(args.index, 'show', f'{sha}:minimal/{tile[key]}')
-                name = Path(tile[key]).name
-                (art_dir / name).write_bytes(data)
-                tile[key] = {'file': 'assets/tiles/' + name, 'sha256': hashlib.sha256(data).hexdigest()}
+                tile[key] = carry(tile[key])
+        # The solved board in color, shown once the game is finished: one picture for a tile on black, one for a
+        # tile on white (the same file where the game finishes on a ground of its own), and the share of the side.
+        pictures = next((life['solved'][c] for c in tile['classes'] if c in life['solved']), None)
+        if pictures and not tile['set']:
+            sys.exit(f'{tile["name"]!r} has a solved picture and no set to finish: the picture could never show.')
+        tile['solved'] = {'dark': carry('art/' + pictures[0]), 'light': carry('art/' + pictures[1]), 'fill': pictures[2]} if pictures else None
         kept.append(tile)
+    used = {c for t in kept for c in t.get('classes', [])}
+    for name in life['solved']:
+        if name not in used:
+            sys.exit(f'The index has a solved picture for {name!r}, which is no tile in the package.')
     live = {Path(t[k]['file']).name for t in kept for k in ('art', 'artWide', 'lines') if t.get(k)}
+    live |= {Path(t['solved'][k]['file']).name for t in kept if t.get('solved') for k in ('dark', 'light')}
     for old in art_dir.iterdir():
         if old.name not in live:
             old.unlink()

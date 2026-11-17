@@ -53,7 +53,14 @@ release key (see Release signing).
 - Back follows the collection. It closes the scores dialog if it is open. Inside
   a game it presses that game's own Home control, which saves the board and Undo
   before showing the library, the same path as tapping Home. In the library it
-  leaves the app.
+  leaves the app. A press of Home counts only once the library is showing: six
+  seconds later the shell asks the library to leave that one game (named by its
+  handshake) if it is still on screen. The library takes the board as it
+  stands, stores it and shows itself; where the board cannot be saved it asks
+  the player, over the game, "This board could not be saved." with Keep playing
+  and Leave anyway. A page whose Home cannot answer (one loaded without the
+  collection's handshake) is left at once the same way. Nothing reloads over a
+  game.
 - The app follows the device's light or dark setting, so games that theme
   themselves by `prefers-color-scheme` look as they do in a mobile browser.
 - The launcher icon and splash are the Hexsweeper Sphere tile from the library

@@ -30,6 +30,13 @@ games and their modes come from `sources.json`, which pins each game's source by
 commit and file hash. The [release copy](release/itch-page.md) names them in one
 sentence, which `npm test` checks against that list.
 
+## The name
+
+Primitives are what doing is made of, as simple machines are what machines are
+made of. The collection names eight: get, put, push, turn, join, split, bend,
+switch. Each game is built on one or two of them. See
+[interaction primitives](docs/interaction-primitives.md).
+
 ## Two builds
 
 | Build | Command | Output | Used for |
@@ -50,8 +57,9 @@ unchanged.
 Most games' settings include Access (Hexsweeper Sphere has none): one-switch
 scanning, and Look and hold, which selects whatever the pointer rests on. The
 pointer can be a finger, a mouse or a head mouse. The full build adds head and
-eye pointing through the front camera, and an eye tracker through a local gaze
-bridge.
+eye pointing through the front camera. The Eye tracker choice needs a helper
+program on a computer, so the package shows it as unavailable; it works on the
+web pages.
 
 ## Android
 
@@ -72,6 +80,10 @@ Imports are verified against `sources.json`, and the game snapshots under
 `imports/` are never edited by hand. Changes for the collection are build-only
 transforms in `tools/` whose anchors fail the build when the source drifts. See
 [the implementation contract](docs/implementation.md).
+
+The package changes what would not work inside an app: puzzle sharing and downloads are hidden, the camera starts only
+after a press in the game that is open, a link from one packaged page to another keeps Home working, and the library's
+Settings carries the privacy policy (`web/privacy.html`).
 
 Run `npm test` for acceptance. Browser tests use external Playwright and Chrome
 installations and install no packages. After a build,

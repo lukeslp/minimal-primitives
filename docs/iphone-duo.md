@@ -75,6 +75,12 @@ every board off the fold without touching the pinned game sources.
   and the game frame see to `Documents/duo-probe.json`.
 - `-MPDuoSimulate book|laptop` reports a made-up 24 pt fold across the middle, for
   screenshots on a simulator that can't fold. Never in a release build.
+- `-MPCheck <folder>` runs `Documents/<folder>/1.js`, `2.js`, … in the library
+  page, each as its file appears, and writes what each returns to `<n>.json`
+  beside it. A script on the Mac writes the steps into the simulator's app
+  container, reads the answers and takes `simctl io screenshot` between them:
+  it is how the app is played in a simulator that cannot be tapped (the 0.5.8
+  check, `docs/implementation.md`). Never in a release build.
 
 ## Not done
 

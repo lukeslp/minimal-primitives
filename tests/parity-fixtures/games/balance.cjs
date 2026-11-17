@@ -2,11 +2,13 @@
 // Balance: a first visit opens on the short opening boards; the campaign
 // picker sits in Settings. Moves go to the first square that is not fixed.
 const open='#board .cell:not([aria-readonly])';
+// While an opening board is on the page the campaign list names it first (data-opening); the steps pick numbered boards.
+const numbered='#campaign option:not([data-opening])';
 module.exports={
   storageKey:'balance.current.v1',
   async campaign(f,{settings}){
     await settings(f,'balance',async()=>{
-      const first=await f.locator('#campaign option').first().getAttribute('value');
+      const first=await f.locator(numbered).first().getAttribute('value');
       await f.locator('#campaign').selectOption(first);
     });
   },

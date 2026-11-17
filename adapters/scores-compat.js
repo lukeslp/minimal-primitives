@@ -37,7 +37,7 @@
   function attach({ game, shape, isCampaign, describe, labels, sheet, category, status, submit, remove, open, after }) {
     const $ = selector => sheet.querySelector(selector);
     const alias = $('#score-alias');
-    let current = null, completed = null, view = null, epoch = 0, returnTo = null;
+    let current = null, completed = null, view = null, epoch = 0, returnTo = null, service = null;
     const live = (board, turn) => current === board && epoch === turn && sheet.open;
     async function call(action, board, extra = {}) {
       const identity = await board.identity;
@@ -59,9 +59,39 @@
       submit.hidden = false;
       remove.hidden = !result?.published;
     }
+    // With no score service (every app build) nothing can be shared: the nickname form, the picker of shared lists
+    // and the note about the service are left out. The sheet shows what the player has on this device for the
+    // board (the library's own record of finished attempts, newest first) and says where the scores are. The
+    // library is asked once about the service. Bridges draws a hidden row as a flex box, so each node carries the
+    // rule itself.
+    function offer(on) { for (const node of [submit, category.closest('.row'), $('details.help-more')]) if (node) { node.hidden = !on; node.style.display = on ? '' : 'none'; } }
     async function refresh(fillNickname = false) {
       const board = current, turn = ++epoch;
       $('#scores-list').replaceChildren(); submit.hidden = true; remove.hidden = true;
+      if (service === null) {
+        status.textContent = 'Loading…';
+        try { service = (await request('service', {})).service !== false; } catch (_) { /* asked again at the next opening */ }
+        if (!live(board, turn)) return;
+      }
+      if (service === false) {
+        offer(false);
+        $('#scores-result').textContent = '';
+        if (!board?.campaign) { status.textContent = 'Scores stay on this device.'; return; }
+        status.textContent = 'Loading…';
+        try {
+          const state = await call('state', board);
+          if (!live(board, turn)) return;
+          const own = Array.isArray(state.local) ? state.local : [];
+          if (own.length && (board.finished || state.finished)) $('#scores-result').textContent = 'Your time ' + format(own[0].seconds) + ' · ' + labels[own[0].category] + ' · Saved on this device';
+          own.forEach((row, n) => {
+            const li = document.createElement('li');
+            for (const value of [n + 1, labels[row.category], format(row.seconds)]) { const span = document.createElement('span'); span.textContent = value; li.append(span); }
+            $('#scores-list').append(li);
+          });
+          status.textContent = own.length ? 'Scores stay on this device.' : 'No finished attempts at this board yet. Scores stay on this device.';
+        } catch (_) { if (live(board, turn)) status.textContent = 'Scores stay on this device.'; }
+        return;
+      }
       if (!board?.campaign) { status.textContent = 'Scores are available for campaign puzzles.'; return; }
       status.textContent = 'Loading…';
       try {

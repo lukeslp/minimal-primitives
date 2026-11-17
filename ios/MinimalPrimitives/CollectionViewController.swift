@@ -39,6 +39,8 @@ final class CollectionViewController: UIViewController, WKNavigationDelegate, WK
     private var webView: WKWebView!
     // iPhone Duo: the fold and hinge reach the collection and every game frame (DuoBridge.swift, duo-fold.js).
     private var duo: DuoBridge!
+    // Shown instead of a blank screen when the collection itself cannot be loaded.
+    private var recovery: UIView?
 
     override var prefersStatusBarHidden: Bool { true }
     override var prefersHomeIndicatorAutoHidden: Bool { true }
@@ -108,6 +110,82 @@ final class CollectionViewController: UIViewController, WKNavigationDelegate, WK
         decisionHandler(.cancel)
     }
 
+    // A page of the collection that is missing (the scheme handler answers 404) would otherwise leave a blank screen.
+    func webView(_ webView: WKWebView, decidePolicyFor response: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
+        if response.isForMainFrame, let http = response.response as? HTTPURLResponse, http.statusCode >= 400 {
+            decisionHandler(.cancel)
+            showRecovery()
+            return
+        }
+        decisionHandler(.allow)
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        navigationFailed(error)
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        navigationFailed(error)
+    }
+
+    private func navigationFailed(_ error: Error) {
+        let failure = error as NSError
+        // A link handed to Safari, a load replaced by a newer one, or a response refused above is not a failure to report.
+        if failure.domain == NSURLErrorDomain && failure.code == NSURLErrorCancelled { return }
+        if failure.domain == "WebKitErrorDomain" && failure.code == 102 { return }
+        showRecovery()
+    }
+
+    /// The same recovery the library shows when its own data cannot be read: what happened, and Retry.
+    /// The ground and ink follow the phone's appearance, like the launch screen.
+    private func showRecovery() {
+        guard recovery == nil else { return }
+        let panel = UIView()
+        panel.backgroundColor = UIColor(named: "LaunchBackground") ?? .systemBackground
+        panel.translatesAutoresizingMaskIntoConstraints = false
+
+        let message = UILabel()
+        message.text = "The games could not load."
+        message.textColor = .label
+        message.font = .preferredFont(forTextStyle: .body)
+        message.adjustsFontForContentSizeCategory = true
+        message.numberOfLines = 0
+        message.textAlignment = .center
+
+        var look = UIButton.Configuration.plain()
+        look.title = "Retry"
+        look.baseForegroundColor = .label
+        look.background.strokeColor = .label
+        look.background.strokeWidth = 1
+        look.background.cornerRadius = 0
+        look.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 28, bottom: 12, trailing: 28)
+        let retry = UIButton(configuration: look, primaryAction: UIAction { [weak self] _ in self?.retry() })
+
+        let stack = UIStackView(arrangedSubviews: [message, retry])
+        stack.axis = .vertical
+        stack.alignment = .center
+        stack.spacing = 16
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        panel.addSubview(stack)
+        view.addSubview(panel)
+        NSLayoutConstraint.activate([
+            panel.topAnchor.constraint(equalTo: view.topAnchor), panel.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            panel.leadingAnchor.constraint(equalTo: view.leadingAnchor), panel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            stack.centerYAnchor.constraint(equalTo: panel.centerYAnchor),
+            stack.leadingAnchor.constraint(equalTo: panel.safeAreaLayoutGuide.leadingAnchor, constant: 24),
+            stack.trailingAnchor.constraint(equalTo: panel.safeAreaLayoutGuide.trailingAnchor, constant: -24),
+            retry.heightAnchor.constraint(greaterThanOrEqualToConstant: 44), retry.widthAnchor.constraint(greaterThanOrEqualToConstant: 88),
+        ])
+        recovery = panel
+        UIAccessibility.post(notification: .screenChanged, argument: message)
+    }
+
+    private func retry() {
+        recovery?.removeFromSuperview()
+        recovery = nil
+        webView.load(URLRequest(url: CollectionSchemeHandler.start))
+    }
+
     // The camera, for Look and hold by head or eyes, only for the bundled
     // collection. iOS's own camera prompt (NSCameraUsageDescription) still asks
     // the player once; the page is not asked again on every visit, as on Android.
@@ -116,9 +194,40 @@ final class CollectionViewController: UIViewController, WKNavigationDelegate, WK
         decisionHandler(origin.protocol == CollectionSchemeHandler.scheme && origin.host == CollectionSchemeHandler.host && type == .camera ? .grant : .deny)
     }
 
+    #if DEBUG
+    // Checks only: -MPCheck <folder> runs Documents/<folder>/1.js, 2.js, 3.js… in the library page, each as its file
+    // appears, and writes what each returns to <n>.json beside it. A harness on the Mac writes the scripts, reads
+    // the answers and photographs the simulator between them (the 0.5.8 simulator check). Never in a release build.
+    private var checkFolder: URL?
+    private var checkStep = 0
+    private func runChecks() {
+        guard let folder = checkFolder else { return }
+        let step = checkStep + 1
+        guard let script = try? String(contentsOf: folder.appendingPathComponent("\(step).js"), encoding: .utf8) else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in self?.runChecks() }
+            return
+        }
+        checkStep = step
+        webView.callAsyncJavaScript(script, arguments: [:], in: nil, in: .page) { [weak self] result in
+            var answer: [String: Any] = [:]
+            switch result {
+            case .success(let value): answer["value"] = value as? String ?? "\(value)"
+            case .failure(let error): answer["error"] = "\((error as NSError).userInfo["WKJavaScriptExceptionMessage"] ?? error.localizedDescription)"
+            }
+            let data = (try? JSONSerialization.data(withJSONObject: answer)) ?? Data("{}".utf8)
+            try? data.write(to: folder.appendingPathComponent("\(step).json"), options: .atomic)
+            self?.runChecks()
+        }
+    }
+    #endif
+
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         duo.resend()
         #if DEBUG
+        if checkFolder == nil, let name = UserDefaults.standard.string(forKey: "MPCheck"), webView.url?.path == "/index.html" {
+            checkFolder = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent(name, isDirectory: true)
+            runChecks()
+        }
         // Checks only: -MPDuoProbe <game id> opens that game and logs the fold state the game frame sees.
         if let game = UserDefaults.standard.string(forKey: "MPDuoProbe"), webView.url?.path == "/index.html" {
             let probe = """

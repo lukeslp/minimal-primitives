@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff"><title>Privacy policy · Minimal Primitives</title>
+<!-- The page follows the library's theme (Dark, or the light ground of Light and Checkerboard). The library shows
+     this page's text in a sheet from Settings (collection.js); opened by itself it is an ordinary page.
+     tools/build.py keeps the paragraphs for the build being made: "full" (camera input) or "camera-free". -->
+<script src="library-theme.js"></script>
+<style>
+:root{--bg:#fff;--text:#111;--line:#ddd;--sub:#666;color-scheme:light}
+html[data-look="dark"]{--bg:#000;--text:#eee;--line:#333;--sub:#999;color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.5}
+main{max-width:34rem;margin:0 auto;padding:calc(12px + env(safe-area-inset-top,0px)) 24px calc(32px + env(safe-area-inset-bottom,0px))}
+h1{margin:0 0 20px;padding:8px 0 14px;border-bottom:1px solid var(--line);font-size:18px;font-weight:500}
+.group{margin:28px 0 4px;font-size:14px;font-weight:600;line-height:1.3;color:var(--sub)}
+p{max-width:60ch;margin:8px 0 0}
+.note{margin-top:28px;color:var(--sub);font-size:13px}
+a{color:inherit;text-underline-offset:3px}
+a:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+.back{display:inline-flex;align-items:center;min-height:44px}
+</style>
+</head>
+<body>
+<main>
+<a class="back page-only" href="index.html">All games</a>
+<h1>Privacy policy</h1>
+<p>Minimal Primitives is a set of puzzle games that play offline, with no account, no advertising, no analytics and no tracking.</p>
+<h2 class="group">Data collection</h2>
+<p>Minimal Primitives does not collect personal data or usage data. Every game is bundled with the app. The iPhone, iPad and Android apps load nothing from the network, and nothing you play is sent anywhere. The Android app has no network permission at all.</p>
+<h2 class="group">Saved games and scores</h2>
+<p>Unfinished boards, Undo history, settings and your scores are stored on this device. Deleting the app removes them. On Android they are also kept out of cloud backup and device transfer.</p>
+<!--full:begin-->
+<h2 class="group">Camera</h2>
+<p>The camera is used only to move the game pointer with your head or eyes. It starts only when you ask for it in the game you are playing: with the camera button or the Head and Eyes choices in Glance, Glyph, Pursuit, Shoo and Nod, or through Look and hold with Head or Eyes in another game's Access settings. Your device asks for permission first.</p>
+<p>Camera images are processed on this device, by MediaPipe Face Landmarker, which is bundled with the app. They are never saved, uploaded or shared. The camera stops when you leave the game or choose Pointer, and every game can be played without it.</p>
+<h2 class="group">Permissions</h2>
+<p>The app asks for the camera, for the use above. Tilt · 3D can also be steered by leaning the phone, once you turn on Phone tilt in its Settings; an iPhone or iPad asks first before the game may read motion. Those readings steer the game and are never saved or sent. The app asks for nothing else. On Android it can also vibrate for touch feedback in some games.</p>
+<!--full:end-->
+<!--camera-free:begin-->
+<h2 class="group">Camera</h2>
+<p>This is the camera-free build. It has no camera input, never asks for the camera, and its Android app has no camera permission. Look and hold works with a finger, a mouse or a head mouse.</p>
+<h2 class="group">Permissions</h2>
+<p>The app asks for no permissions. Tilt · 3D can be steered by leaning the phone, once you turn on Phone tilt in its Settings; those readings steer the game and are never saved or sent. On Android the app can vibrate for touch feedback in some games.</p>
+<!--camera-free:end-->
+<h2 class="group">Links</h2>
+<p>A few links in the games' settings and help, such as lukesteuber.com, open in your browser, outside the app. Those sites have their own privacy practices.</p>
+<h2 class="group">Children and families</h2>
+<p>The games do not knowingly collect information from anyone, including children.</p>
+<h2 class="group">Contact</h2>
+<p>Questions about this policy may be sent to luke@lukesteuber.com.</p>
+<p class="note">Last updated: November 16, 2026</p>
+</main>
+</body>
+</html>

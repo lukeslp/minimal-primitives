@@ -25,3 +25,8 @@ html, body { touch-action: manipulation; }
 
 /* The alternate board is a native link, with the same reachable target as settings controls. */
 .row .look-link{display:inline-flex;align-items:center;min-height:44px;padding:8px;color:inherit;text-underline-offset:4px}.look-link:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+/* Keyboard focus on a board cell: the ink ring reads on lit and unlit floor but not on a wall, which is ink too.
+   A focused wall takes the ring in the page color, with a band of it at the wall's edge that a clue's dashed
+   mark cannot replace. */
+#board .cell.wall:focus-visible{outline-color:var(--bg);box-shadow:inset 0 0 0 2px var(--bg)}

@@ -2,11 +2,11 @@
   "schema": 1,
   "repository": "lukeslp/luke-portfolio",
   "page": "minimal/index.html",
-  "commit": "8f5dd84996790c84e1a9fcee7c203b0971043041",
-  "styleSha256": "b172095f04405efc1d05c5583d2ec1f864cef494e965517cd82c262e550f8038",
+  "commit": "8cdf938c8674517a95ed3711076612d9f32cbb6e",
+  "styleSha256": "f2fdade8133fff7e3e106eb20f61f68718aa550b7189795501b01329efd5b6ae",
   "opening": "<div class=\"intro\" id=\"intro\" aria-hidden=\"true\" hidden>\n    <p>minimal primitives</p>\n    <ul><li>get</li><li>put</li><li>push</li><li>turn</li><li>join</li><li>split</li><li>bend</li><li>switch</li></ul>\n  </div>",
   "header": "<header class=\"top\">\n    <h1 class=\"masthead\" id=\"masthead\"><span id=\"masthead-text\">minimal primitives</span></h1>\n    <button type=\"button\" class=\"gear\" id=\"gear\" aria-label=\"Settings\" aria-haspopup=\"dialog\" aria-controls=\"settings\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"/></svg></button>\n  </header>",
-  "settings": "<dialog id=\"settings\" class=\"sheet\" aria-labelledby=\"settings-title\">\n    <div class=\"sheet-head\"><h2 id=\"settings-title\">Settings</h2><form method=\"dialog\"><button class=\"sheet-x\" aria-label=\"Close Settings\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M6 6l12 12M18 6 6 18\"/></svg></button></form></div>\n    <div class=\"sheet-body\">\n      <h3 class=\"group\">Display</h3>\n      <label class=\"row\">Look <select id=\"set-look\"><option value=\"system\">Follow phone</option><option value=\"checkerboard\">Checkerboard</option><option value=\"light\">Light</option><option value=\"dark\">Dark</option></select></label>\n      <label class=\"row\">Motion <select id=\"set-motion\"><option value=\"system\">Follow phone</option><option value=\"reduce\">Reduced</option></select></label>\n      <div class=\"row\"><span>Opening</span><button type=\"button\" id=\"set-opening\">Play</button></div>\n      <h3 class=\"group\">Access</h3>\n      <label class=\"row\">Access <select id=\"set-access\"><option value=\"off\">Off</option><option value=\"switch\">One switch</option><option value=\"look\">Look and hold</option></select></label>\n      <p class=\"note\">The starting choice for each game here, until you set one in that game.</p>\n      <h3 class=\"group\">About</h3>\n      <p>Simple machines are what machines are made of: levers, wheels, ramps, wedges, screws, pulleys. Primitives are what doing is made of: push, pull, tilt, turn, fold, connect, toggle, point. Each game here is built on one or two of them.</p>\n      <p>They started as a sneaky way to run motor assessments for eye gaze, head pointing and switch users. Turns out they're also just fun.</p>\n      <p><a href=\"https://github.com/lukeslp/minimal-primitives\">Source on GitHub</a>, MIT.</p>\n    </div>\n  </dialog>",
+  "settings": "<dialog id=\"settings\" class=\"sheet\" aria-labelledby=\"settings-title\">\n    <div class=\"sheet-head\"><h2 id=\"settings-title\">Settings</h2><form method=\"dialog\"><button class=\"sheet-x\" aria-label=\"Close Settings\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M6 6l12 12M18 6 6 18\"/></svg></button></form></div>\n    <div class=\"sheet-body\">\n      <h3 class=\"group\">Display</h3>\n      <label class=\"row\">Look <select id=\"set-look\"><option value=\"system\">Follow phone</option><option value=\"checkerboard\">Checkerboard</option><option value=\"light\">Light</option><option value=\"dark\">Dark</option></select></label>\n      <label class=\"row\">Motion <select id=\"set-motion\"><option value=\"system\">Follow phone</option><option value=\"reduce\">Reduced</option></select></label>\n      <div class=\"row\"><span>Opening</span><button type=\"button\" id=\"set-opening\">Play</button></div>\n      <h3 class=\"group\">Access</h3>\n      <label class=\"row\">Access <select id=\"set-access\"><option value=\"off\">Off</option><option value=\"switch\">One switch</option><option value=\"look\">Look and hold</option></select></label>\n      <p class=\"note\">The starting choice for each game here, until you set one in that game.</p>\n      <h3 class=\"group\">About</h3>\n      <p>Simple machines are what machines are made of: levers, wheels, ramps, wedges, screws, pulleys. Primitives are what doing is made of: get, put, push, turn, join, split, bend, switch. Each game here is built on one or two of them.</p>\n      <p>They started as a sneaky way to run motor assessments for eye gaze, head pointing and switch users. Turns out they're also just fun.</p>\n      <p><a href=\"https://github.com/lukeslp/minimal-primitives\">Source on GitHub</a>, MIT.</p>\n    </div>\n  </dialog>",
   "life": {
     "onDark": [
       "#1768ff",
@@ -46,7 +46,18 @@
       "set": [
         "slant",
         54
-      ]
+      ],
+      "solved": {
+        "dark": {
+          "file": "assets/tiles/slant-solved-5747ef0847b1.webp",
+          "sha256": "5747ef0847b1cfa0671f0d4a680278fe35ee66f9afa7157dc5b7f4113849566d"
+        },
+        "light": {
+          "file": "assets/tiles/slant-solved-5747ef0847b1.webp",
+          "sha256": "5747ef0847b1cfa0671f0d4a680278fe35ee66f9afa7157dc5b7f4113849566d"
+        },
+        "fill": 0.64
+      }
     },
     {
       "classes": [
@@ -68,9 +79,23 @@
       "mode": null,
       "lines": {
         "file": "assets/tiles/notan-lines.svg",
-        "sha256": "7c945c23b5dd5ee7259b0fb6819a69fabfb45883cc4ac5b9cad6d45c4e0daf12"
+        "sha256": "60a5eac1f1bd78fc6faa3b6567b0b408bbe0073ffb1ebea183ed1ba19ac545a4"
       },
-      "set": null
+      "set": [
+        "ink",
+        73
+      ],
+      "solved": {
+        "dark": {
+          "file": "assets/tiles/notan-solved-7725aca98610.webp",
+          "sha256": "7725aca9861055bb159ddf9535b0c326aeda0d83449999a23665a86bbb618da1"
+        },
+        "light": {
+          "file": "assets/tiles/notan-solved-light-535dc40e3591.webp",
+          "sha256": "535dc40e359186475bd4db159ab8ac94cb7e84d947413bd2d2b2d23eb0d309d3"
+        },
+        "fill": 0.68
+      }
     },
     {
       "classes": [
@@ -105,7 +130,8 @@
       "game": "hexsweeper",
       "mode": "sphere",
       "lines": null,
-      "set": null
+      "set": null,
+      "solved": null
     },
     {
       "classes": [
@@ -139,7 +165,18 @@
       "set": [
         "bridges",
         50
-      ]
+      ],
+      "solved": {
+        "dark": {
+          "file": "assets/tiles/bridges-solved-2d53f5ba790c.webp",
+          "sha256": "2d53f5ba790cdcc5fb3ac9f053f0887345c1f3932c8a160d8719475c6bacb14e"
+        },
+        "light": {
+          "file": "assets/tiles/bridges-solved-light-6cbeb2df204b.webp",
+          "sha256": "6cbeb2df204bbc005bdf2f1780c5d1f0353e9b6efc908a594d46749dd00e1a08"
+        },
+        "fill": 0.64
+      }
     },
     {
       "classes": [
@@ -165,7 +202,8 @@
       "set": [
         "akari",
         50
-      ]
+      ],
+      "solved": null
     },
     {
       "classes": [
@@ -189,7 +227,18 @@
       "set": [
         "galaxies",
         50
-      ]
+      ],
+      "solved": {
+        "dark": {
+          "file": "assets/tiles/galaxies-solved-e8a264fc7420.webp",
+          "sha256": "e8a264fc7420a179da07e6efd5f0ae8986f65c769cdd447948b3b87f4650a06d"
+        },
+        "light": {
+          "file": "assets/tiles/galaxies-solved-e8a264fc7420.webp",
+          "sha256": "e8a264fc7420a179da07e6efd5f0ae8986f65c769cdd447948b3b87f4650a06d"
+        },
+        "fill": 0.68
+      }
     },
     {
       "classes": [
@@ -219,7 +268,18 @@
       "set": [
         "cast-3d",
         50
-      ]
+      ],
+      "solved": {
+        "dark": {
+          "file": "assets/tiles/cast-3d-solved-33efddb7d503.webp",
+          "sha256": "33efddb7d50304ad6751a03a5bb639dad01ba645020989850bc03235c0e49930"
+        },
+        "light": {
+          "file": "assets/tiles/cast-3d-solved-light-870d7e5c3759.webp",
+          "sha256": "870d7e5c3759b3096ff67ce534f90111fc7a99751294cd5156467fc256eb218b"
+        },
+        "fill": 0.68
+      }
     },
     {
       "classes": [
@@ -239,7 +299,8 @@
       "game": "tangles",
       "mode": null,
       "lines": null,
-      "set": null
+      "set": null,
+      "solved": null
     },
     {
       "classes": [
@@ -265,7 +326,18 @@
       "set": [
         "fold",
         50
-      ]
+      ],
+      "solved": {
+        "dark": {
+          "file": "assets/tiles/fold-solved-b63345cc1504.webp",
+          "sha256": "b63345cc150442b3289529b08b029be0b3c53e51e96f59a74ee6bd3541c4f1b2"
+        },
+        "light": {
+          "file": "assets/tiles/fold-solved-light-5fe260442670.webp",
+          "sha256": "5fe2604426700d84ec704a34c53e06b23d8a286a74e1fb0d8487abf1da53f848"
+        },
+        "fill": 0.68
+      }
     },
     {
       "classes": [
@@ -289,7 +361,8 @@
         "file": "assets/tiles/bending-lines.svg",
         "sha256": "a665b70545e1331e42acf83ed140ddb7dd09da4cc371c79d12ebf6dc47b7160c"
       },
-      "set": null
+      "set": null,
+      "solved": null
     },
     {
       "classes": [
@@ -315,7 +388,18 @@
       "set": [
         "towers",
         35
-      ]
+      ],
+      "solved": {
+        "dark": {
+          "file": "assets/tiles/towers-solved-409fbee1e37e.webp",
+          "sha256": "409fbee1e37e38d262c5294e5b5c245cd8cdc7970b1b01226f8133a11b5157a5"
+        },
+        "light": {
+          "file": "assets/tiles/towers-solved-409fbee1e37e.webp",
+          "sha256": "409fbee1e37e38d262c5294e5b5c245cd8cdc7970b1b01226f8133a11b5157a5"
+        },
+        "fill": 0.68
+      }
     },
     {
       "classes": [
@@ -338,7 +422,8 @@
         "file": "assets/tiles/weave-lines.svg",
         "sha256": "357aae39265ce1650f42badbfbdd87463a2eb89c23870216b3d3b76a800b50fd"
       },
-      "set": null
+      "set": null,
+      "solved": null
     },
     {
       "classes": [
@@ -378,9 +463,10 @@
         "sha256": "15e6aa5146f00ea02ddf004bcf869b232340db9dd835777f3c2e6c73f8508c50"
       },
       "set": [
-        "tilt",
-        40
-      ]
+        "tilt-levels-grok",
+        50
+      ],
+      "solved": null
     },
     {
       "classes": [
@@ -406,7 +492,8 @@
       "set": [
         "horologist-plate",
         50
-      ]
+      ],
+      "solved": null
     },
     {
       "classes": [
@@ -432,7 +519,18 @@
       "set": [
         "tents",
         30
-      ]
+      ],
+      "solved": {
+        "dark": {
+          "file": "assets/tiles/tents-solved-35cf5ffd6a82.webp",
+          "sha256": "35cf5ffd6a82fbd6d494c945ee4ea216888688aa4c33af8b6a35846a4962fc39"
+        },
+        "light": {
+          "file": "assets/tiles/tents-solved-light-61174982b3d1.webp",
+          "sha256": "61174982b3d1502e0458af9f777b1f92bdb19ac38789bfc0939bc91d614f789b"
+        },
+        "fill": 0.68
+      }
     },
     {
       "classes": [
@@ -458,7 +556,18 @@
       "set": [
         "shoo-minimal",
         80
-      ]
+      ],
+      "solved": {
+        "dark": {
+          "file": "assets/tiles/shoo-solved-8a62ca6f3efc.webp",
+          "sha256": "8a62ca6f3efcdf84eeced0bb587eecc4faa99bca04d4779e3264b464f1dfc647"
+        },
+        "light": {
+          "file": "assets/tiles/shoo-solved-light-5c8b13415727.webp",
+          "sha256": "5c8b13415727de4e6809951899a1fa1f491c7ebbd892baa8bd08108fb16cd09d"
+        },
+        "fill": 0.68
+      }
     },
     {
       "classes": [
@@ -484,7 +593,18 @@
       "set": [
         "balance",
         30
-      ]
+      ],
+      "solved": {
+        "dark": {
+          "file": "assets/tiles/balance-solved-fa12051d22bc.webp",
+          "sha256": "fa12051d22bc1f8a2f6c5a67172fe07ac9ca34e75fc5a1c6a9a158ac9e50e3bd"
+        },
+        "light": {
+          "file": "assets/tiles/balance-solved-fa12051d22bc.webp",
+          "sha256": "fa12051d22bc1f8a2f6c5a67172fe07ac9ca34e75fc5a1c6a9a158ac9e50e3bd"
+        },
+        "fill": 0.68
+      }
     },
     {
       "classes": [
@@ -508,7 +628,8 @@
         "file": "assets/tiles/delve-lines.svg",
         "sha256": "05125aa1f48a6365b64bb5fd95b280fa2d1df15b959acbf848cb99b02b03a3b7"
       },
-      "set": null
+      "set": null,
+      "solved": null
     },
     {
       "name": "Harmonies",
@@ -533,7 +654,8 @@
       "game": "accessible",
       "mode": null,
       "lines": null,
-      "set": null
+      "set": null,
+      "solved": null
     }
   ],
   "notBundled": [

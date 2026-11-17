@@ -187,10 +187,42 @@ class LibraryIndexTests(unittest.TestCase):
                     data = (ROOT / 'web' / tile[key]['file']).read_bytes()
                     self.assertEqual(hashlib.sha256(data).hexdigest(), tile[key]['sha256'], tile['name'])
                     used.add(Path(tile[key]['file']).name)
+            for ground in ('dark', 'light') if tile.get('solved') else ():
+                art = tile['solved'][ground]
+                self.assertEqual(hashlib.sha256((ROOT / 'web' / art['file']).read_bytes()).hexdigest(), art['sha256'], tile['name'])
+                self.assertRegex(Path(art['file']).name, r'-solved(?:-light)?-%s\.webp$' % art['sha256'][:12], 'named by its own hash')
+                used.add(Path(art['file']).name)
         self.assertEqual({p.name for p in (ROOT / 'web/assets/tiles').iterdir()}, used, 'no stray tile pictures or drawings')
         # Main games have no second, hand-kept picture; only the accessible puzzles keep theirs.
         self.assertEqual({p.stem for p in (ROOT / 'web/assets').glob('*.png')},
                          {g['id'] for g in self.sources if g.get('group') == 'accessible'})
+
+    def test_finished_tiles_show_a_bundled_solved_picture(self):
+        # A finished game's tile shows that game's own solved board, bundled with the app: the nine the index names,
+        # and Notan, whose record the package can read and the web page cannot (APP_LIFE in tools/import-index.py).
+        solved = {t['name']: t for t in self.tiles if t.get('solved')}
+        self.assertEqual(list(solved), ['Slant', 'Notan', 'Bridges', 'Spiral Galaxies', 'Cast', 'Folding', 'Towers', 'Tents', 'Shoo', 'Balance'])
+        for name, tile in solved.items():
+            self.assertTrue(tile['set'], name + ' can be finished')
+            self.assertTrue(0.5 <= tile['solved']['fill'] <= 0.8, name)
+        self.assertEqual({t['name'] for t in self.tiles if t.get('set') and not t.get('solved')}, {'Akari', 'Tilt', 'Horologist'},
+                         'the games that finish without color keep the one-color mark')
+        # Notan's whole set is every board its pinned source lists (the ramp and New Game+), kept under ink.v1.
+        boards = sum(len(re.findall(r"\{ id: '[\w-]+'", (ROOT / 'imports/notan' / name).read_text())) for name in ('levels.js', 'plus-levels.js'))
+        self.assertEqual(solved['Notan']['set'], ['ink', boards])
+        self.assertIn("const KEY = 'ink.v1';", (ROOT / 'imports/notan/notan.js').read_text())
+        self.assertIn("'All ' + all + ' boards solved.'", (ROOT / 'imports/notan/notan.js').read_text())
+        # The build names each picture for a tile on black and one on white, and the shell reads them only from the package.
+        subprocess.run([sys.executable, str(ROOT / 'tools/build.py'), '--no-zip'], check=True, capture_output=True)
+        built = {t['name']: t for t in json.loads((ROOT / 'build/html/tiles.json').read_text()) if t.get('solved')}
+        self.assertEqual(list(built), list(solved))
+        for name, tile in built.items():
+            for ground in ('dark', 'light'):
+                self.assertRegex(tile['solved'][ground], r'^assets/tiles/[\w-]+\.webp\?v=[0-9a-f]{12}$', name)
+                self.assertTrue((ROOT / 'build/html' / tile['solved'][ground].split('?')[0]).is_file(), name)
+        shell = (ROOT / 'web/collection.js').read_text()
+        self.assertIn("tile.classList.toggle('won', won); picture(tile);", shell)
+        self.assertNotIn('solved-capture', shell + json.dumps(self.index), 'the capture script stays with the index')
 
     def test_one_hexsweeper_tile_with_the_other_boards_through_it(self):
         hexes = [t for t in self.tiles if t['game'] == 'hexsweeper']
@@ -229,11 +261,13 @@ class LibraryIndexTests(unittest.TestCase):
         built = transform(game, 'tangles/experiments.js', source)
         self.assertNotIn("ROOT = STANDALONE ? '../' : './';", built)
         self.assertIn("+ 'index.html' + (window.MinimalBridge && MinimalBridge.nonce ? '?minimal=' + MinimalBridge.nonce : '')", built)
-        # Every link Tangles makes to its Experiments names the page, which the adapter's click handler matches.
+        # Every link Tangles makes to its Experiments is an ordinary link to that page. The handshake goes with it
+        # in the one place that carries it for every game (adapters/bootstrap.js), not in Tangles' own adapter.
         listing = (ROOT / 'imports/tangles/experiments-list.js').read_text()
         self.assertGreaterEqual(listing.count('./experiments.html?'), 3)
         self.assertEqual(listing.count('experiments.html'), listing.count('./experiments.html?'))
-        self.assertIn("url.pathname.endsWith('/experiments.html')", (ROOT / 'adapters/private/tangles.js').read_text())
+        self.assertNotIn("addEventListener('click'", (ROOT / 'adapters/private/tangles.js').read_text())
+        self.assertIn("url.searchParams.set('minimal', nonce);\n    a.setAttribute('href', url.href);", (ROOT / 'adapters/bootstrap.js').read_text())
 
     def test_weaves_opens_from_its_own_tile(self):
         # Weaves is game-riffs weave-minimal/, bundled as `weaves`; Quipu (game-riffs weave/) is a different game.
@@ -310,6 +344,431 @@ class LibraryIndexTests(unittest.TestCase):
         self.assertNotIn('--paper:#', (ROOT / 'web/collection.css').read_text().split('#access-tiles')[0], 'tile grounds come from the index')
 
 
+class PackageOffersOnlyWhatWorksTests(unittest.TestCase):
+    """Build-time changes for the app package: no link that strands the player, no sharing or download that cannot
+    work in an app, no camera without a press, and a privacy page that says what the build being made does."""
+
+    @classmethod
+    def setUpClass(cls):
+        for variant in ([], ['--variant', 'fdroid']):
+            subprocess.run([sys.executable, str(ROOT / 'tools/build.py'), '--no-zip', *variant], check=True, capture_output=True)
+        cls.full, cls.free = ROOT / 'build/html', ROOT / 'build/html-fdroid'
+        cls.games = {g['id']: g for g in json.loads((ROOT / 'sources.json').read_text())['games']}
+
+    def test_cast_has_no_link_to_the_old_cast(self):
+        # "Cast · Old" (../cast/) is this same page in the package, reached without the collection's handshake:
+        # Home, All games and Scores stopped answering there.
+        for root in (self.full, self.free):
+            page = (root / 'games/cast/index.html').read_text()
+            self.assertNotIn('../cast/', page)
+            self.assertNotIn('Cast · Old', page)
+            self.assertIn('<footer class="sheet-foot"><a href="../../index.html" data-minimal-library>All games</a> · <a href="https://lukesteuber.com"', page)
+            self.assertIn('which this browser has turned off. <a href="../../index.html" data-minimal-library>Back to all games</a>.</p>', page)
+        with self.assertRaises(ValueError):
+            transform(self.games['cast'], 'cast/index.html', '<html><head></head><body>no old link here</body></html>')
+        # No other bundled page links to a game folder without naming its page.
+        for path in self.full.glob('games/*/*.html'):
+            self.assertIsNone(re.search(r'href="\.\./[a-z0-9-]+/"', path.read_text()), path.name)
+
+    def test_no_game_offers_a_share_link_or_a_download(self):
+        hidden_share = ('<h3 class="group" hidden>Share</h3><div class="row" hidden style="display:none"><span>This puzzle</span>'
+                        '<button id="share">Copy link</button><button id="share-picture" hidden>Share</button></div>')
+        for game in ['slant', 'bridges', 'galaxies', 'fold']:
+            page = (self.full / 'games' / game / 'index.html').read_text()
+            self.assertEqual(page.count(hidden_share), 1, game)
+        slant = (self.full / 'games/slant/index.html').read_text()
+        self.assertIn('<div class="row" hidden style="display:none"><span>Colored puzzle</span><button id="download">Download</button></div>', slant)
+        self.assertIn('<style>#download-btn{display:none!important}</style></head>', slant)
+        self.assertIn('<style>#share-btn{display:none!important}</style></head>', (self.full / 'games/notan/index.html').read_text())
+        endless = (self.full / 'games/hexsweeper/infinite.html').read_text()
+        for control in ['export-run-btn', 'import-run-btn']:
+            self.assertRegex(endless, r'<button hidden type="button" class="help-pack" id="' + control + '"')
+        # Every Settings sheet in the package: a Share heading, a Copy link or a Download row is never left showing.
+        for path in sorted(self.full.glob('games/**/*.html')):
+            page = path.read_text()
+            self.assertNotIn('<h3 class="group">Share</h3>', page, path)
+            for label in ['Copy link', 'Download']:
+                for row in re.findall(r'<div class="row"[^>]*>(?:(?!</div>).)*>' + label + '</button>', page):
+                    self.assertIn(' hidden', row.split('>')[0], f'{path}: {label}')
+        for path in ['slant/index.html', 'bridges/index.html', 'galaxies/index.html', 'fold/index.html']:
+            with self.assertRaises(ValueError):
+                transform(self.games[path.split('/')[0]], path, '<html><head></head><body>no share row</body></html>')
+
+    def test_the_camera_starts_only_after_a_press(self):
+        # Permission granted earlier is not the player asking now: neither the shared frame nor a camera game starts
+        # the camera by itself when a game opens, in either build.
+        from camera_recipe import CAMERA_GAMES, press_first
+        for root in (self.full, self.free):
+            frames = sorted(root.glob('games/*/access.js'))
+            self.assertGreaterEqual(len(frames), 29)
+            for path in frames:
+                text = path.read_text()
+                self.assertNotIn("if(s==='granted')startCamera", text, path)
+                self.assertEqual(text.count("permission().then(s=>{if(mode!=='look'||phase!=='prompt')return;if(s==='denied')fallback();});"), 1, path)
+            for game in CAMERA_GAMES:
+                text = (root / 'games' / game / (game + '.js')).read_text()
+                self.assertNotIn("state === 'granted'", text, game)
+                self.assertEqual(text.count("permission().then(state => { if (phase !== 'prompt') return; if (state === 'denied') fallback(); });"), 1, game)
+        with self.assertRaises(ValueError):
+            press_first({'id': 'glance'}, 'glance/glance.js', 'no camera start here')
+        with self.assertRaises(ValueError):
+            press_first({'id': 'akari'}, 'akari/access.js', 'no camera start here')
+        self.assertEqual(press_first({'id': 'akari'}, 'akari/akari.js', 'untouched'), 'untouched')
+
+    def test_each_build_has_its_own_privacy_page(self):
+        sys.path.insert(0, str(ROOT / 'tools'))
+        from build import privacy_page
+        source = (ROOT / 'web/privacy.html').read_text()
+        full, free = (self.full / 'privacy.html').read_text(), (self.free / 'privacy.html').read_text()
+        self.assertEqual((full, free), (privacy_page(source, True), privacy_page(source, False)))
+        for page in (full, free):
+            self.assertNotRegex(page, r'<!--(?:full|camera-free):')
+            self.assertEqual(page.count('<h2 class="group">Camera</h2>'), 1)
+            for fact in ['no account, no advertising, no analytics and no tracking', 'does not collect personal data or usage data',
+                         'The Android app has no network permission at all.', 'are stored on this device', 'open in your browser, outside the app']:
+                self.assertIn(fact, page)
+            self.assertNotRegex(page, r'<a\b[^>]*href="(?:https?:|mailto:)', 'nothing on the page needs the network or another app')
+        self.assertIn('Camera images are processed on this device, by MediaPipe Face Landmarker', full)
+        self.assertIn('They are never saved, uploaded or shared.', full)
+        self.assertIn('This is the camera-free build. It has no camera input', free)
+        for word in ['MediaPipe', 'Eye tracker', 'The app asks for the camera']:
+            self.assertNotIn(word, free)
+        # No build offers the Eye tracker choice (test_eye_tracker_is_not_offered), so neither page describes it.
+        self.assertNotRegex(full, r'(?i)eye tracker|helper program')
+        for broken in [source.replace('<!--full:end-->', ''), source.replace('<!--camera-free:begin-->', '<!--camera-free:begin-->\n<!--camera-free:begin-->')]:
+            with self.assertRaises(ValueError):
+                privacy_page(broken, True)
+        # The page's facts, where they are kept: no score service in any build made here, no network permission on
+        # Android, the camera permission in the full flavor only.
+        self.assertEqual(json.loads((ROOT / 'web/settings.json').read_text()), {'apiBase': ''}, 'privacy.html says scores stay on the device')
+        manifest = (ROOT / 'android/app/src/main/AndroidManifest.xml').read_text()
+        self.assertEqual(re.findall(r'<uses-permission android:name="([^"]+)"', manifest), ['android.permission.VIBRATE'])
+        self.assertEqual(re.findall(r'<uses-permission android:name="([^"]+)"', (ROOT / 'android/app/src/full/AndroidManifest.xml').read_text()), ['android.permission.CAMERA'])
+        # The library opens it from Settings, and the page is in both builds' manifests.
+        self.assertIn("fetch('privacy.html')", (ROOT / 'web/collection.js').read_text())
+        for root in (self.full, self.free):
+            self.assertIn('privacy.html', json.loads((root / 'BUILD_MANIFEST.json').read_text()))
+
+    def texts(self, root, suffixes=('.html', '.js', '.mjs', '.css', '.json')):
+        return {p.relative_to(root).as_posix(): p.read_text(errors='replace') for p in sorted(root.rglob('*')) if p.is_file() and p.suffix in suffixes}
+
+    def test_no_page_counter_and_nothing_loaded_from_the_network(self):
+        # The web pages count visits and their content policies allow the counter's host. The package loads no
+        # counter and nothing else from a network: no packaged file names the host, no element or style takes its
+        # source from an address outside the package, and no script asks one for anything. web/privacy.html says so.
+        loads = re.compile(r'''<(?:script|img|iframe|source|video|audio|embed|object|link|form|input|track)\b[^>]*?\b(?:src|srcset|href|data|action|poster)\s*=\s*["']?(?:https?:)?//[^"'\s>]+''', re.I)
+        styles = re.compile(r'''url\(\s*["']?(?:https?:)?//|@import\s+["'](?:https?:)?//''', re.I)
+        calls = re.compile(r'''\b(?:fetch|sendBeacon|EventSource|importScripts|Worker|import)\s*\(\s*[`"'](?:https?:)?//'''
+                           r'''|\bWebSocket\s*\(\s*[`"']wss?://(?!127\.0\.0\.1[:/])|\.open\(\s*["'](?:GET|POST)["']\s*,\s*["'](?:https?:)?//'''
+                           r'''|\bfrom\s+["']https?://|\.src\s*=\s*[`"'](?:https?:)?//''')
+        for root in (self.full, self.free):
+            for name, text in self.texts(root).items():
+                self.assertNotIn('stats.dr.eamer.dev', text, name)
+                self.assertNotRegex(text, r'data-goatcounter|count\.js|goatcounter\s*=[^=]', name)
+                self.assertIsNone(loads.search(text), f'{name}: {loads.search(text) and loads.search(text).group(0)[:120]}')
+                self.assertIsNone(styles.search(text), name)
+                self.assertIsNone(calls.search(text), f'{name}: {calls.search(text) and calls.search(text).group(0)[:120]}')
+                for policy in re.findall(r'<meta http-equiv="Content-Security-Policy" content="([^"]*)"', text, re.I):
+                    outside = [word for word in policy.replace(';', ' ').split() if '://' in word]
+                    self.assertEqual(outside, [], f'{name} allows a load from outside the package')
+        # The one address a script builds is the eye-tracker helper's, on the same computer (bridge-client.js),
+        # which no build can reach any more: the choice is unavailable and no page's policy allows the connection
+        # (test_eye_tracker_is_not_offered). The score service's is empty in every build made here
+        # (web/settings.json). An address a script puts together from parts is beyond these searches:
+        # tests/shell-review.test.cjs plays the built package and fails on any request that leaves it, and the
+        # apps' shells refuse one (Android has no network permission and answers every http request itself).
+        bridge = {name.rsplit('/', 1)[-1] for name, text in self.texts(self.full, ('.js', '.mjs')).items() if "'ws://127.0.0.1:'" in text}
+        self.assertEqual(bridge, {'bridge-client.js'})
+        self.assertEqual(json.loads((self.full / 'settings.json').read_text()), {'apiBase': ''})
+        from transforms import transform
+        page = {'id': 'notan', 'commit': '0' * 40, 'files': []}
+        with self.assertRaises(ValueError):
+            transform(page, 'notan/x.css', "@import 'https://stats.dr.eamer.dev/count.css';")
+        policy = transform(page, 'notan/x.html', '''<html><head><meta http-equiv="Content-Security-Policy" content="default-src 'self'; '''
+                           '''img-src 'self' data: https://stats.dr.eamer.dev"></head><body><!-- GoatCounter Analytics --></body></html>''')
+        self.assertIn('''content="default-src 'self'; img-src 'self' data:"''', policy)
+        self.assertNotIn('GoatCounter', policy)
+        for root in (self.full, self.free):
+            self.assertIn('no analytics', (root / 'privacy.html').read_text())
+            self.assertIn('load nothing from the network', (root / 'privacy.html').read_text())
+
+    def test_outside_links_are_the_known_few(self):
+        # Every way out of the package a player can reach: where it leads, by the page that carries it. Each opens
+        # outside the app (target="_blank": the Android shell hands it to the browser, the iOS shell to Safari).
+        # A new one must be added here on purpose. All are the author's own: his site, Data Poems, the source and
+        # oneimpossiblethingatatime.com. The history of Minesweeper in Hexsweeper Sphere's Help is words, not a link.
+        known = {'https://lukesteuber.com', 'https://lukesteuber.com/', 'https://datapoems.io', 'https://oneimpossiblethingatatime.com/',
+                 'https://github.com/lukeslp/minimal-primitives'}
+        found, opened = set(), []
+        for root in (self.full, self.free):
+            for name, text in self.texts(root, ('.html', '.js', '.mjs')).items():
+                if '/vendor/' in name:
+                    continue
+                for tag, href in re.findall(r'''(<a\b[^>]*\bhref\s*=\s*["'](https?://[^"']+)["'][^>]*>)''', text):
+                    found.add(href)
+                    self.assertRegex(tag, r'''target=["']_blank["']''', name)
+                self.assertNotIn('coolmathgames', text, name)
+                if 'window.open(' in text and root == self.full:
+                    opened.append(name)
+        self.assertEqual(found, known)
+        # No packaged script opens a window at all.
+        self.assertEqual(opened, [])
+        sphere = (self.full / 'games/hexsweeper/sphere/index.html').read_text()
+        self.assertIn('Riding on the original — history of Minesweeper\n', sphere)
+        with self.assertRaises(ValueError):
+            transform(self.games['hexsweeper'], 'hexsweeper/sphere/index.html',
+                      (ROOT / 'imports/hexsweeper/sphere/index.html').read_text().replace('the-history-of-minesweeper', 'another-article'))
+        # No script sends the page itself to another site (Notan's hand-off to its own domain stays off).
+        self.assertIn('const HAND_OFF = false;', (self.full / 'games/notan/notan.js').read_text())
+
+    def test_no_link_leads_to_another_packaged_page_without_the_library(self):
+        # A game plays in a frame the library opened for it, with a handshake in that page's address. Hexsweeper's
+        # Help named its other modes as links ("Also Infinite · Classic", "Also Sphere · Classic"): they loaded a
+        # second mode in the first one's frame, where Home did nothing, and the one to Sphere named a page that
+        # is not in the package. The rows are gone; the library's card offers the modes.
+        from transforms import ALSO_ROWS
+        for root in (self.full, self.free):
+            for path, row in ALSO_ROWS.items():
+                page = (root / 'games' / path).read_text()
+                self.assertNotIn('class="help-more"', page, path)
+                self.assertEqual((ROOT / 'imports' / path).read_text().count(row), 1, path)
+            # Every link written into a page that stays inside the package: the library (which the page hands to
+            # the collection), and Akari's other look, which its own script opens with the handshake.
+            inside = {}
+            for path in sorted(root.glob('games/**/*.html')):
+                for tag, href in re.findall(r'''(<a\b[^>]*\bhref\s*=\s*["']([^"'#][^"']*)["'][^>]*>)''', path.read_text()):
+                    if not re.match(r'https?:|\$\{', href) and 'data-minimal-library' not in tag:
+                        inside.setdefault(href, []).append(path.relative_to(root / 'games').as_posix())
+            self.assertEqual(inside, {'../../games/akari-light/index.html?look=light': ['akari/index.html'],
+                                      '../../games/akari/index.html?look=dark': ['akari-light/index.html']})
+        for path in ALSO_ROWS:
+            with self.assertRaises(ValueError, msg=path):
+                transform(self.games['hexsweeper'], path, (ROOT / 'imports' / path).read_text().replace('class="help-more">Also', 'class="help-more">See also'))
+        # Links a script makes (Tangles' Experiments and New Game+) and any link a later import brings are covered
+        # where the click is handled: one listener, for same-origin links, in every packaged page.
+        bootstrap = (ROOT / 'adapters/bootstrap.js').read_text()
+        self.assertEqual(bootstrap.count("window.addEventListener('click', event => {"), 1)
+        self.assertIn("if (url.protocol !== location.protocol || url.origin !== location.origin) return;", bootstrap)
+        # The Android shell's Back: Home counts once the library shows, and a page without the handshake is left.
+        shell = (ROOT / 'android/app/src/main/java/minimalprimitives/android/MainActivity.kt').read_text()
+        # The check that follows is for the one game Home was pressed in, named by its handshake, and it leaves
+        # through the library, which saves the board or asks the player: the shell reloads over no game.
+        self.assertNotIn('"opening", "dialog", "home", "grid", "loading" -> Unit', shell)
+        self.assertIn("if (home && bridge && bridge.nonce && bridge.nonce === sent) { home.click(); return 'home:' + sent; }", shell)
+        self.assertIn('webView.postDelayed(confirmHome, HOME_LIMIT_MS)', shell)
+        self.assertIn("if (window.MinimalLibrary && typeof window.MinimalLibrary.leave === 'function') return window.MinimalLibrary.leave(opened);", shell)
+        for gone in ['LIBRARY_SCRIPT', 'HOME_PENDING_SCRIPT', 'data-back']:
+            self.assertNotIn(gone, shell)
+        self.assertIn('window.MinimalLibrary = { leave };', (ROOT / 'web/collection.js').read_text())
+
+    def test_the_water_wheel_has_no_door(self):
+        # Hexsweeper Sphere's Water Wheel is not in the package. Its three doors (a button in Help, a hold on the
+        # mine count with a water-fill hint, a button named for screen readers) paused the timer and opened
+        # nothing. They are cut whole, so nothing is left to pause the timer, and no script opens a window.
+        from transforms import WHEEL_CLICK, WHEEL_HELP, WHEEL_HOLD
+        sources = {'hexsweeper/sphere/index.html': [WHEEL_HELP, WHEEL_CLICK], 'hexsweeper/sphere/quiet-chrome.js': [WHEEL_HOLD]}
+        for root in (self.full, self.free):
+            for path, cuts in sources.items():
+                built, source = (root / 'games' / path).read_text(), (ROOT / 'imports' / path).read_text()
+                for cut in cuts:
+                    self.assertEqual(source.count(cut), 1, path)
+                for gone in ['Water Wheel', 'help-wheel-btn', 'qc-wheel', 'qc-egg-door")', 'pauseTimer', 'WHEEL_HREF', 'window.open', 'is-hinting")']:
+                    self.assertNotIn(gone, built, f'{path}: {gone}')
+            chrome = (root / 'games/hexsweeper/sphere/quiet-chrome.js').read_text()
+            self.assertIn('      if (b) b.click();\n    });\n\n    setInterval(paint, 250);', chrome, 'the readout and the bar are as they were')
+        for path, cuts in sources.items():
+            for cut in cuts:
+                with self.assertRaises(ValueError, msg=path):
+                    transform(self.games['hexsweeper'], path, (ROOT / 'imports' / path).read_text().replace(cut, cut.replace('Water Wheel', 'Water Mill').replace('pauseTimer', 'stopTimer')))
+
+    def test_eye_tracker_is_not_offered(self):
+        # Look with: Eye tracker needs a helper program on the same computer. No phone or tablet has one (and the
+        # Android app has no network permission), so the choice only ever reported that it had found nothing.
+        # Every build tells the shared frame the helper cannot be reached, which is the frame's own rule for
+        # showing the choice unavailable with its own sentence; and no page's policy allows the connection.
+        from camera_recipe import GAZE_BRIDGE, INLINE_FRAMES, no_eye_tracker
+        frames = sorted(self.full.glob('games/*/controls.js')) + [self.full / 'games' / path for path in sorted(INLINE_FRAMES)]
+        self.assertGreaterEqual(len(frames), 31)
+        for path in frames:
+            text = path.read_text()
+            self.assertEqual(text.count('const camOK=cameraAllowed(),trackOK=false,'), 1, path)
+            self.assertNotIn('trackOK=trackerAllowed()', text, path)
+            self.assertEqual(text.count("['tracker','Eye tracker',!trackOK]"), 1, path)
+            # Hexsweeper's flat boards carry an earlier frame, whose buttons step past an unavailable choice without a note.
+            self.assertEqual(text.count("!trackOK&&'Eye tracker needs the gaze bridge on this computer, which this page cannot reach.'"), int(path.name == 'controls.js'), path)
+            self.assertRegex(text, r"prefs\.look==='tracker'&&!trackOK\)\{?(?:keptLook=prefs\.look;)?prefs\.look='pointer';", path)
+        for root in (self.full, self.free):
+            allowed = [path for path in sorted(root.rglob('*.html')) if GAZE_BRIDGE in path.read_text() or 'ws:' in ''.join(
+                re.findall(r'<meta http-equiv="Content-Security-Policy" content="([^"]*)"', path.read_text(), re.I))]
+            self.assertEqual(allowed, [])
+        self.assertGreaterEqual(sum(GAZE_BRIDGE in path.read_text() for path in (ROOT / 'imports').glob('*/index.html')), 10, 'the web pages still allow it')
+        game = self.games['slant']
+        with self.assertRaises(ValueError):
+            no_eye_tracker(game, 'slant/controls.js', 'no look sources here')
+        self.assertEqual(no_eye_tracker(game, 'slant/slant.js', 'untouched'), 'untouched')
+        self.assertEqual(no_eye_tracker(dict(game, camera=False), 'slant/controls.js', 'left to the camera-free recipe'), 'left to the camera-free recipe')
+        page = no_eye_tracker(game, 'slant/x.html', '''<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src ws://127.0.0.1:47913 'self'">''')
+        self.assertIn('''content="default-src 'self'; connect-src 'self'"''', page)
+
+    def test_a_failed_share_is_said_and_never_downloaded(self):
+        # An offered share can fail for a reason other than the player turning it away. The games then fell
+        # through to the blob: download the apps drop (Tangles: "Image saved."). In the package the failure goes
+        # to the library, which says it in words, and Tangles keeps the picture it drew for the next press.
+        from transforms import SHARE_FAILED, TANGLES_SHEET_AGREED
+        self.assertEqual(sorted(SHARE_FAILED), ['hexsweeper/sphere/sphere.js', 'tangles/experiments.js', 'tangles/loop.js'])
+        for root in (self.full, self.free):
+            for path, changes in SHARE_FAILED.items():
+                built = (root / 'games' / path).read_text()
+                # Tangles has two ways to fail: the sheet refuses, or it will not take this picture.
+                self.assertEqual(built.count('window.MinimalBridge.shareFailed();'), 2 if path.startswith('tangles/') else 1, path)
+                for old, new in changes:
+                    self.assertEqual((built.count(old), built.count(new)), (0, 1), path)
+            for path in ['tangles/loop.js', 'tangles/experiments.js']:
+                built = (root / 'games' / path).read_text()
+                self.assertIn("catch (error) { if (error.name !== 'AbortError') window.MinimalBridge.shareFailed(); return; }\n    window.MinimalBridge.shareFailed();\n  }", built, path)
+                # No download, no window and no "saved" is left to reach, and the test for the sheet is the
+                # bootstrap's: no canShare is taken as able.
+                self.assertNotRegex(built, r"\.download\s*=|window\.open\(|createObjectURL|Image saved", path)
+                self.assertEqual(built.count("matchMedia('(pointer: coarse)').matches && " + TANGLES_SHEET_AGREED), 1, path)
+            sphere = (root / 'games/hexsweeper/sphere/sphere.js').read_text()
+            self.assertEqual(sphere.count('downloadBlob('), 1, 'only its own definition is left')
+        self.assertIn("typeof navigator.share === 'function' && (!navigator.canShare || navigator.canShare({files: [picture]}))", (ROOT / 'adapters/bootstrap.js').read_text())
+        for path, changes in SHARE_FAILED.items():
+            source = (ROOT / 'imports' / path).read_text()
+            for old, _ in changes:
+                with self.assertRaises(ValueError, msg=path):
+                    transform(self.games[path.split('/')[0]], path, source.replace(old, old[:9] + '~' + old[9:], 1))
+        self.assertIn("shareFailed() { this.emit('share-failed'); }", (ROOT / 'adapters/bootstrap.js').read_text())
+        self.assertIn("else if (data.type === 'share-failed') notice('The picture could not be shared. Try again.');", (ROOT / 'web/collection.js').read_text())
+
+    def test_cube_maze_hint_survives_a_worker_that_cannot_be_made(self):
+        # The game's own fallback (the stored solution's next move, or Undo) ran only when a worker failed after
+        # it was made. One that cannot be made at all threw, and Hint did nothing.
+        from transforms import HINT_WORKER, HINT_WORKER_GUARDED
+        game, source = self.games['cube-maze'], (ROOT / 'imports/cube-maze/cube-maze.js').read_text()
+        self.assertEqual(source.count(HINT_WORKER), 1)
+        for root in (self.full, self.free):
+            built = (root / 'games/cube-maze/cube-maze.js').read_text()
+            self.assertEqual((built.count(HINT_WORKER), built.count(HINT_WORKER_GUARDED)), (0, 1))
+            self.assertEqual(built.count('new Worker('), 1)
+            self.assertIn("w.onmessage = e => done(e.data.path); w.onerror = () => done(null);", built, 'the stand-in reports through the same handler')
+            self.assertIn("showHint(path && path.length ? path[0] : onPath ? board.solution[history.length] : 'undo')", built)
+        with self.assertRaises(ValueError):
+            transform(game, 'cube-maze/cube-maze.js', source.replace("new Worker('./engine.js')", "new Worker('./search.js')"))
+
+    def test_a_picture_is_offered_only_where_the_share_sheet_can_take_it(self):
+        # Tangles' Save the picture and Hexsweeper Sphere's Share image fall back to a blob: download, which the
+        # apps' web views drop (Android's has no share sheet; Tangles then says "Image saved."). The buttons show
+        # only on a page the bootstrap marked as able to share a picture; the games' own decisions are anchored.
+        from transforms import SHARE_DECISIONS, SHARE_SHEET_ONLY, transform
+        for root in (self.full, self.free):
+            for path, (selector, touch_only, script) in SHARE_SHEET_ONLY.items():
+                page = (root / 'games' / path).read_text()
+                self.assertEqual(page.count(f'html:not([data-minimal-share]) {selector}{{display:none!important}}'), 1, path)
+                self.assertEqual(f'@media not (pointer:coarse){{{selector}{{display:none!important}}}}' in page, touch_only, path)
+                self.assertIn(script, SHARE_DECISIONS)
+        self.assertIn("document.documentElement.dataset.minimalShare = ''", (ROOT / 'adapters/bootstrap.js').read_text())
+        for path, anchors in SHARE_DECISIONS.items():
+            game = self.games[path.split('/')[0]]
+            source = (ROOT / 'imports' / path).read_text()
+            with self.assertRaises(ValueError, msg=path):
+                transform(game, path, source.replace(anchors[0], 'true', 1))
+        # Every other download or share control stays hidden outright (Slant, Bridges, Spiral Galaxies, Fold, Notan,
+        # Akari, Hexsweeper Endless), so a new download path must be looked at before it ships.
+        downloads = sorted(name for name, text in self.texts(self.full, ('.js', '.mjs', '.html')).items()
+                           if '/vendor/' not in name and re.search(r'\.download\s*=', text))
+        self.assertEqual(downloads, ['games/hexsweeper/infinite.html', 'games/hexsweeper/sphere/sphere.js', 'games/slant/slant.js'])
+
+    def test_script_syntax_fits_the_ios_deployment_target(self):
+        # The iOS app's web view is the system's: a script it cannot parse leaves a blank game. The deployment
+        # target is read from ios/project.yml. Class static blocks parse from iOS 16.4 and the regular expression
+        # v flag from 17.0; import attributes, regular expression modifiers and `using` are newer than iOS 17.0,
+        # so none may ship while the target is below the release that reads them. These are searches, not a parse.
+        target = tuple(int(n) for n in re.search(r'deploymentTarget:\n\s+iOS: "(\d+)\.(\d+)"', (ROOT / 'ios/project.yml').read_text()).groups())
+        self.assertEqual(target, (17, 0), 'recheck what each rule allows before changing the target')
+        rules = [((16, 4), 'a class static block', r'\bstatic\s*\{'),
+                 ((17, 0), 'the v flag', r'''/[dgimsuy]*v[dgimsuy]*\.(?:test|exec)\(|RegExp\([^)\n]{0,200},\s*["'][dgimsuy]*v[dgimsuy]*["']\)'''),
+                 ((17, 2), 'an import attribute', r'\b(?:import|from)\b[^;\n]{0,160}\b(?:with|assert)\s*\{\s*type\b'),
+                 ((18, 2), 'a regular expression modifier', r'\(\?[ims]+(?:-[ims]+)?:|\(\?-[ims]+:'),
+                 ((99, 0), 'a using declaration', r'(?:^|[;{}\s])(?:await\s+)?using\s+[A-Za-z_$][\w$]*\s*=')]
+        scripts = self.texts(self.full, ('.html', '.js', '.mjs'))
+        self.assertGreater(len(scripts), 250)
+        for name, text in scripts.items():
+            for since, what, pattern in rules:
+                found = re.search(pattern, text) if target < since else None
+                self.assertIsNone(found, f'{name} uses {what}, which iOS {target[0]}.{target[1]} cannot parse')
+            # No static block ships at all today; one would need the target to stay at 16.4 or later.
+            self.assertNotRegex(text, r'\bstatic\s*\{', name)
+        # Newer calls that would stop a game on iOS 17.0 stay behind a check for themselves, and some do not ship.
+        guarded = {'requestIdleCallback': r"window\.requestIdleCallback\s*\|\||'requestIdleCallback' in window",
+                   'getCoalescedEvents': r'getCoalescedEvents\?\.\(', 'checkVisibility': r'\.checkVisibility\s*\?',
+                   'AbortSignal.any': r'typeof AbortSignal\.any', 'Float16Array': r'typeof Float16Array'}
+        for name, text in scripts.items():
+            for call, guard in guarded.items():
+                if call in text:
+                    self.assertRegex(text, guard, f'{name} calls {call} without checking for it')
+            self.assertNotRegex(text, r'Object\.groupBy|Map\.groupBy|Promise\.withResolvers|Promise\.try\(|Array\.fromAsync|\.fromBase64\(|\.toBase64\(|RegExp\.escape|'
+                                      r'Error\.isError|Math\.sumPrecise|\bTemporal\.|Intl\.DurationFormat|startViewTransition|\bURL\.parse\(|scheduler\.(?:postTask|yield)', name)
+
+    def test_the_privacy_page_names_every_permission_the_package_can_ask_for(self):
+        # Tilt · 3D's Phone tilt asks an iPhone or iPad for motion and orientation. The prompt is the web view's
+        # own ("Minimal Primitives" Would Like to Access Motion and Orientation): in the iOS 27.2 simulator it came
+        # up with the shell implementing no motion delegate method, and with or without a purpose string in
+        # Info.plist. The app carries NSMotionUsageDescription all the same, in the privacy page's terms. The page
+        # must say so while any packaged script can ask.
+        asks = sorted(name for name, text in self.texts(self.full, ('.js', '.mjs', '.html')).items()
+                      if re.search(r'Device(?:Orientation|Motion)Event\.requestPermission', text))
+        self.assertEqual(asks, ['games/tilt-3d/tilt-3d.js'])
+        self.assertIn('<span>Phone tilt</span><button id="phone-tilt"', (self.full / 'games/tilt-3d/index.html').read_text())
+        for root in (self.full, self.free):
+            page = (root / 'privacy.html').read_text()
+            self.assertIn('once you turn on Phone tilt in its Settings', page)
+            self.assertIn('never saved or sent', page)
+        self.assertIn('an iPhone or iPad asks first before the game may read motion', (self.full / 'privacy.html').read_text())
+        project = (ROOT / 'ios/project.yml').read_text()
+        self.assertIn('NSMotionUsageDescription: "Lean the phone to steer Tilt · 3D once you turn on Phone tilt in its Settings. '
+                      'Motion readings steer the game and are never saved or sent."', project)
+        # The web view's prompt is left to ask: the shell does not answer the request for the player.
+        self.assertNotIn('requestDeviceOrientationAndMotionPermission', (ROOT / 'ios/MinimalPrimitives/CollectionViewController.swift').read_text())
+        # Other prompts a web view can raise: no packaged script asks for any of them.
+        for name, text in self.texts(self.full, ('.js', '.mjs', '.html')).items():
+            if '/vendor/' in name:
+                continue
+            self.assertNotRegex(text, r'navigator\.geolocation|Notification\.requestPermission|getDisplayMedia|navigator\.(?:bluetooth|usb|serial|hid)\b|'
+                                      r'navigator\.contacts|audio\s*:\s*true', name)
+
+    def test_no_preview_wording_reaches_a_player(self):
+        shell = '\n'.join((ROOT / path).read_text() for path in ['web/index.html', 'web/collection.js', 'web/scores-transport.js', 'web/privacy.html',
+                                                                 'adapters/bootstrap.js', 'adapters/hooks.js', 'adapters/scores-compat.js'])
+        self.assertNotRegex(shell, r'(?i)in this preview|preview build')
+        self.assertIn("throw new Error('Scores stay on this device.')", (ROOT / 'web/collection.js').read_text())
+
+    def test_ios_privacy_manifest_and_camera_purpose(self):
+        import plistlib
+        manifest = plistlib.loads((ROOT / 'ios/MinimalPrimitives/PrivacyInfo.xcprivacy').read_bytes())
+        self.assertEqual(manifest, {'NSPrivacyTracking': False, 'NSPrivacyTrackingDomains': [], 'NSPrivacyCollectedDataTypes': [], 'NSPrivacyAccessedAPITypes': []})
+        project = (ROOT / 'ios/project.yml').read_text()
+        self.assertIn('- path: MinimalPrimitives/PrivacyInfo.xcprivacy\n        buildPhase: resources', project)
+        self.assertIn('NSCameraUsageDescription: "Use the front camera to move the game pointer with your head or eyes. '
+                      'Camera images are processed on this device and are never saved or sent."', project)
+        # The manifest declares no required-reason API, so the release code must use none: user defaults, file
+        # timestamps, disk space, system boot time or the active keyboards. DEBUG-only checks are left out of the scan.
+        reasons = re.compile(r'UserDefaults|NSUserDefaults|creationDate|modificationDate|contentModificationDate|attributesOfItem|'
+                             r'attributesOfFileSystem|volumeAvailableCapacity|systemFreeSize|systemUptime|mach_absolute_time|'
+                             r'activeInputModes|\bf?stat\(|getattrlist|statfs')
+        for path in sorted((ROOT / 'ios/MinimalPrimitives').glob('*.swift')):
+            release, depth = [], 0
+            for line in path.read_text().splitlines():
+                word = line.strip()
+                if word.startswith('#if'):
+                    depth += 1 if depth or word == '#if DEBUG' else 0
+                elif word.startswith('#endif') and depth:
+                    depth -= 1
+                elif not depth:
+                    release.append(line)
+            self.assertIsNone(reasons.search('\n'.join(release)), path.name)
+
+
 class PrimitivesTests(unittest.TestCase):
     """Every game names its interaction primitives from the shared vocabulary (docs/interaction-primitives.md)."""
 
@@ -336,6 +795,8 @@ class PrimitivesTests(unittest.TestCase):
         line = ', '.join(json.loads((ROOT / 'primitives.json').read_text())['vocabulary']['line'])
         opening = re.findall(r'<li>([^<]+)</li>', json.loads((ROOT / 'index.json').read_text())['opening'])
         self.assertEqual(', '.join(opening), line, 'the opening shows the eight words')
+        # Settings' About paragraph is imported with the index and names the same eight.
+        self.assertIn('Primitives are what doing is made of: ' + line + '.', json.loads((ROOT / 'index.json').read_text())['settings'])
         for name in ['release/app-store/description.txt', 'release/play/full_description.txt',
                      'fastlane/metadata/android/en-US/full_description.txt', 'release/itch-page.md']:
             text = (ROOT / name).read_text()

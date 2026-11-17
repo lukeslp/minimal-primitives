@@ -696,6 +696,8 @@ function restart() { queue = []; fastForward(); drag = null; history = []; lookH
 function go(id) {
   if (!BOARDS.some(b => b.id === id)) throw Error('Unknown board');
   queue = []; anim = null; drag = null; gesture = null; lookHintDue = null; endLookHint(); clearHint(); clearSel(); endLayer(); boardId = id; history = []; resetLook(true); buildBoard(); syncAll(); save(); arrival();
+  // The status line belongs to the board on screen: a new board replaces the last one's result.
+  announce('Board ' + (BOARDS.findIndex(b => b.id === boardId) + 1) + ' of ' + BOARDS.length + '. Par ' + board.par + '.');
 }
 // After a solve there is always somewhere to go: the next board, one still unsolved, or, with every board solved, back to the first.
 function nextOf() { const i = BOARDS.findIndex(b => b.id === boardId); return BOARDS[i + 1] || BOARDS.find(b => b.id !== boardId && !completed.includes(b.id)) || BOARDS[0]; }
@@ -1144,7 +1146,7 @@ function turnWords(move) {
   let face = move[1] === 0 ? v.clone().negate() : v.clone();
   if (mid) { const sides = [v, v.clone().negate()], pick = sides.find(w => viewSide(w) === 'top') || sides.find(w => viewSide(w) === 'front') || sides.find(w => viewSide(w) === 'right'); face = pick; }
   const clockwise = v.clone().multiplyScalar(move[2]).dot(face) < 0;
-  return (mid ? 'the middle layer' : 'the ' + viewSide(face) + ' layer') + ' ' + (clockwise ? 'clockwise' : 'anticlockwise') + (mid ? ', seen from the ' + viewSide(face) : '');
+  return (mid ? 'the middle layer' : 'the ' + viewSide(face) + ' layer') + ' ' + (clockwise ? 'clockwise' : 'counterclockwise') + (mid ? ', seen from the ' + viewSide(face) : '');
 }
 function announceMove(move, tr) {
   const what = move[0] === 'tip' ? 'roll ' + sideWord(worldDir(move[1], orient)) : 'turn ' + turnWords(move);

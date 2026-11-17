@@ -37,7 +37,7 @@ NEW = [
 ]
 # Games moved past --games-ref one at a time, each to a commit whose page the
 # build's transforms and adapters were checked against.
-REPIN = {}  # Every game moved to --games-ref c965c4f in 0.5.7 (the Settings standard).
+REPIN = {}  # Every game is at --games-ref: c965c4f in 0.5.7 (the Settings standard), 261303e in 0.5.8 (final master).
 # Web-only files a newer runtime.json lists: home-screen installs and the site's privacy page.
 WEB_ONLY = ('manifest.webmanifest', 'sw.js', 'pwa.js', 'privacy.html')
 WEB_ONLY_DIRS = ('icons/',)
@@ -76,8 +76,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--games', type=Path, default=ROOT.parent / 'game-riffs')
     parser.add_argument('--hex', type=Path, default=ROOT.parent / 'hexsweeper')
-    parser.add_argument('--games-ref', default='c965c4f')
-    parser.add_argument('--new-ref', default='c965c4f')
+    parser.add_argument('--games-ref', default='261303e')
+    parser.add_argument('--new-ref', default='261303e')
     parser.add_argument('--hex-ref', default='e61a79f')
     parser.add_argument('--accessible-art', type=Path, default=None, help="defaults to the games checkout's accessible/art")
     args = parser.parse_args()

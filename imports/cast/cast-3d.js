@@ -23,26 +23,41 @@ const PAPER = new URLSearchParams(location.search).get('ground') === 'paper', SL
 // Each lamp is split into two coincident halves. The PREVIEW half ignores a carried cube, so the
 // carried cube's shadow keeps that share of the light and reads lighter than a settled shadow.
 // Lamp strengths: the floor lamp brightest, so tops read white, then the left wall's, then the right's.
-// The hemisphere fill keeps shadows deep but never black; GLOW is the finish's slight lift; SOFT is the
-// shadow edge's half-width in cube units.
-const PREVIEW = .27, LAMP = {floor: 5.2, left: 2.5, right: .95}, FILL = 1, EXPOSURE = 1, GLOW = .08, LIFT_EXPOSURE = .2, LIFT_FILL = .4, SOFT = .016;
+// The hemisphere fill keeps shadows deep but never black; SOFT is the shadow edge's half-width in cube units.
+const PREVIEW = .27, LAMP = {floor: 5.2, left: 2.5, right: .95}, FILL = 1, EXPOSURE = 1, SOFT = .016;
 // On paper, FLOOR is chosen so the lit floor renders as the page's own paper, continuous with it.
 const ROOM = '#ebe8e2', CUBE = '#f4f0e8', FLOOR = '#d1c9b8', GROUND = 0xc6c4bf;
 // Basic colours for state, always over the lightness and pattern differences: spill, a shadow where none
-// is needed, is warm red-orange (chosen to keep its lightness); success flashes the outlines calm blue.
+// is needed, is warm red-orange (chosen to keep its lightness).
 const COLOURS = `#define C3_SPILL vec3( 1.72, 0.85, 0.53 )
 #define C3_WRONG vec3( 0.62, 0.15, 0.06 )
-#define C3_BLUE_LINE vec3( 0.06, 0.17, 0.5 )
-#define C3_BLUE_HATCH vec3( 0.3, 0.45, 0.85 )
-#define C3_BLUE_WASH vec3( 0.8, 0.87, 1.0 )
 `;
-// The finish paints the sculpture. As the gallery light comes up, every cube takes a saturated color by its
-// level, as Towers colors by height: cool and low to warm and tall, blue, teal, yellow, orange, then pink at
-// the fifth level. Each stack reads as a band of its heights and the tallest stand out warm. The lamps stay
-// white, so the walls and the floor keep their grey shadow shapes, and nothing about the light changes but its
-// lift. The color marks nothing the light and the next arrow do not already show; under forced colors the
-// cubes stay plaster.
-const LEVELS = ['#2f6bff', '#13b5a6', '#ffd21f', '#ff8a3d', '#e2479b'].map(hex => new THREE.Color(hex)), WHITE = new THREE.Color(1, 1, 1);
+// The finish gives the room its color. Correct play is black and white; when the three shadows match, the two walls
+// and the floor take one flat color each, the shadows on them go solid black, and the sculpture stays white,
+// drawn flat with a black line wherever one of its planes ends. The colors are three of Slant's four: pink on
+// the left wall, blue on the right, yellow on the floor. Nothing about the light changes: the color is laid
+// over the finished frame in display color, past the tone curve, so it is exact, and the lamps, the exposure
+// and the pool on the ground stay as in play. The solved board is said in words and the next arrow shows with
+// it, so the color marks nothing they do not. Under forced colors the room takes no color: the shadows still
+// go black and the cubes flat white, on the plaster walls.
+const PAINT = {left: '#da5cce', right: '#1768ff', floor: '#ffe000'}, INK = '#111111';
+const glslColor = hex => `vec3( ${[1, 3, 5].map(i => (parseInt(hex.slice(i, i + 2), 16) / 255).toFixed(4)).join(', ')} )`;
+// RULE is the black line's width in cube units; it is drawn that many pixels wide whichever way a face leans.
+// SHADES are the white of a finished cube's top and of its two sides: flat steps, as on Towers' towers.
+const RULE = .036, SHADES = [1, .82, .66];
+// A wall at the finish: its color, with the shadow the stacks cast on it in black, as rgb and cover. G is
+// the wall point's change per pixel, for an edge one pixel soft.
+const FINISH_GLSL = `#define C3_BLACK ${glslColor(INK)}
+uniform float uFlat;
+uniform float uTone;
+vec4 c3FinishWall( vec3 p, vec3 G ) {
+	vec2 ab = uSurface == 0 ? p.zy : p.xy;
+	if ( ab.x < 0.0 || ab.x > uN || ab.y < 0.0 || ab.y > uWallH ) return vec4( 0.0 );
+	float g = floor( ab.x + 0.5 ), w = clamp( ( ab.x - g ) / max( uSurface == 0 ? G.z : G.x, 0.000001 ) + 0.5, 0.0, 1.0 ), gy = max( G.y, 0.000001 );
+	float shade = mix( clamp( ( c3View( g - 1.0 ) - ab.y ) / gy + 0.5, 0.0, 1.0 ), clamp( ( c3View( g ) - ab.y ) / gy + 0.5, 0.0, 1.0 ), w );
+	return vec4( mix( uSurface == 0 ? ${glslColor(PAINT.left)} : ${glslColor(PAINT.right)}, C3_BLACK, shade ), max( shade, uTone ) );
+}
+`;
 
 const copy = h => h.map(row => row.slice());
 const validHeights = (h, b) => Array.isArray(h) && h.length === b.n && h.every(row => Array.isArray(row) && row.length === b.n && row.every(v => Number.isInteger(v) && v >= 0 && v <= b.maxH)) && E.used(h) <= b.cubes;
@@ -88,10 +103,11 @@ const complete = () => boards.every(b => finished.has(b.id));
 const openedBy = done => Math.max(-1, ...[...done].map(id => boards.findIndex(b => b.id === id))) + 1;
 let reached = Math.min(boards.length - 1, Math.max(saved ? (saved.campaign === 2 ? saved.reached : 11) : 0, openedBy(finished), saved ? boards.indexOf(isFree() ? parked.board : puzzle) : 0));
 let hint = null, focus = [0, 0], keyboard = false, hover = null, gesture = null, carry = null, wheel = null;
-let busy = false, queue = [], epoch = 0, glow = E.solved(puzzle, heights) ? 1 : 0;
-let success = E.solved(puzzle, heights) ? 1 : 0, lift = success, tint = success, settle = null, flight = null, refusal = null, ready = false, frames = 0, frameQueued = false, shadowsDirty = true, carryCasts = false;
+let busy = false, queue = [], epoch = 0;
+// `tint` is how far the finish's color has come in, 0 in play and 1 on a finished board.
+let tint = E.solved(puzzle, heights) ? 1 : 0, settle = null, flight = null, refusal = null, ready = false, frames = 0, frameQueued = false, shadowsDirty = true, carryCasts = false;
 // HOLD_MS: a still press this long on a stack returns its top cube to the tray.
-const timing = {}, FINISH_MS = 950, HOLD_MS = 450;
+const timing = {}, FINISH_MS = 600, HOLD_MS = 450;
 const reduced = () => prefs.motion === 'reduce' || reducedQuery.matches;
 const solvedNow = () => E.solved(puzzle, heights);
 const wallHeight = () => puzzle.maxH + .25;
@@ -109,13 +125,9 @@ function snapshot() { return {n: puzzle.n, maxH: puzzle.maxH, heights: copy(heig
 
 // Contact darkening from the column heights and the walls, shared by the room and the page around it.
 // The floor's visible share of it: all of the fill and half of the floor lamp.
-const CONTACT_GLSL = `#define C3_WALL ${WALL.toFixed(3)}
-#define C3_MAX_CUBES ${MAX_CUBES}
-#define C3_AO 0.6
-#define C3_AO_RANGE 0.55
-#define C3_AO_DIRECT 0.5
-#define C3_FLOOR_SHARE ${((FILL + LAMP.floor * .5) / (FILL + LAMP.floor)).toFixed(4)}
-` + `float c3Height( float c, float r ) {
+// SOLID_GLSL says whether a point is inside the floor, a wall or a stack.
+const SOLID_GLSL = `#define C3_WALL ${WALL.toFixed(3)}
+float c3Height( float c, float r ) {
 	if ( c < 0.0 || r < 0.0 || c >= uN || r >= uN ) return 0.0;
 	return uH[ int( r ) * 5 + int( c ) ];
 }
@@ -125,7 +137,13 @@ float c3Solid( vec3 p ) {
 	if ( p.x < 0.0 || p.z < 0.0 ) return p.y < uWallH ? 1.0 : 0.0;
 	return p.y < c3Height( floor( p.x ), floor( p.z ) ) ? 1.0 : 0.0;
 }
-float c3Fall( float d, float range ) { float k = clamp( 1.0 - d / range, 0.0, 1.0 ); return k * k; }
+`;
+const CONTACT_GLSL = `#define C3_MAX_CUBES ${MAX_CUBES}
+#define C3_AO 0.6
+#define C3_AO_RANGE 0.55
+#define C3_AO_DIRECT 0.5
+#define C3_FLOOR_SHARE ${((FILL + LAMP.floor * .5) / (FILL + LAMP.floor)).toFixed(4)}
+` + SOLID_GLSL + `float c3Fall( float d, float range ) { float k = clamp( 1.0 - d / range, 0.0, 1.0 ); return k * k; }
 // Occluder across the next cell boundary in direction t, blended with its lateral neighbour on the
 // nearer side so the darkening stays continuous across cell edges.
 float c3Occ( vec3 q, vec3 t, float dist, vec3 lat, float la, float lb ) {
@@ -183,10 +201,8 @@ uniform float uPlan[25];
 uniform float uN;
 uniform float uWallH;
 uniform float uInk;
-uniform float uSuccess;
 uniform float uPaper;
 uniform float uGroundY;
-uniform float uSeam;
 uniform float uLeftV[5];
 uniform float uRightV[5];
 uniform vec4 uTray[${MAX_CUBES}];
@@ -219,10 +235,10 @@ float c3View( float i ) {
 	return uSurface == 0 ? uLeftV[ int( i ) ] : uRightV[ int( i ) ];
 }
 // Ink is multiplied onto the plaster, so it sits in the light and in the shadow like a pencil mark. The
-// footprint's border and spill's colour stay; the rest fades at the finish, the square lines to a whisper.
+// footprint's border and spill's colour stay; the rest fades at the finish, under the room's color.
 vec3 c3Ink( vec3 p, float px ) {
 	vec3 keep = vec3( 1.0 ), fade = vec3( 1.0 );
-	vec3 oc = mix( vec3( 0.15 ), C3_BLUE_LINE, uSuccess ), hc = mix( vec3( 0.42 ), C3_BLUE_HATCH, uSuccess ), wc = mix( vec3( 0.9 ), C3_BLUE_WASH, uSuccess );
+	vec3 oc = vec3( 0.15 ), hc = vec3( 0.42 ), wc = vec3( 0.9 );
 	if ( uSurface <= 1 ) {
 		vec2 ab = uSurface == 0 ? p.zy : p.xy;
 		if ( ab.x < 0.0 || ab.x > uN || ab.y > uWallH ) return vec3( 1.0 );
@@ -256,7 +272,7 @@ vec3 c3Ink( vec3 p, float px ) {
 	}
 	return keep * mix( vec3( 1.0 ), fade, uInk );
 }
-`;
+${FINISH_GLSL}`;
 const PLASTER_AO = `
 #include <aomap_fragment>
 {
@@ -265,10 +281,12 @@ const PLASTER_AO = `
 	if ( uSurface == 2 ) {
 		// The floor is the page: it takes the same pools as the paper round it, on all of its light.
 		float pool = c3Pool( vWPos.xz );
+		pool = mix( pool, 1.0, uFlat );
 		reflectedLight.directDiffuse *= pool; reflectedLight.indirectDiffuse *= pool; reflectedLight.directSpecular *= pool;
 	} else {
 		if ( uSurface <= 3 || uSurface == 7 ) c3o = c3GridAO( vWPos, c3n );
 		else if ( uSurface == 5 && abs( c3n.y ) < 0.5 ) c3o = 1.0 - 0.42 * c3Fall( vWPos.y - uGroundY, 0.09 );
+		c3o = mix( c3o, 1.0, uFlat );
 		reflectedLight.indirectDiffuse *= c3o;
 		reflectedLight.directDiffuse *= mix( 1.0, c3o, C3_AO_DIRECT );
 	}
@@ -318,16 +336,18 @@ function plasterShader(shader) {
     .replace('#include <lights_fragment_begin>', LIGHTS_BEGIN)
     .replace('#include <map_fragment>', '#include <map_fragment>\nfloat c3px = length( fwidth( vWPos ) ) * 0.7;\nif ( uSurface <= 2 ) diffuseColor.rgb *= c3Ink( vWPos, c3px );')
     .replace('#include <aomap_fragment>', PLASTER_AO)
-    // At the finish the bevels' seams soften: each cube face shades flat, so the stacks read as one solid.
-    .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
-if ( uSurface == 7 && uSeam > 0.0 ) {
-	vec3 c3a = abs( vWNorm ), c3f = ( c3a.x >= c3a.y && c3a.x >= c3a.z ) ? vec3( sign( vWNorm.x ), 0.0, 0.0 ) : ( c3a.y >= c3a.z ? vec3( 0.0, sign( vWNorm.y ), 0.0 ) : vec3( 0.0, 0.0, sign( vWNorm.z ) ) );
-	normal = normalize( mix( normal, normalize( ( viewMatrix * vec4( c3f, 0.0 ) ).xyz ), uSeam ) );
+    // The finish's color is laid over the finished frame, past the tone curve, so it is exact.
+    .replace('#include <colorspace_fragment>', `#include <colorspace_fragment>
+if ( uFlat > 0.0 && uSurface <= 2 ) {
+	vec3 c3dx = dFdx( vWPos ), c3dy = dFdy( vWPos );
+	vec4 c3flat = uSurface == 2 ? vec4( ${glslColor(PAINT.floor)}, uTone ) : c3FinishWall( vWPos, sqrt( c3dx * c3dx + c3dy * c3dy ) );
+	gl_FragColor.rgb = mix( gl_FragColor.rgb, c3flat.rgb, c3flat.a * uFlat );
 }`);
 }
 const U = {
   uH: {value: new Float32Array(25)}, uLeftT: {value: new Float32Array(5)}, uRightT: {value: new Float32Array(5)}, uPlan: {value: new Float32Array(25)},
-  uN: {value: 2}, uWallH: {value: 3.25}, uInk: {value: 1}, uSuccess: {value: 0}, uPaper: {value: PAPER ? 1 : 0}, uGroundY: {value: GROUND_Y}, uSeam: {value: 0}, uLift: {value: 0}, uLeftV: {value: new Float32Array(5)}, uRightV: {value: new Float32Array(5)},
+  uN: {value: 2}, uWallH: {value: 3.25}, uInk: {value: 1}, uPaper: {value: PAPER ? 1 : 0}, uGroundY: {value: GROUND_Y}, uLeftV: {value: new Float32Array(5)}, uRightV: {value: new Float32Array(5)},
+  uFlat: {value: 0}, uTone: {value: 1}, uRule: {value: 2}, uFront: {value: 1},
 };
 const TRAY = {uTray: {value: Array.from({length: MAX_CUBES}, () => new THREE.Vector4())}, uTrayCount: {value: 0}};
 function plaster(color, surface) {
@@ -371,7 +391,7 @@ function axesAt(s) {
   return {az, el, R: new THREE.Vector3(ca, 0, -sa), U: new THREE.Vector3(-se * sa, ce, -se * ca), F: new THREE.Vector3(ce * sa, se, ce * ca), H: new THREE.Vector3(sa, 0, ca)};
 }
 let AX = axesAt(FRONT), viewAt = FRONT, viewRest = FRONT, viewJob = null;
-let renderer, scene, camera, lamps, fill, mats, cubes, carried, casters, carriedCaster, trayMesh, flightMesh, room, layout, frameSize = {w: 1, h: 1}, view = {w: 1, h: 1, scale: 1, cx: 0, cy: 0}, trayView = null, settledCams;
+let renderer, scene, camera, lamps, fill, mats, cubes, flats, carried, casters, carriedCaster, trayMesh, flightMesh, room, layout, frameSize = {w: 1, h: 1}, view = {w: 1, h: 1, scale: 1, cx: 0, cy: 0}, trayView = null, settledCams;
 const M = new THREE.Matrix4(), V = new THREE.Vector3(), ndc = new THREE.Vector2(), raycaster = new THREE.Raycaster(), box3 = new THREE.Box3(), hitPoint = new THREE.Vector3();
 const GROUND_VERTEX = `varying vec3 vP;
 void main() { vec4 w = modelMatrix * vec4( position, 1.0 ); vP = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`;
@@ -381,7 +401,6 @@ uniform float uWallH;
 uniform vec3 uFloorLit;
 uniform float uExposure;
 uniform float uPaper;
-uniform float uLift;
 uniform vec4 uTray[${MAX_CUBES}];
 uniform int uTrayCount;
 varying vec3 vP;
@@ -399,7 +418,7 @@ void main() {
 	float dither = ( fract( 52.9829189 * fract( dot( gl_FragCoord.xy, vec2( 0.06711056, 0.00583715 ) ) ) ) - 0.5 ) / 255.0;
 	if ( uPaper < 0.5 ) {
 		// The dark ground: a dim pool of the lamps' light spilling from the white model and each tray cube.
-		float light = ( 0.13 + 0.07 * uLift ) * exp( - c3Box2( vP.xz, vec2( - C3_WALL ), vec2( uN ) ) / ( 0.32 + 0.3 * uLift ) );
+		float light = 0.13 * exp( - c3Box2( vP.xz, vec2( - C3_WALL ), vec2( uN ) ) / 0.32 );
 		for ( int i = 0; i < C3_MAX_CUBES; i ++ ) {
 			if ( i >= uTrayCount ) break;
 			vec4 t = uTray[ i ];
@@ -417,6 +436,78 @@ void main() {
 	if ( a < 0.003 ) discard;
 	// A half-step of dither keeps the soft gradients free of 8-bit bands.
 	gl_FragColor = vec4( 0.0, 0.0, 0.0, a + dither );
+}`;
+// The finished cubes. They are exact unit cubes laid over the beveled ones and faded in with the room's
+// color, so a flat face has no bevel to leave a seam or a pinhole in it, and nothing is swapped at the end.
+// Each face is one flat white or gray with a black rule wherever its plane ends.
+// The cube's own middle goes to every pixel unchanged: a pixel on an edge is shaded from a point just off the
+// face, and must still know which cube it belongs to.
+const FLAT_VERTEX = `varying vec3 vP;
+flat varying vec3 vN;
+flat varying vec3 vCell;
+void main() {
+	mat4 m = modelMatrix * instanceMatrix;
+	vec4 w = m * vec4( position, 1.0 );
+	vP = w.xyz; vN = normal; vCell = ( m * vec4( 0.0, 0.0, 0.0, 1.0 ) ).xyz;
+	gl_Position = projectionMatrix * viewMatrix * w;
+}`;
+const FLAT_FRAGMENT = `uniform float uH[25];
+uniform float uN;
+uniform float uWallH;
+uniform float uFlat;
+uniform float uRule;
+uniform float uFront;
+varying vec3 vP;
+flat varying vec3 vN;
+flat varying vec3 vCell;
+${SOLID_GLSL}
+// The front view looks straight down the cubes' diagonal, so there one cube's outline often falls exactly on
+// another's edge. Whether a nearer cube stands on that view's sight line from p, walked square by square.
+bool c3Covered( vec3 p ) {
+	for ( int i = 0; i < 18; i ++ ) {
+		vec3 f = 1.0 - fract( p );
+		p += min( f.x, min( f.y, f.z ) ) + 0.0005;
+		if ( p.x >= uN || p.z >= uN || p.y >= uWallH ) return false;
+		if ( c3Solid( p ) > 0.5 ) return true;
+	}
+	return false;
+}
+// A rule uRule pixels wide along a face's edge, d in from it toward t, where G is the point's change per pixel.
+// Where the face folds outward the rule is drawn if outer is set; where it meets a nearer face, if inner is;
+// where the same plane runs on there is none. Each edge is ruled by one face only, so every rule is one width.
+float c3Rule( vec3 cell, vec3 n, vec3 t, float d, vec3 G, bool outer, bool inner ) {
+	bool front = c3Solid( cell + t + n ) > 0.5, side = c3Solid( cell + t ) > 0.5;
+	if ( ! ( front ? inner : ( ! side && outer ) ) ) return 0.0;
+	float ink = clamp( uRule - d / max( dot( abs( t ), G ), 0.000001 ) + 0.5, 0.0, 1.0 );
+	// The rule gives way where a nearer cube's outline falls on the same line: the point just across the
+	// edge is then covered, and the nearer cube rules that line itself, so no line is drawn twice as wide.
+	if ( ink > 0.0 && uFront > 0.5 ) {
+		vec3 edge = vP + t * d;
+		if ( c3Covered( front ? edge - t * 0.002 + n * 0.004 : edge + t * 0.004 + n * 0.002 ) ) return 0.0;
+	}
+	return ink;
+}
+void main() {
+	vec3 dx = dFdx( vP ), dy = dFdy( vP ), G = sqrt( dx * dx + dy * dy );
+	// The cube's own square and level, and where the point lies in it.
+	vec3 cell = vCell, base = cell - 0.5, l = vP - base;
+	// A face against a neighbor is inside the sculpture.
+	if ( c3Solid( cell + vN ) > 0.5 ) discard;
+	const vec3 X = vec3( 1.0, 0.0, 0.0 ), Y = vec3( 0.0, 1.0, 0.0 ), Z = vec3( 0.0, 0.0, 1.0 );
+	float line, shade;
+	// A top rules its own rim, and its edge against a wall; a side rules its foot and its upright edges, the
+	// one the two sides share going to the side that faces the left lamp.
+	if ( vN.y > 0.5 ) {
+		shade = ${SHADES[0].toFixed(2)};
+		line = max( max( c3Rule( cell, Y, X, 1.0 - l.x, G, true, false ), c3Rule( cell, Y, - X, l.x, G, true, base.x < 0.5 ) ), max( c3Rule( cell, Y, Z, 1.0 - l.z, G, true, false ), c3Rule( cell, Y, - Z, l.z, G, true, base.z < 0.5 ) ) );
+	} else if ( vN.x > 0.5 ) {
+		shade = ${SHADES[1].toFixed(2)};
+		line = max( c3Rule( cell, X, - Y, l.y, G, true, true ), max( c3Rule( cell, X, Z, 1.0 - l.z, G, true, true ), c3Rule( cell, X, - Z, l.z, G, true, true ) ) );
+	} else {
+		shade = ${SHADES[2].toFixed(2)};
+		line = max( c3Rule( cell, Z, - Y, l.y, G, true, true ), max( c3Rule( cell, Z, X, 1.0 - l.x, G, false, true ), c3Rule( cell, Z, - X, l.x, G, true, base.x < 0.5 ) ) );
+	}
+	gl_FragColor = vec4( mix( vec3( shade ), ${glslColor(INK)}, line ), uFlat );
 }`;
 function setupGL() {
   try {
@@ -449,15 +540,18 @@ function setupGL() {
   };
   cubes = instanced(mats.cube, MAX_CUBES, false); carried = instanced(mats.cube, 1, false); trayMesh = instanced(mats.tray, MAX_CUBES, false); flightMesh = instanced(mats.free, 1, false);
   cubes.receiveShadow = carried.receiveShadow = true;
-  // The settled and carried cubes carry instance colors for the finish, white in play, so they share one program.
-  for (let i = 0; i < MAX_CUBES; i++) cubes.setColorAt(i, WHITE);
-  carried.setColorAt(0, WHITE);
   carried.count = 1; carried.visible = false; flightMesh.count = 1; flightMesh.visible = false;
   // Shadows come from exact unit cubes standing in for the bevelled ones, so four rounded corners
   // never leave a pinhole of light and every shadow edge falls on a square boundary.
   const hidden = new THREE.MeshBasicMaterial({colorWrite: false, depthWrite: false}), unit = new THREE.BoxGeometry(1, 1, 1);
   const caster = count => { const m = new THREE.InstancedMesh(unit, hidden, count); m.castShadow = true; m.frustumCulled = false; m.count = 0; scene.add(m); return m; };
   casters = caster(MAX_CUBES); carriedCaster = caster(1);
+  // The finished cubes stand a hair in front of the beveled ones they cover, and are drawn only at the finish.
+  flats = new THREE.InstancedMesh(unit, new THREE.ShaderMaterial({
+    transparent: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+    uniforms: {uH: U.uH, uN: U.uN, uWallH: U.uWallH, uFlat: U.uFlat, uRule: U.uRule, uFront: U.uFront}, vertexShader: FLAT_VERTEX, fragmentShader: FLAT_FRAGMENT,
+  }), MAX_CUBES);
+  flats.frustumCulled = false; flats.count = 0; flats.renderOrder = 2; scene.add(flats);
   // The settled half of each lamp never sees the carried cube.
   carriedCaster.onBeforeShadow = (r, object, cam, shadowCamera) => { if (settledCams.has(shadowCamera)) object.modelViewMatrix.makeScale(0, 0, 0); };
   room = new THREE.Group(); scene.add(room);
@@ -465,7 +559,7 @@ function setupGL() {
   // floor, so it is continuous with the floor and with the page beyond the canvas.
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400).rotateX(-Math.PI / 2), new THREE.ShaderMaterial({
     transparent: true, depthWrite: false,
-    uniforms: {uH: U.uH, uN: U.uN, uWallH: U.uWallH, uPaper: U.uPaper, uLift: U.uLift, ...TRAY,
+    uniforms: {uH: U.uH, uN: U.uN, uWallH: U.uWallH, uPaper: U.uPaper, ...TRAY,
       uFloorLit: {value: new THREE.Color(FLOOR).multiplyScalar((LAMP.floor + FILL) / Math.PI)}, uExposure: {value: EXPOSURE}},
     vertexShader: GROUND_VERTEX, fragmentShader: GROUND_FRAGMENT,
   }));
@@ -555,6 +649,7 @@ function fit() {
   renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
   const pad = 8, scale = Math.min((area.width - 2 * pad) / frameSize.w, (area.height - 2 * pad) / frameSize.h);
   view = {w, h, scale, cx: area.left + area.width / 2, cy: area.top + area.height / 2};
+  U.uRule.value = RULE * scale * dpr;
   marks.setAttribute('viewBox', `0 0 ${w} ${h}`);
   frame();
 }
@@ -572,7 +667,7 @@ function frame() {
 // The view at position s: the camera, the tray row and a floating carried cube follow; the lamps and
 // their shadow maps do not depend on the view, so no shadow is redrawn.
 function setView(s) {
-  viewAt = s; AX = axesAt(s);
+  viewAt = s; AX = axesAt(s); U.uFront.value = Math.abs(s - FRONT) < 1e-4 ? 1 : 0;
   if (!renderer) return;
   layout = layoutFor(AX); updateTray(); if (carry) updateCarried(carriedBase()); frame();
 }
@@ -611,16 +706,14 @@ function landingNext() {
   const base = carriedBase(), [r, c] = carry.target;
   return E.set(puzzle, base, r, c, base[r][c] + 1);
 }
-// The floor square and level of each settled cube instance, for its finish color.
-const cubeCells = [];
 function updateCubes(display) {
-  let k = 0; cubeCells.length = 0;
+  let k = 0;
   for (let r = 0; r < puzzle.n; r++) for (let c = 0; c < puzzle.n; c++) for (let z = 0; z < display[r][c]; z++) {
-    cubeCells.push([r, c, z]);
     const lift = settle && settle.r === r && settle.c === c && z === display[r][c] - 1 ? settle.offset : 0;
-    M.makeTranslation(c + .5, z + .5 + lift, r + .5); cubes.setMatrixAt(k, M); casters.setMatrixAt(k++, M);
+    M.makeTranslation(c + .5, z + .5 + lift, r + .5); cubes.setMatrixAt(k, M); flats.setMatrixAt(k, M); casters.setMatrixAt(k++, M);
   }
   for (const m of [cubes, casters]) { m.count = k; m.instanceMatrix.needsUpdate = true; m.boundingSphere = null; }
+  flats.instanceMatrix.needsUpdate = true;
   for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) U.uH.value[r * 5 + c] = r < puzzle.n && c < puzzle.n ? display[r][c] : 0;
 }
 function updateCarried(base) {
@@ -649,21 +742,12 @@ function updateTray() {
   }
   trayMesh.count = remaining; trayMesh.instanceMatrix.needsUpdate = true; trayMesh.boundingSphere = null; TRAY.uTrayCount.value = remaining;
 }
-// The finish: the outlines flash blue, the seams soften, the gallery light comes up a step with the pool on
-// the ground widening, the cubes take their colors and the ink fades. On paper only the sculpture brightens.
+// The finish: the ink gives way as the room takes its color, the shadows go black and the finished cubes
+// fade in over the plaster ones. The light holds still. Lifting a cube from a finished board puts it back.
 function updateLight() {
-  const finishing = !carry && solvedNow(), up = finishing ? lift : 0;
-  U.uInk.value = finishing ? 1 - glow : 1; U.uSuccess.value = finishing ? success : 0; U.uSeam.value = up; U.uLift.value = up;
-  if (PAPER) mats.cube.color.set(CUBE).multiplyScalar(1 + GLOW * up);
-  else { renderer.toneMappingExposure = EXPOSURE * (1 + LIFT_EXPOSURE * up); fill.intensity = FILL * (1 + LIFT_FILL * up); }
-  paintCubes(finishing && !forcedColors.matches ? tint : 0);
-}
-// Each settled cube's finish color by its level, eased in from white by `k`.
-const paintColor = new THREE.Color();
-function paintCubes(k) {
-  if (!cubes.instanceColor) return;
-  cubeCells.forEach(([, , z], i) => cubes.setColorAt(i, paintColor.copy(WHITE).lerp(LEVELS[Math.min(z, LEVELS.length - 1)], k)));
-  cubes.instanceColor.needsUpdate = true;
+  const k = !carry && solvedNow() ? tint : 0;
+  U.uInk.value = 1 - k; U.uFlat.value = k; U.uTone.value = forcedColors.matches ? 0 : 1;
+  flats.count = k > 0 ? cubes.count : 0;
 }
 function updateScene() {
   if (!renderer) return;
@@ -812,23 +896,19 @@ async function perform(action) {
   const target = action.type === 'move' ? [action.r2, action.c2] : [r, c], grew = next[target[0]][target[1]] > heights[target[0]][target[1]];
   const returnFrom = action.returnPoint || toView(c + .5, heights[r][c] - .5 + (action.held ? LIFT * 1.8 : 0), r + .5);
   history.push({heights: copy(heights), hits}); heights = next; hits++; hint = null; hover = null; focus = target;
-  const solved = solvedNow(); glow = solved ? 0 : 1; success = lift = tint = 0;
+  const solved = solvedNow(); tint = 0;
   if (solved && !isFree()) { finished.add(puzzle.id); reached = Math.min(boards.length - 1, Math.max(reached, boards.indexOf(puzzle) + 1)); }
   sync(); save();
   if (E.compare(puzzle, heights).tray > before) await returnToTray(returnFrom, before);
   if (run !== epoch) return;
   if (solved) {
-    // The next arrow is already showing and usable; the light carries the moment, and nothing else moves.
+    // The next arrow is already showing and usable; the color carries the moment, and nothing else moves.
     announce(`All shadows match. Board solved in ${hits} hits. Par ${E.par(puzzle)}. ${theEnd() ? 'The end. Free play is open in Settings and behind the next arrow.' : `${onward().label} is next.`}`);
-    const ramp = (t, a, b) => { const k = Math.min(1, Math.max(0, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
-    const finish = tween(FINISH_MS, t => {
-      const ms = t * FINISH_MS; success = ramp(ms, 0, 200); lift = ramp(ms, 100, 650); glow = ramp(ms, 480, FINISH_MS); tint = ramp(ms, 300, FINISH_MS);
-      updateLight(); requestRender();
-    });
+    const finish = tween(FINISH_MS, t => { tint = t * t * (3 - 2 * t); updateLight(); requestRender(); });
     if (grew) settleCube(...target, action.carried ? LIFT : .06);
     await finish;
     if (run !== epoch) return;
-    success = lift = glow = tint = 1; sync();
+    tint = 1; sync();
   } else if (grew) {
     await settleCube(...target, action.carried ? LIFT : .06); if (run !== epoch) return;
   }
@@ -866,14 +946,14 @@ function clearPending() {
 function undo() {
   clearPending(); const previous = history.pop();
   if (previous) { heights = copy(previous.heights); hits = previous.hits; announce(`Move undone. ${hits} hits. ${E.compare(puzzle, heights).tray} cubes in the tray.`); }
-  hint = null; hover = null; glow = success = lift = tint = solvedNow() ? 1 : 0; sync(); save();
+  hint = null; hover = null; tint = solvedNow() ? 1 : 0; sync(); save();
 }
-function restart() { clearPending(); heights = E.start(puzzle); hits = 0; history = []; hint = null; hover = null; glow = success = lift = tint = 0; sync(); save(); announce('Board restarted.'); }
+function restart() { clearPending(); heights = E.start(puzzle); hits = 0; history = []; hint = null; hover = null; tint = 0; sync(); save(); announce('Board restarted.'); }
 // Opens a board in hand: each opens on the front view, which is not saved.
 function open(b, h, n, past) {
   clearPending(); puzzle = b; heights = h; hits = n; history = past; hint = null; hover = null; focus = [0, 0];
-  glow = success = lift = tint = solvedNow() ? 1 : 0;
-  viewAt = viewRest = FRONT; AX = axesAt(FRONT); board.dataset.view = RESTS[FRONT].name;
+  tint = solvedNow() ? 1 : 0;
+  viewAt = viewRest = FRONT; AX = axesAt(FRONT); U.uFront.value = 1; board.dataset.view = RESTS[FRONT].name;
   if (renderer) buildRoom();
   sync(); save();
 }
@@ -1188,7 +1268,7 @@ function hookup() {
     light: lightMasks, cellPoint, poolPoints, project(x, y, z) { return client(toView(x, y, z)); },
     get carry() { return carry ? {source: carry.source ? carry.source.slice() : null, slot: carry.slot ?? null, target: carry.target ? carry.target.slice() : null, preview: carryCasts} : null; },
     get view() { return {rest: RESTS[viewRest].name, at: viewAt, rests: RESTS.map(r => r.name), moving: !!viewJob}; }, setView(name) { const i = RESTS.findIndex(r => r.name === name); if (i >= 0) goView(i, true); return i >= 0; },
-    get frames() { return frames; }, get settle() { return settle ? settle.offset : 0; }, get success() { return success; }, get timing() { return {...timing}; }, get glow() { return glow; }, get reached() { return reached; }, get lift() { return lift; }, get tint() { return tint; },
+    get frames() { return frames; }, get settle() { return settle ? settle.offset : 0; }, get timing() { return {...timing}; }, get reached() { return reached; }, get tint() { return tint; },
   };
   // The painted bounds are the frame every view fits in, centered as each view is, so they hold still as the view swings.
   window.__minimalize = {bounds() {

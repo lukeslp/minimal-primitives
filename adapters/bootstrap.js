@@ -2,6 +2,13 @@
 (() => {
   'use strict';
   const config = window.MINIMAL_CONFIG;
+  // A picture leaves a game only through the system's share sheet: the other way out is a blob: download, which an
+  // app's web view drops while the game says it saved. Where the sheet can take a picture the page is marked, and
+  // the buttons that save or share one show only then (SHARE_SHEET_ONLY in tools/transforms.py).
+  try {
+    const picture = new File([''], 'picture.png', {type: 'image/png'});
+    if (typeof navigator.share === 'function' && (!navigator.canShare || navigator.canShare({files: [picture]}))) document.documentElement.dataset.minimalShare = '';
+  } catch (_) {}
   const prefix = `lukesteuber.minimal.${config.game}:`;
   // Access is about the player, not the game: the choice made on the
   // library's Accessibility band and the camera calibration are shared by
@@ -21,16 +28,21 @@
     try { Object.defineProperty(window,kind,{configurable:true,value:fallback}); if(kind==='localStorage')local=fallback;else session=fallback; } catch (_) {}
   }
   const isolated=store=>store===local||store===session;
+  // Memory holds only what the device would not store: a refused write (storage full, or storage turned off) and,
+  // as null, a refused removal. A pending value wins over the stored one, so a game reads back what it last saved
+  // and not the older record; a later write that succeeds clears it. The library is told once (see emit below).
   const memoryFor=store=>{if(!memories.has(store))memories.set(store,new Map());return memories.get(store);};
+  let refused=false,announced=false,told=false;
+  const tell=()=>{if(!refused||told||!announced)return;told=true;window.MinimalBridge.emit('storage');};
   const keys = store => {
     const result = [];
     try { for (let i = 0; i < length.call(store); i++) { const key = native.key.call(store, i); if (key?.startsWith(prefix)) result.push(key.slice(prefix.length)); } } catch (_) {}
-    for (const key of memoryFor(store).keys()) if (!result.includes(key)) result.push(key);
+    for (const [key,value] of memoryFor(store)) { const at=result.indexOf(key); if(value===null){if(at>=0)result.splice(at,1);} else if(at<0)result.push(key); }
     return result;
   };
-  proto.getItem = function(key) { if (!isolated(this)) return native.getItem.call(this, key); key = String(key); const memory=memoryFor(this);try { return native.getItem.call(this, full(key)) ?? memory.get(key) ?? null; } catch (_) { return memory.get(key) ?? null; } };
-  proto.setItem = function(key, value) { if (!isolated(this)) return native.setItem.call(this, key, value); key = String(key); value = String(value); memoryFor(this).set(key, value); try { native.setItem.call(this, full(key), value); } catch (_) {} };
-  proto.removeItem = function(key) { if (!isolated(this)) return native.removeItem.call(this, key); key = String(key); memoryFor(this).delete(key); try { native.removeItem.call(this, full(key)); } catch (_) {} };
+  proto.getItem = function(key) { if (!isolated(this)) return native.getItem.call(this, key); key = String(key); const memory=memoryFor(this);if(memory.has(key))return memory.get(key);try { return native.getItem.call(this, full(key)); } catch (_) { return null; } };
+  proto.setItem = function(key, value) { if (!isolated(this)) return native.setItem.call(this, key, value); key = String(key); value = String(value); const memory=memoryFor(this);try { native.setItem.call(this, full(key), value); memory.delete(key); } catch (_) { memory.set(key, value);refused=true;tell(); } };
+  proto.removeItem = function(key) { if (!isolated(this)) return native.removeItem.call(this, key); key = String(key); const memory=memoryFor(this);try { native.removeItem.call(this, full(key)); memory.delete(key); } catch (_) { memory.set(key, null); } };
   proto.key = function(index) { return isolated(this) ? keys(this)[Number(index)] ?? null : native.key.call(this, index); };
   proto.clear = function() { if (!isolated(this)) return native.clear.call(this); for (const key of keys(this)) this.removeItem(key); };
   Object.defineProperty(proto, 'length', { configurable: true, get() { return isolated(this) ? keys(this).length : length.call(this); } });
@@ -50,8 +62,12 @@
   },true);
   window.MinimalBridge = {
     config, nonce,sessionIsolated:true,
-    emit(type, payload = {}, attempt=this.attempt) { if(type==='library'&&parent===window){location.assign(new URL(config.root+'/index.html',location.href));return;} if (parent !== window && nonce) parent.postMessage({ v: 1, game: config.game, nonce, document:documentId, attempt, sequence: ++sequence, type, payload }, location.origin); },
-    storage() { return Object.fromEntries(keys(local).map(key => [key, local.getItem(key)])); }
+    emit(type, payload = {}, attempt=this.attempt) { if(type==='library'&&parent===window){location.assign(new URL(config.root+'/index.html',location.href));return;} if (parent !== window && nonce) parent.postMessage({ v: 1, game: config.game, nonce, document:documentId, attempt, sequence: ++sequence, type, payload }, location.origin);
+      // The library takes a new document's first 'open' or 'ready' and nothing before it; a save refused earlier is reported then.
+      if(type==='open'||type==='ready'){announced=true;tell();} },
+    storage() { return Object.fromEntries(keys(local).map(key => [key, local.getItem(key)])); },
+    // A picture the share sheet did not take (not one the player turned away) is said by the library, in words.
+    shareFailed() { this.emit('share-failed'); }
   };
   const canonical = value => JSON.stringify(value, (_, v) => v && !Array.isArray(v) && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map(k => [k, v[k]])) : v);
   const clone = value => JSON.parse(JSON.stringify(value, (_, v) => ArrayBuffer.isView(v) ? Array.from(v) : v));
@@ -113,5 +129,21 @@
     if (!a) return;
     if (a.hasAttribute('data-minimal-library')) { event.preventDefault(); window.MinimalBridge.emit('library'); }
     else if (new URL(a.href, location.href).origin !== location.origin) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+  });
+  // Home, Scores and Android's Back answer only in a page that carries the collection's handshake (the nonce read
+  // above). A link to another packaged page starts a new document, so the handshake goes with it: here, once, for
+  // every such link in every game (Tangles' Experiments and New Game+ are links of this kind). A link the game
+  // handles itself (default prevented) and a link to a place in the same page load nothing and are left alone.
+  // The listener sits on the window so every handler of the game's has run first.
+  window.addEventListener('click', event => {
+    const a = event.target.closest?.('a[href]');
+    if (!a || !nonce || event.defaultPrevented || a.hasAttribute('data-minimal-library') || a.hasAttribute('download')) return;
+    const href = a.getAttribute('href');
+    let url;
+    try { url = new URL(href, document.baseURI); } catch (_) { return; }
+    if (url.protocol !== location.protocol || url.origin !== location.origin) return;
+    if (url.pathname === location.pathname && url.search === location.search && href.includes('#')) return;
+    url.searchParams.set('minimal', nonce);
+    a.setAttribute('href', url.href);
   });
 })();

@@ -7,6 +7,7 @@
     ["  if (solved && !isFree()) { finished.add(puzzle.id); reached = Math.min(boards.length - 1, Math.max(reached, boards.indexOf(puzzle) + 1)); }\n", "  if (solved && !isFree()) { finished.add(puzzle.id); reached = Math.min(boards.length - 1, Math.max(reached, boards.indexOf(puzzle) + 1)); }\n  window.MinimalAdapter?.committed();\n"],
     ["  if (action.type === 'hint') {\n", "  if (action.type === 'hint') { window.MinimalAdapter?.assist();\n"],
     ["function restart() { clearPending();", "function restart() { window.MinimalAdapter?.restart(); clearPending();"],
-    ["function undo() {\n  clearPending();", "function undo() { window.MinimalAdapter?.undo();\n  clearPending();"]
+    ["function undo() {\n  clearPending();", "function undo() { window.MinimalAdapter?.undo();\n  clearPending();"],
+    ["let tint = E.solved(puzzle, heights) ? 1 : 0, settle = null,", "let tint = E.solved(puzzle, heights) ? 1 : 0, settle = null,"]
   ]
 }

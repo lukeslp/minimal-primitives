@@ -39,3 +39,8 @@ html[data-duo-pose="book"] #library footer button{grid-column:3;justify-self:end
 #duo-pane .duo-proxy:disabled{opacity:.35;cursor:default}
 #duo-pane .duo-proxy:focus-visible{outline:2px solid currentColor;outline-offset:-4px}
 @media(hover:hover) and (pointer:fine){#duo-pane .duo-proxy:hover:not(:disabled){background:color-mix(in srgb,currentColor 10%,transparent)}}
+
+/* Recovery (collection.css) keeps clear of the fold in the book pose: the library's Retry on the leading side, a
+   stalled game's Home over the trailing side, where the game plays. */
+html[data-duo-pose="book"] #load-failed{width:var(--duo-fold-left)}
+html[data-duo-pose="book"] #stalled{left:calc((100% + var(--duo-fold-right)) / 2);max-width:calc(100% - var(--duo-fold-right) - 24px)}

@@ -265,11 +265,17 @@
     ring.setAttribute('class', 'focus-ring' + (puzzle.given[f] ? ' on-given' : ''));
   }
 
+  // Where the opening boards lead back to: the board the player was on, a New Game+ board included (as on a reload).
+  const resumeAt = () => gen && gen.playing ? 'generated' : store.at;
+  // Help's replay button takes a player back from the opening boards it brought them to.
+  let replaying = false;
+  const REPLAY = 'Play the opening boards again';
+  const backLabel = () => resumeAt() === 'generated' ? 'Back to New Game+' : 'Back to board ' + (L.findIndex(p => p.id === resumeAt()) + 1);
   // Where Next goes from a solved board: the next board in order; past the last, the first one not yet
   // solved; with all thirty solved, a new generated board (and the same from a generated board).
   function nextTarget() {
     const k = openingAt(at), n = L.findIndex(p => p.id === at);
-    if (k >= 0) return k < OPENING.length - 1 ? OPENING[k + 1].id : store.at;
+    if (k >= 0) return k < OPENING.length - 1 ? OPENING[k + 1].id : resumeAt();
     if (n >= 0 && n < L.length - 1) return L[n + 1].id;
     const open = L.find(p => !progress.completed.includes(p.id));
     return open ? open.id : 'new';
@@ -288,8 +294,15 @@
     next.setAttribute('aria-label', fresh ? 'New board' : 'Next puzzle');
     if (next.dataset.icon !== (fresh ? 'more' : 'next')) { next.dataset.icon = fresh ? 'more' : 'next'; next.innerHTML = icon(next.dataset.icon); }
     $('#feedback').classList.toggle('sr-only', S.solved);
-    $('#campaign').value = n < 0 ? '' : at;
-    for (const o of $('#campaign').options) o.textContent = optionText(o.value);
+    // A board outside the campaign is listed as what it is, at the head of the list, while it is on the page: an
+    // opening board or a New Game+ board. The list never stands blank, and choosing a campaign board from it leaves
+    // for that board as before.
+    const k = openingAt(at), list = $('#campaign'); let here = list.querySelector('option[data-here]');
+    if (n < 0) { if (!here) { here = document.createElement('option'); here.dataset.here = ''; list.prepend(here); } here.value = at; here.textContent = k >= 0 ? 'Opening board ' + (k + 1) + ' of ' + OPENING.length : 'New Game+ board'; }
+    else if (here) here.remove();
+    list.value = at;
+    for (const o of list.options) if (!('here' in o.dataset)) o.textContent = optionText(o.value);
+    $('#replay-opening').textContent = replaying && k >= 0 ? backLabel() : REPLAY;
     $('#previous').disabled = n <= 0;
     $('#following').disabled = n < 0 || n === L.length - 1;
     $('#free-row').hidden = !allDone();
@@ -357,6 +370,7 @@
   function switchBoard(id, alreadySaved) {
     if (!alreadySaved) save();
     at = id; puzzle = board(id);
+    if (openingAt(id) < 0) replaying = false;
     S.cells = cellsOf(id).slice();
     S.undo = []; S.focus = 0; S.hint = null; S.solved = false; S.keyboard = false;
     stopTour(); view = null;
@@ -501,7 +515,7 @@
   }
   L.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = optionText(p.id); $('#campaign').append(o); });
   $('#new-game').addEventListener('click', () => { $('#settings').close(); newGenerated(); });
-  $('#campaign').addEventListener('change', e => { switchBoard(e.target.value); $('#settings').close(); });
+  $('#campaign').addEventListener('change', e => { if (ids.has(e.target.value)) switchBoard(e.target.value); $('#settings').close(); });
   for (const [id, delta] of [['previous', -1], ['following', 1]]) $('#' + id).addEventListener('click', () => {
     const n = L.findIndex(p => p.id === at) + delta;
     if (n >= 0 && n < L.length) switchBoard(L[n].id);
@@ -515,7 +529,13 @@
   }
   for (const id of ['theme', 'motion', 'view']) $('#' + id).addEventListener('change', e => { prefs[id] = e.target.value; write(K.settings, prefs); applyPrefs(); render(); });
   $('#reset').addEventListener('click', () => { restart(); $('#settings').close(); });
-  $('#replay-opening').addEventListener('click', () => { $('#help').close(); switchBoard(OPENING[0].id); });
+  // From a campaign or New Game+ board the button replays the opening boards; from an opening board it reached that
+  // way, it goes back to the board the player was on. Finishing the opening boards, or a reload, goes back there too.
+  $('#replay-opening').addEventListener('click', () => {
+    $('#help').close();
+    if (replaying && openingAt(at) >= 0) { switchBoard(resumeAt()); return; }
+    replaying = true; switchBoard(OPENING[0].id);
+  });
   window.addEventListener('resize', draw);
 
   applyPrefs(); checkSolved(false); build(); render(); save();
