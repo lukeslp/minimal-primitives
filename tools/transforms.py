@@ -312,8 +312,10 @@ def transform(game, path, text):
     if path == 'akari/akari.css':
         text = replace_or_absorbed(text, 'box-shadow:0 0 4px 2px #fff,0 0 14px 5px #ffffff66,0 0 32px 9px #ffffff20', 'box-shadow:0 0 2px 1px #fff,0 0 8px 2px #ffffff66,0 0 16px 4px #ffffff14', path)
         text = replace_or_absorbed(text, 'background:repeating-linear-gradient(135deg,transparent 0 7px,#ffffff28 7px 8px),#0003', 'background:#484848cc', path)
-        text = replace_or_absorbed(text, 'animation:next-reveal .45s .4s both', 'animation:next-reveal .18s .7s both', path)
-        text = replace_or_absorbed(text, '@keyframes next-reveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}', '@keyframes next-reveal{from{opacity:0}to{opacity:1}}', path)
+        # The Next fade (next-reveal) left with the continue disc (game-riffs PR 204): the frame shows the disc at the solve.
+        if 'next-reveal' in text:
+            text = replace_or_absorbed(text, 'animation:next-reveal .45s .4s both', 'animation:next-reveal .18s .7s both', path)
+            text = replace_or_absorbed(text, '@keyframes next-reveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}', '@keyframes next-reveal{from{opacity:0}to{opacity:1}}', path)
     if path == 'akari/light-field.js':
         # Visual midpoint of the .31 and .96 versions after gamma encoding.
         text = replace_or_absorbed(text, 'const mapped=.31*(1-Math.exp(-e*.7))', 'const mapped=.585*(1-Math.exp(-e*.7))', path)
@@ -338,6 +340,11 @@ def transform(game, path, text):
         text = replace_once(text, WHEEL_HOLD, '', path)
     if path == 'cube-maze/cube-maze.js':
         text = replace_once(text, HINT_WORKER, HINT_WORKER_GUARDED, path)
+    if path == 'tangles/loop.js' and "location.href = './experiments.html?plus'" in text:
+        # Since game-riffs PR 205 the last board's continue disc goes to New Game+ by script, not by a link the
+        # collection's click handler sees, so the handshake is handed on here and Home keeps answering there.
+        text = replace_once(text, "location.href = './experiments.html?plus'",
+                            "location.href = './experiments.html?plus' + (window.MinimalBridge && MinimalBridge.nonce ? '&minimal=' + MinimalBridge.nonce : '')", path)
     if path == 'tangles/experiments.js':
         # Experiments and New Game+ lead back to Tangles by its folder ('./'). The package names the page, since a
         # host need not serve a folder's index.html, and hands on the collection's handshake so Home works there.

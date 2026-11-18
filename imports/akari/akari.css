@@ -11,8 +11,8 @@
 @media(forced-colors:active){.cell{forced-color-adjust:none;background:Canvas;color:CanvasText;border-color:CanvasText}.cell.wall{background:CanvasText;color:Canvas}.cell:not(.wall):not(.lit){background:repeating-linear-gradient(135deg,Canvas 0 5px,GrayText 5px 6px)}.cell.conflict{outline:3px dashed CanvasText;outline-offset:-4px}.cell.lit{background:Canvas}.sheet{border-color:CanvasText}}
 
 /* A completed board settles once; its next arrow appears beneath it. */
-.board-stage{flex:none;margin:auto;display:flex;flex-direction:column;align-items:center;gap:16px}.board-stage .board{margin:0}.completion{display:flex;justify-content:center;animation:next-reveal .18s .7s both}.completion[hidden]{display:none}.board.solved{outline:none}.board.solved .cell:not(.wall){border-color:var(--line)}
-@keyframes next-reveal{from{opacity:0}to{opacity:1}}
+.board-stage{flex:none;margin:auto;display:flex;flex-direction:column;align-items:center;gap:16px}.board-stage .board{margin:0}.completion{display:flex;justify-content:center}.completion[hidden]{display:none}.board.solved{outline:none}.board.solved .cell:not(.wall){border-color:var(--line)}
+
 
 .cell.excluded:before{transition:opacity .6s}.board.solved .cell.excluded:before{opacity:0}
 

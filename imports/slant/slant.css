@@ -44,6 +44,10 @@
 
 .completion .ib[hidden],.toolbar .ib[hidden],.row[hidden]{display:none}
 .milestone{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin:0;white-space:nowrap;text-align:center;color:var(--sub);font:14px/1.3 var(--sans);pointer-events:none}.milestone:empty{display:none}
+/* In the control frame the Next disc and the line above it (#milestone, control-end-line) are the frame's; the row
+   keeps free draw's Download where the frame put the row: centered just above the toolbar. */
+body[data-control-frame] #completion{position:fixed;top:auto;left:50%;right:auto;bottom:max(64px,calc(env(safe-area-inset-bottom) + 64px));transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);z-index:50}
+@media(max-height:520px) and (min-width:560px){body[data-control-frame] #completion{bottom:max(12px,env(safe-area-inset-bottom))}}
 
 /* Color is a geometric reward; clues keep their independent monochrome backing. */
 .region-mode .cell>svg{filter:drop-shadow(0 0 1px #000)}

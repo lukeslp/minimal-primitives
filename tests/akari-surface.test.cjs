@@ -6,12 +6,26 @@ const h=require('./parity-fixtures/browser.cjs'),a=require('./parity-fixtures/ac
 let browser;const getBrowser=async()=>browser||(browser=await h.launch());
 after(async()=>browser?.close());
 
+// Since game-riffs PR 204 the dark Akari's Next is the control frame's continue disc, as in Weaves: 64 px, shown at the
+// solve, in the gap under the board or on the toolbar's row, never over the board or a control. The Light look
+// (game-riffs akari-classic, the package's akari-light) keeps its 48 px Next just under the board, as on the web.
 async function completionNearBoard(frame) {
-  const geometry=await frame.evaluate(()=>{const board=document.querySelector('#board').getBoundingClientRect(),next=document.querySelector('#next-btn').getBoundingClientRect();return{gap:next.y-board.bottom,next:[next.x,next.y,next.width,next.height],viewport:[innerWidth,innerHeight]};});
-  assert.ok(geometry.gap>=8&&geometry.gap<=24,'Next stays close to the finished board: '+JSON.stringify(geometry));
-  assert.deepEqual(geometry.next.slice(2),[48,48]);
-  assert.ok(geometry.next[1]+48<=geometry.viewport[1],'Next remains in the viewport');
-  assert.equal(await frame.locator('#completion button:visible').count(),1,'completion has only Next');
+  const geometry=await frame.evaluate(()=>{
+    const box=n=>{const r=n.getBoundingClientRect();return[r.left,r.top,r.right,r.bottom];};
+    return{look:document.body.dataset.controlFrame,board:box(document.querySelector('#board')),next:box(document.querySelector('#next-btn')),controls:[...document.querySelectorAll('.control-toolbar button,.control-restart')].filter(n=>n.offsetParent!==null).map(box),viewport:[innerWidth,innerHeight]};
+  });
+  const meets=(a,b)=>Math.min(a[2],b[2])-Math.max(a[0],b[0])>0&&Math.min(a[3],b[3])-Math.max(a[1],b[1])>0;
+  const size=[Math.round(geometry.next[2]-geometry.next[0]),Math.round(geometry.next[3]-geometry.next[1])];
+  if(geometry.look==='akari-light'){
+    const gap=geometry.next[1]-geometry.board[3];
+    assert.ok(gap>=8&&gap<=24,'Next stays close to the finished board: '+JSON.stringify(geometry));
+    assert.deepEqual(size,[48,48]);
+  }else assert.deepEqual(size,[64,64],'Next is the 64 px disc: '+JSON.stringify(geometry));
+  assert.ok(geometry.next[0]>=0&&geometry.next[1]>=0&&geometry.next[2]<=geometry.viewport[0]&&geometry.next[3]<=geometry.viewport[1],'Next remains in the viewport');
+  assert.ok(!meets(geometry.next,geometry.board),'Next does not cover the board: '+JSON.stringify(geometry));
+  for(const c of geometry.controls)assert.ok(!meets(geometry.next,c),'Next does not cover a control: '+JSON.stringify({next:geometry.next,control:c}));
+  assert.equal(await frame.locator('#next-btn:visible').count(),1,'Next shows');
+  assert.equal(await frame.locator('#share-btn:visible').count(),0,'completion has only Next (Share stays out of the package)');
 }
 
 for(const [size,viewport] of Object.entries({phone:{width:390,height:844},landscape:{width:844,height:390},tall:{width:587,height:1330}}))test(`Akari ${size}: smooth panels distinguish rule coverage from natural light spill`,async t=>{

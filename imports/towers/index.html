@@ -6,8 +6,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<script src="./pwa.js?v=ccbd96c0" defer></script><link rel="stylesheet" href="./towers.css?v=19b25f75">
-<link rel="stylesheet" href="./controls.css?v=97b7114c">
+<script src="./pwa.js?v=ccbd96c0" defer></script><link rel="stylesheet" href="./towers.css?v=be09c864">
+<link rel="stylesheet" href="./controls.css?v=e9a44e73">
 <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
 <meta name="description" content="Raise a block of towers so every row and column holds each height once and each edge number counts the towers seen from there.">
 <meta property="og:title" content="Towers">
@@ -25,7 +25,7 @@
 <meta name="twitter:image" content="https://lukesteuber.com/games/towers/og.png?v=8e5c4fa05a05">
 <meta name="twitter:image:alt" content="Numbered blocks of different heights on a diamond-shaped grid with several squares still empty, and a number standing off the end of some rows and columns.">
 </head>
-<body><header><button id="restart-btn" class="ib" aria-label="Restart puzzle"></button><h1 class="sr-only">Towers</h1><div id="readout" class="readout"></div></header><main id="board-shell" aria-label="Towers puzzle"><div class="board-stage"><div id="board" class="board"></div><div id="completion" class="completion" hidden><p id="ending" class="ending" aria-hidden="true" hidden></p><button id="next-btn" class="ib" aria-label="Next puzzle"></button></div></div><div id="picker" class="picker" role="group" hidden></div></main><p id="feedback" role="status" aria-live="polite"></p><p id="announce" class="sr-only" role="status"></p>
+<body><header><button id="restart-btn" class="ib" aria-label="Restart puzzle"></button><h1 class="sr-only">Towers</h1><div id="readout" class="readout"></div></header><main id="board-shell" aria-label="Towers puzzle"><div class="board-stage"><div id="board" class="board"></div><div id="completion" class="completion" hidden><p id="ending" class="ending control-end-line" aria-hidden="true" hidden></p><button id="next-btn" class="ib" type="button" aria-label="Next puzzle" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div></div><div id="picker" class="picker" role="group" hidden></div></main><p id="feedback" role="status" aria-live="polite"></p><p id="announce" class="sr-only" role="status"></p>
 <nav class="toolbar" aria-label="Game controls"><div><button id="undo-btn" class="ib" aria-label="Undo"></button><button id="hint-btn" class="ib" aria-label="Hint"></button><button id="turn-btn" class="ib" aria-label="Turn the board a quarter"></button></div><div><button id="settings-btn" class="ib" aria-label="Settings"></button><button id="help-btn" class="ib" aria-label="Help"></button></div></nav>
 <dialog id="settings" class="sheet" aria-labelledby="settings-title"><div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
 <h3 class="group">This board</h3><label class="row">Campaign <select id="campaign"></select></label><div class="row"><button id="previous">Previous</button><button id="following">Next</button></div><div class="row"><span>Current board</span><button id="reset">Restart</button></div>
@@ -38,6 +38,6 @@
 <div class="controls"><p>Tap — raises a tower by one. After the tallest, the square is empty again.</p><p>Hold a square, or tap it on a touch screen, for a row of heights under the board. Tap a height to set it, or the empty square to clear.</p><p>Hint — shows the next step and why. Press it again to fill it.</p><p>Drag sideways — turns the board, so any side can face you. The turn button does a quarter.</p><p>Black-topped towers are fixed. A dashed mark means a repeat or a miscount.</p></div>
 <details class="help-more"><summary>More controls</summary><p>On a solved board, tap a number to see from there: the towers it counts stay lit and the ones behind a taller tower fall into shadow. <kbd>V</kbd> walks round the numbers; Escape rests.</p><p><kbd>[</kbd> and <kbd>]</kbd> turn the board. Arrows move as it now faces. Enter or Space raises a tower. A digit sets a height; 0 or Delete clears. Z or Backspace undoes. H hints.</p><p>Restart clears this puzzle; Undo restores it.</p><p>Settings has a flat view: the same board as a plain grid of numbers.</p></details>
 </div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
-<script src="./engine.js?v=fee808b3"></script><script src="./levels.js?v=bff53fa4"></script><script src="./towers.js?v=8845ac06"></script>
-<script defer src="./controls.js?v=2260b773"></script>
+<script src="./engine.js?v=fee808b3"></script><script src="./levels.js?v=e3210a39"></script><script src="./towers.js?v=1c391b00"></script>
+<script defer src="./controls.js?v=6bb28851"></script>
 </body></html>

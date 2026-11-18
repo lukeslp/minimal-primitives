@@ -12,7 +12,7 @@
 
 /* A completed board settles once; its next arrow appears beneath it. */
 .board-stage{flex:none;margin:auto;display:flex;flex-direction:column;align-items:center;gap:16px}.board-stage .board{margin:0}.completion{display:flex;justify-content:center}.completion[hidden]{display:none}.board.solved{outline:none;animation:solved-settle .65s cubic-bezier(.3,.7,.2,1)}
-@keyframes solved-settle{0%{transform:scale(1)}45%{transform:scale(.985)}100%{transform:scale(1)}}@keyframes next-reveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes solved-settle{0%{transform:scale(1)}45%{transform:scale(.985)}100%{transform:scale(1)}}
 
 .cell.excluded:before{transition:opacity .6s}.board.solved .cell.excluded:before{opacity:0}
 
@@ -42,7 +42,7 @@
 @keyframes half-turn{0%,25%{transform:rotate(0)}70%,100%{transform:rotate(180deg)}}
 @media(prefers-reduced-motion:reduce){.constellation,.example-shape,.twinkle,.sky-cloud,.sky-turn,.board.solved .star-field{animation:none}.veil,.meteor{display:none}.sky-full{animation:none;opacity:1}.board.solved .centres,.board.solved .cell{transition:none}}
 :root[data-motion=reduce] .constellation,:root[data-motion=reduce] .example-shape,:root[data-motion=reduce] .twinkle,:root[data-motion=reduce] .sky-cloud,:root[data-motion=reduce] .sky-turn,:root[data-motion=reduce] .board.solved .star-field{animation:none}:root[data-motion=reduce] .veil,:root[data-motion=reduce] .meteor{display:none}:root[data-motion=reduce] .sky-full{animation:none;opacity:1}:root[data-motion=reduce] .board.solved .centres,:root[data-motion=reduce] .board.solved .cell{transition:none}
-.board-stage{display:flex;flex-direction:column;flex:none;margin:auto;align-items:center;gap:8px;padding:5px 5px 69px;position:relative;min-width:max-content}.completion{position:absolute;bottom:5px;height:48px;flex:none}.completion[hidden]{display:none}.completion .ib{animation:next-reveal .65s .25s both}.board.solved{animation:solved-settle .7s cubic-bezier(.3,.7,.2,1);outline:1px solid var(--ink);outline-offset:0}
+.board-stage{display:flex;flex-direction:column;flex:none;margin:auto;align-items:center;gap:8px;padding:5px 5px 69px;position:relative;min-width:max-content}.completion{position:absolute;bottom:5px;height:48px;flex:none}.completion[hidden]{display:none}.board.solved{animation:solved-settle .7s cubic-bezier(.3,.7,.2,1);outline:1px solid var(--ink);outline-offset:0}
 #board-shell{align-items:flex-start}.practice{--cell:64px;--centre-target:24px}.practice-controls .ib{padding:10px}.cell.hint-target:after{border-radius:0;pointer-events:none}.cell.evidence{outline-color:var(--ink)}
 #feedback{max-height:40px;overflow:hidden}#notice{font:14px/1.3 var(--sans);color:var(--sub);position:fixed;top:28px;left:12px;right:12px;text-align:center;pointer-events:none;margin:0}
 @media(max-width:350px){.sheet-body{padding:16px}.practice{--cell:60px}.practice-controls{gap:0}.row{gap:4px}.row select{max-width:65%}}

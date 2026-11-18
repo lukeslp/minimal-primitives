@@ -29,8 +29,8 @@ try {
   if ([100, 115, 130, 150].includes(appearance.zoom)) document.documentElement.style.setProperty('--zoom', appearance.zoom / 100);
 } catch (_) { /* Defaults also work when storage is unavailable. */ }
 </script>
-<link rel="stylesheet" href="./notan.css?v=ee8a9e01">
-<link rel="stylesheet" href="./controls.css?v=4568a846">
+<link rel="stylesheet" href="./notan.css?v=37ba8f01">
+<link rel="stylesheet" href="./controls.css?v=e9a44e73">
 </head>
 <body>
 <main id="app">
@@ -59,7 +59,8 @@ try {
   <div class="caption" id="caption" hidden>
     <p id="cap-name"></p>
     <p id="unlock-notice" hidden>New Game+ unlocked</p>
-    <button type="button" class="ib" id="next-btn" aria-label="Next level">
+    <p id="end-line" class="end-line control-end-line" hidden></p>
+    <button type="button" class="ib" id="next-btn" aria-label="Next level" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
     </button>
     <button type="button" class="foot-btn share-btn" id="share-btn" hidden>Share blank</button>
@@ -142,9 +143,9 @@ try {
 <script src="./levels.js?v=4e9118b8"></script>
 <script src="./plus-levels.js?v=4f48e40f"></script>
 <script src="./paint-input.js?v=5bb412f7"></script>
-<script src="./notan.js?v=6fd8fdd2"></script>
+<script src="./notan.js?v=7a26646d"></script>
 <script src="./practice.js?v=292120d0"></script>
 <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
-<script defer src="./controls.js?v=ad59802b"></script>
+<script defer src="./controls.js?v=56545027"></script>
 </body>
 </html>

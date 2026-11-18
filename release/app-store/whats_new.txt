@@ -1,9 +1,9 @@
-Shorter campaigns that end sooner: Bending, Cast, Cube Maze, Folding, Horologist, Shoo, Spiral Galaxies, Tangles, Tilt and Tilt · 3D play twenty-five boards, Noon twenty, then open New Game+ or more boards.
+Every game ends with the same continue arrow, shown the moment you solve.
 
-Weaves is rebuilt as a short course of sixteen boards.
+Clearer endings.
 
-Hints show their reason in Cast, Balance, Bending and Weaves.
+Towers boards can always be solved by reasoning.
 
-Easier input in Towers and Bridges.
+Weaves continues into optional cloths after its course.
 
 Boards and progress saved by earlier versions are kept.

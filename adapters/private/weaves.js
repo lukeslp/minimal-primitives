@@ -1,7 +1,8 @@
 // Weaves resume adapter. Runs inside the game's closure, after its first draw.
 // The game's own save holds the board, grid, hits, undo history (with each step's settled marks), the settled marks
 // (`kept`), finished boards, settings, how far the old fifty-board catalog is open (`reached`, a catalog index) and
-// how far the sixteen-board course is open (`courseReached`, since game-riffs 9ad63d8). The snapshot adds what that
+// how far the sixteen-board course is open (`courseReached`, since game-riffs 9ad63d8) and the optional cloths dealt
+// after the course (`pool`, since PR 201). The snapshot adds what that
 // save leaves out: the shown hint with its reason, the crossing ring, the mark mode and the announcement. The proof
 // is the list of crossings flipped since the board's start, read from the undo history (marking changes no crossing).
 const __minimalMoves=()=>{
@@ -15,7 +16,7 @@ const __minimalCell=(p,b)=>Array.isArray(p)&&Number.isInteger(p[0])&&Number.isIn
 const __minimal=MinimalBridge.install({
   rulesVersion:'__RULES__',scoringPolicy:'__POLICY__',
   describe(){return{id:board.id,mode:'campaign',layout:{rows:board.rows,cols:board.cols,pins:board.pins},solved:E.solved(board,grid),repeat:finished.has(board.id),restored:history.length>0,value:hits,progress:{completed:finished.size}};},
-  snapshot(){return{board:board.id,grid:copy(grid),hits,history:history.map(h=>({grid:copy(h.grid),hits:h.hits,kept:(h.kept||[]).slice()})),kept:[...kept],keepMode,finished:[...finished],reached,course:1,courseReached,prefs:{...prefs},
+  snapshot(){return{board:board.id,grid:copy(grid),hits,history:history.map(h=>({grid:copy(h.grid),hits:h.hits,kept:(h.kept||[]).slice()})),kept:[...kept],keepMode,finished:[...finished],reached,course:1,courseReached,pool:played.slice(),prefs:{...prefs},
     hint:hint?{r:hint.r,c:hint.c,to:hint.to,...(hint.pair?{pair:hint.pair.map(p=>p.slice()),axis:hint.axis,between:!!hint.between}:{})}:null,focus:focus.slice(),keyboard,text:$('#announcement').textContent,ui:MinimalBridge.ui()};},
   async restore(d){
     const b=boards.find(v=>v.id===d?.board),cell=p=>__minimalCell(p,b);
@@ -33,6 +34,9 @@ const __minimal=MinimalBridge.install({
     // main-course board whose old catalog place was open stays open, and the course is open at least as far as the
     // boards finished and the board in play. `reached` keeps its catalog meaning and is never read as a course place.
     courseReached=course.migrate(d.course===1?{course:1,courseReached:d.courseReached}:{},reached,board.id,finished);
+    // The optional cloths served since the endless round last ran out (game-riffs PR 201), read as the game reads its
+    // save's `pool`: unknown or repeated ids are dropped; a snapshot from 0.5.10 or earlier has none.
+    played=Array.isArray(d.pool)?[...new Set(d.pool.filter(id=>course.more.some(v=>v.id===id)))]:[];drawn=null;
     prefs={...d.prefs};hover=null;refusal=null;focus=d.focus.slice(0,2);
     hint=d.hint?{r:d.hint.r,c:d.hint.c,to:d.hint.to,...(d.hint.pair?{pair:d.hint.pair.map(p=>p.slice(0,2)),axis:d.hint.axis,between:!!d.hint.between}:{})}:null;
     fit();applyPrefs();rest();announce(d.text||'');save();

@@ -302,14 +302,15 @@ class LibraryIndexTests(unittest.TestCase):
         self.assertEqual(sets['Weaves'], ['weave-minimal.v1', 'finished', course])
 
     def test_finished_tiles_show_a_bundled_solved_picture(self):
-        # A finished game's tile shows that game's own solved board, bundled with the app: the nine the index names,
+        # A finished game's tile shows that game's own solved board, bundled with the app: the eleven the index names
+        # (Akari and Weaves since the index at 95debc8),
         # and Notan, whose record the package can read and the web page cannot (APP_LIFE in tools/import-index.py).
         solved = {t['name']: t for t in self.tiles if t.get('solved')}
-        self.assertEqual(list(solved), ['Slant', 'Notan', 'Bridges', 'Spiral Galaxies', 'Cast', 'Folding', 'Towers', 'Tents', 'Shoo', 'Balance'])
+        self.assertEqual(list(solved), ['Slant', 'Notan', 'Bridges', 'Akari', 'Spiral Galaxies', 'Cast', 'Folding', 'Towers', 'Weaves', 'Tents', 'Shoo', 'Balance'])
         for name, tile in solved.items():
             self.assertTrue(tile['set'], name + ' can be finished')
             self.assertTrue(0.5 <= tile['solved']['fill'] <= 0.8, name)
-        self.assertEqual({t['name'] for t in self.tiles if t.get('set') and not t.get('solved')}, {'Akari', 'Tilt', 'Horologist', 'Weaves'},
+        self.assertEqual({t['name'] for t in self.tiles if t.get('set') and not t.get('solved')}, {'Tilt', 'Horologist'},
                          'the games that finish without color keep the one-color mark')
         # Notan's campaign is its ramp, every board its pinned levels.js lists, kept under ink.v1 as a map of board to
         # best time; its New Game+ boards (plus-levels.js) never finish the tile.

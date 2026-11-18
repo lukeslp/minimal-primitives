@@ -308,7 +308,7 @@ test('a finished game shows its solved board in color, or one color where it has
   assert.deepEqual([sets.Slant.set,sets.Notan.set,sets.Cast.set,sets.Tilt.set,sets.Horologist.set].map(([key,field,list])=>[key,field,list.length]),
     [['slant.progress.v1','completed',54],['ink.v1','solved',53],['cast-3d.v1','finished',25],['tilt-levels-grok.v1','done',25],['horologist-plate.v1','solved',25]],"the index's own table, with Notan's from the package");
   assert.deepEqual(sets.Notan.set[2],RAMP,"Notan's campaign is its ramp; New Game+ is not part of it");
-  assert.deepEqual(LIFE.tiles.filter(x=>x.solved).map(x=>x.name),['Slant','Notan','Bridges','Spiral Galaxies','Cast','Folding','Towers','Tents','Shoo','Balance']);
+  assert.deepEqual(LIFE.tiles.filter(x=>x.solved).map(x=>x.name),['Slant','Notan','Bridges','Akari','Spiral Galaxies','Cast','Folding','Towers','Weaves','Tents','Shoo','Balance']);
   const ctx=await h.context(await getBrowser(),{width:390,height:844},{seed:{localStorage:{...seen,
     'lukesteuber.minimal.slant:slant.progress.v1':done('Slant',54),'lukesteuber.minimal.notan:ink.v1':ink(RAMP.concat(PLUS)),'lukesteuber.minimal.akari:akari.progress.v1':done('Akari',50),
     'lukesteuber.minimal.bridges:bridges.progress.v1':done('Bridges',49),'lukesteuber.minimal.tilt:tilt-levels-grok.v1':JSON.stringify({done:ids('Tilt').slice(0,-1)}),
@@ -326,11 +326,11 @@ test('a finished game shows its solved board in color, or one color where it has
   assert.deepEqual(await tileState(page,'notan'),{...shown,src:file(sets.Notan.solved.dark),fill:'0.68'},'Notan: the lion solved, from the record the package can read');
   const tint={won:true,pictured:false,solved:false,fill:'',blend:'multiply',check:true,words:' All boards finished.'};
   const akari=await tileState(page,'akari'),cast=await tileState(page,'cast-3d');
-  assert.deepEqual({...akari,wide:0,ground:'',filter:'',fade:''},{...tint,src:'akari-lines.svg',wide:0,ground:'',filter:'',fade:''},'Akari finishes without color and keeps the one-color mark');
-  assert.match(akari.ground,/^rgb\(/);assert.equal(akari.ground,await page.locator('#tiles .tile.akari').evaluate(e=>{const probe=document.createElement('i');probe.style.color=e.style.getPropertyValue('--win');e.append(probe);const c=getComputedStyle(probe).color;probe.remove();return c;}));
+  // Akari shows its own solved board since the index at 95debc8 (luke-portfolio PR 41).
+  assert.deepEqual([akari.won,akari.pictured,akari.solved,akari.check,akari.words,akari.src,akari.fill],[true,true,true,true,' All boards finished.',file(sets.Akari.solved.dark),String(sets.Akari.solved.fill)],'Akari: its solved board, with the check and the words');
   assert.deepEqual({...cast,wide:0,ground:'',filter:'',fade:''},{...tint,src:'cast-lines.svg',wide:0,ground:'',filter:'',fade:''},'a picture that cannot be had leaves the one-color mark');
   for(const name of ['bridges','tilt','towers']){const plain=await tileState(page,name);assert.deepEqual([plain.won,plain.pictured,plain.solved,plain.check,plain.words,plain.src],[false,false,false,false,'',name+'-lines.svg'],name+' is not finished');}
-  assert.deepEqual(fetched.sort(),[file(sets.Cast.solved.dark),file(sets.Notan.solved.dark),file(sets.Slant.solved.dark)].sort(),'a solved picture is read only for a finished tile');
+  assert.deepEqual(fetched.sort(),[file(sets.Akari.solved.dark),file(sets.Cast.solved.dark),file(sets.Notan.solved.dark),file(sets.Slant.solved.dark)].sort(),'a solved picture is read only for a finished tile');
   assert.equal(await page.locator('#tiles .tile.glint').count(),0);
   await page.screenshot({path:path.join(h.EVIDENCE,'finished-tiles-dark.png')});assert.deepEqual(ctx.parity.errors,[]);
 });

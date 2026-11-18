@@ -53,8 +53,12 @@ async function context(browser, viewport, {scheme='dark', motion='reduce', stora
         let source=body.toString();
         source=adopt(source,'box-shadow:0 0 4px 2px #fff,0 0 14px 5px #ffffff66,0 0 32px 9px #ffffff20','box-shadow:0 0 2px 1px #fff,0 0 8px 2px #ffffff66,0 0 16px 4px #ffffff14','Akari lamp reference anchor');
         source=adopt(source,'background:repeating-linear-gradient(135deg,transparent 0 7px,#ffffff28 7px 8px),#0003','background:#484848cc','Akari panel reference anchor');
-        source=adopt(source,'animation:next-reveal .45s .4s both','animation:next-reveal .18s .7s both','Akari next reveal');
-        body=Buffer.from(adopt(source,'@keyframes next-reveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}','@keyframes next-reveal{from{opacity:0}to{opacity:1}}','Akari next keyframes'));
+        // The Next fade left with the continue disc (game-riffs PR 204); older sources still take the accepted timing.
+        if(source.includes('next-reveal')){
+          source=adopt(source,'animation:next-reveal .45s .4s both','animation:next-reveal .18s .7s both','Akari next reveal');
+          source=adopt(source,'@keyframes next-reveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}','@keyframes next-reveal{from{opacity:0}to{opacity:1}}','Akari next keyframes');
+        }
+        body=Buffer.from(source);
       }
       if(base==='imports'&&rel==='akari/akari.js')body=Buffer.from(adopt(body.toString(),"const firstVisit=!location.search&&","const firstVisit=!['puzzle','seed','level'].some(key=>new URLSearchParams(location.search).has(key))&&",'Akari first visit'));
       if(base==='imports'&&rel==='akari/index.html') {

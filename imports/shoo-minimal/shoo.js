@@ -290,8 +290,14 @@
     $('#hint-btn').disabled = done;
     const frozen = !done && L.cells.every((_, x) => E.step(board, bees, x) === bees);
     $('#undo-btn').classList.toggle('wanted', frozen && history.length > 0);
-    $('#completion').hidden = !done || busy;
-    $('#next-btn').setAttribute('aria-label', finale || (n === boards.length - 1 && unlocked()) ? 'Start New Game+' : n === boards.length - 1 ? 'Choose next board' : 'Next board');
+    // Next comes at the solve, while the last bees still fly home; on the last board with others open it goes to the
+    // first of them, and with every board done it starts New Game+ under one line that says so. It never opens a sheet.
+    const end = done && (finale || (n === boards.length - 1 && unlocked()));
+    $('#completion').hidden = !done;
+    $('#next-btn').hidden = !done;
+    $('#end-line').textContent = end ? `All ${boards.length} boards solved.` : '';
+    $('#end-line').hidden = !end;
+    $('#next-btn').setAttribute('aria-label', end ? 'Start New Game+' : n === boards.length - 1 ? 'First unfinished board' : 'Next board');
     $('#feedback').classList.toggle('sr-only', done);
     $('#campaign').value = n < 0 ? '' : board.id;
     $('#previous').disabled = n <= 0; $('#following').disabled = n < 0 || n === boards.length - 1;
@@ -569,13 +575,11 @@
     return new Promise(resolve => { queue.push({ action, resolve }); drain(); });
   }
   // After play settles: what the rules alone show. No tap can move any bee:
-  // said plainly, with Undo marked. A keyboard player's solve hands focus to Next.
-  let wasSolved = false;
+  // said plainly, with Undo marked. Focus stays where the player left it; Next is one Tab away, and Enter or Space
+  // on the board goes on too.
   function afterMove() {
     const frozen = chrome();
     if (frozen && !$('#feedback').textContent) say('No bee can move. Undo or restart.');
-    if (solved() && !wasSolved && keyboard && !$('dialog[open]')) requestAnimationFrame(() => { if (solved() && !$('#completion').hidden) $('#next-btn').focus({ preventScroll: true }); });
-    wasSolved = solved();
   }
   // A tap is marked the moment it lands, even while an earlier hop is still
   // in the air; that hop is cut to its end so play keeps up with the taps.
@@ -604,8 +608,9 @@
   // As in Slant, the solve that finishes the campaign, the last board once every
   // one is done, and a New Game+ board all lead to a New Game+ board. A board
   // played again starts fresh.
+  // Next shows at the solve, so a press may come while the bees still fly: the new board cuts that flight short.
   function advance(event) {
-    if (!solved() || busy) return Promise.resolve(false);
+    if (!solved()) return Promise.resolve(false);
     const byKey = !event || event.detail === 0, n = indexOfBoard(), open = boards.find(b => !progress.completed.includes(b.id));
     delete store.boards[board.id];
     const then = moved => { if (moved && byKey) focusCell(focus); return moved; };

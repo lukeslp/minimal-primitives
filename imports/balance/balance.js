@@ -32,6 +32,8 @@
   }
   const plain = v => v && typeof v === 'object' && !Array.isArray(v);
   const progress = read(K.progress, v => plain(v) && v.version === 1 && Array.isArray(v.completed) && v.completed.every(id => ids.has(id)) && new Set(v.completed).size === v.completed.length, { version: 1, completed: [] });
+  const allDone = () => campaign.every(p => progress.completed.includes(p.id));
+  const ENDING = 'All ' + TOTAL + ' boards solved.';
   const prefs = read(K.settings, v => plain(v) && v.version === 1 && ['system', 'light', 'dark'].includes(v.theme) && ['system', 'reduce'].includes(v.motion), { version: 1, theme: 'system', motion: 'system' });
   const store = read(K.current, v => plain(v) && v.version === 1 && ids.has(v.at) && plain(v.boards) && Object.values(v.boards).every(Array.isArray), { version: 1, at: campaign[0].id, boards: {} });
   // Marks saved on a board whose givens have since changed no longer fit it; they are dropped, the rest kept.
@@ -49,7 +51,7 @@
   const S = { cells: (store.boards[at] || E.start(puzzle)).slice(), undo: [], focus: 0, hint: null, solved: false, keyboard: false, refused: -1 };
 
   // ---- icons ----
-  const paths = { reset: 'M5 7a8 8 0 1 1-1 9M5 3v5h5', undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12', hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z', next: 'M5 12h14M13 6l6 6-6 6', settings: 'M4 7h16M4 17h16M8 4v6M16 14v6', help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2' };
+  const paths = { reset: 'M5 7a8 8 0 1 1-1 9M5 3v5h5', undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12', hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z', next: 'M5 12h14M13 6l6 6-6 6', replay: 'M4 11V9a3 3 0 0 1 3-3h12m-3-3 3 3-3 3M20 13v2a3 3 0 0 1-3 3H5m3 3-3-3 3-3', settings: 'M4 7h16M4 17h16M8 4v6M16 14v6', help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2' };
   for (const [id, name] of [['restart-btn', 'reset'], ['undo-btn', 'undo'], ['hint-btn', 'hint'], ['next-btn', 'next'], ['settings-btn', 'settings'], ['help-btn', 'help']]) {
     $('#' + id).innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + paths[name] + '"/></svg>';
   }
@@ -166,6 +168,13 @@
     $('#readout').textContent = k < 0 ? '' : (k + 1) + ' / ' + TOTAL + ' · ' + progress.completed.length + ' ✓';
     $('#undo-btn').disabled = !S.undo.length;
     $('#completion').hidden = !S.solved;
+    // Next is the frame's disc, there from the solve on while the tiles grow. With every board solved, the line
+    // above it says so on a campaign board, and the last board's Next replays from board 1.
+    const ended = S.solved && k >= 0 && allDone(), replay = ended && k === TOTAL - 1, next = $('#next-btn'), glyph = replay ? 'replay' : 'next';
+    $('#ending').hidden = !ended; $('#ending').textContent = ended ? ENDING : '';
+    next.hidden = !S.solved;
+    next.setAttribute('aria-label', replay ? 'Replay from board 1' : 'Next puzzle');
+    if ((next.dataset.icon || 'next') !== glyph) { next.dataset.icon = glyph; next.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + paths[glyph] + '"/></svg>'; }
     $('#feedback').classList.toggle('sr-only', S.solved);
     $('#previous').disabled = k <= 0;
     $('#following').disabled = k < 0 || k === TOTAL - 1;
@@ -196,11 +205,7 @@
     S.solved = E.inspect(puzzle, S.cells).solved;
     if (S.solved && !was) {
       if (ids.has(at) && !progress.completed.includes(at)) progress.completed.push(at);
-      if (announce) {
-        say('Solved.');
-        const solvedPuzzle = puzzle;
-        if (S.keyboard) requestAnimationFrame(() => { if (S.solved && puzzle === solvedPuzzle && !document.querySelector('dialog[open]')) $('#next-btn').focus({ preventScroll: true }); });
-      }
+      if (announce) say(ids.has(at) && allDone() ? ENDING : 'Solved.');
     }
   }
   function commit(before, text) {
@@ -301,8 +306,7 @@
     } else if (k < TOTAL - 1) switchBoard(campaign[k + 1].id);
     else {
       const open = campaign.find(p => !progress.completed.includes(p.id));
-      if (!open) { openSheet('settings', $('#settings-btn')); return; }
-      switchBoard(open.id);
+      switchBoard(open ? open.id : campaign[0].id);
     }
     if (byKey) focusCell(0, true);
   }

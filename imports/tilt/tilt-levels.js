@@ -34,7 +34,7 @@
     reset: 'M5 7a8 8 0 1 1-1 9M5 3v5h5',
     undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12',
     hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z',
-    next: 'M5 12h14m-6-6 6 6-6 6',
+    next: 'M5 12h14M13 6l6 6-6 6',
     replay: 'M4 11V9a3 3 0 0 1 3-3h12m-3-3 3 3-3 3M20 13v2a3 3 0 0 1-3 3H5m3 3-3-3 3-3',
     settings: 'M4 7h16M4 17h16M8 4v6M16 14v6',
     help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2'
@@ -212,7 +212,7 @@
         }
       }
     }
-    const chevron = svgEl('path', { id: 'hint-mark', d: 'M-10 5 0-7 10 5', fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', visibility: 'hidden' });
+    const chevron = svgEl('path', { id: 'hint-mark', d: 'M-10 5 0-7 10 5', fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', visibility: 'hidden', display: 'none' });
     svg.append(chevron);
     const marble = svgEl('g', { id: 'marble' });
     marble.append(svgEl('circle', { r: CELL * 0.2, fill: 'var(--ball)' }));
@@ -244,8 +244,10 @@
     $('undo-btn').classList.toggle('hinted', hint === 'undo');
     const mark = $('hint-mark');
     if (!mark) return;
+    // A hidden mark is left out of the layout too, so the drawing's measured bounds stop at the trays.
     if (!hint || hint === 'undo') {
       mark.setAttribute('visibility', 'hidden');
+      mark.setAttribute('display', 'none');
       return;
     }
     const at = origin(place.level);
@@ -259,6 +261,7 @@
     const spot = spots[hint];
     mark.setAttribute('transform', 'translate(' + spot[0] + ' ' + spot[1] + ') rotate(' + spot[2] + ')');
     mark.setAttribute('visibility', 'visible');
+    mark.removeAttribute('display');
   }
 
   function fit() {
@@ -327,13 +330,16 @@
   let nextMode = 'next';
   function showNext() {
     const button = $('next-btn');
-    const mode = solved && !nextTarget() ? 'replay' : 'next';
+    // Shown at the solve, while the marble still rolls. From a campaign board with every board finished the arrow
+    // starts New Game+, a board from the pool.
+    const target = solved ? nextTarget() : null;
+    const mode = solved && !target ? 'replay' : 'next';
     button.hidden = !solved;
     if (mode !== nextMode) {
       nextMode = mode;
       button.innerHTML = icon(mode);
-      button.setAttribute('aria-label', mode === 'replay' ? 'Replay from board 1' : 'Next board');
     }
+    button.setAttribute('aria-label', mode === 'replay' ? 'Replay from board 1' : !inPool() && target && !Boards.includes(target) ? 'Start New Game+' : 'Next board');
     $('end-line').textContent = endLine;
     $('end-line').hidden = !(solved && allDone());
   }

@@ -1,6 +1,6 @@
 /* Loop · Experiments on Loop's own page: an Experiments section in Settings,
-   the sets in Help, and New Game+ offered on the last board once every line
-   closes. Loop's own script is untouched; this reads its board and saves.
+   and the sets in Help. New Game+ itself is offered by Loop's own next arrow
+   on board 25 once every course board is finished; this reads Loop's saves.
    The sets' names, board ids and drawings match tilings-boards.js, which a
    test checks. By Luke Steuber. */
 (function () {
@@ -10,7 +10,7 @@
   const $ = s => document.querySelector(s);
   // The page loads this script deferred and its stylesheet from here, so
   // Loop's own page loads as quickly as it did without them.
-  if (!document.querySelector('link[href^="./experiments-list.css"]')) { const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = './experiments-list.css?v=decd8844'; document.head.append(css); }
+  if (!document.querySelector('link[href^="./experiments-list.css"]')) { const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = './experiments-list.css?v=32b7fd6d'; document.head.append(css); }
   const read = key => { try { const v = JSON.parse(localStorage.getItem(key) || 'null'); return v && typeof v === 'object' ? v : null; } catch (_) { return null; } };
   const beaten = () => { const s = read(LOOP_KEY); return !!(s && Array.isArray(s.finished) && s.finished.includes(LAST)); };
   const finished = () => { const s = read(KEY); return new Set(s && Array.isArray(s.finished) ? s.finished : []); };
@@ -51,17 +51,4 @@
   help.className = 'experiments-help'; help.setAttribute('aria-labelledby', 'experiments-help-title'); head.id = 'experiments-help-title'; head.className = 'experiments-title'; head.textContent = 'Experiments';
   for (const s of SETS) { const li = document.createElement('li'), a = document.createElement('a'); a.href = `./experiments.html?set=${s.id}`; a.textContent = s.name; li.append(a); ul.append(li); }
   help.append(head, ul); $('#help .sheet-body')?.append(help);
-  // New Game+: a large disc on the last board once it is solved.
-  const plus = document.createElement('a'); plus.id = 'plus-btn'; plus.href = './experiments.html?plus'; plus.hidden = true;
-  plus.setAttribute('aria-label', 'New Game+: sixty boards on six other tilings'); plus.append(svg('M12 5v14M5 12h14'));
-  document.body.append(plus);
-  const board = $('#board');
-  function watch() {
-    const show = board?.dataset.solved === 'true' && window.__loop?.board?.id === LAST;
-    // Loop saves its last board as finished, which is what opens New Game+; this
-    // page writes nothing of its own.
-    if (show === plus.hidden) plus.hidden = !show;
-  }
-  if (board) new MutationObserver(watch).observe(board, { attributes: true, attributeFilter: ['data-solved', 'data-busy'] });
-  watch();
 })();

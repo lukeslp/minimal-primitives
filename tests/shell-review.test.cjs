@@ -290,9 +290,16 @@ test("a link to another packaged page keeps Home: Tangles' Experiments, the way 
   await plus.click();await arrived(again,/experiments\.html\?plus=?$/);
   assert.equal(await again.evaluate(()=>document.title),'Tangles · New Game+');
   await goHome(page,again);
+  // Since game-riffs PR 205 the disc itself goes on to New Game+ from the last course board, by script (no link for
+  // the click handler to see): the package hands on the handshake there too. The last board, every other course
+  // board finished, is solved through Hint, as a player can, and the disc pressed.
   again=await enter(page,'tangles',TANGLES);
-  assert.equal(await again.locator('#plus-btn').getAttribute('href'),'./experiments.html?plus');
-  await again.locator('#plus-btn').evaluate(a=>{a.hidden=false;a.click();});await arrived(again,/experiments\.html\?plus=?$/);
+  await again.evaluate(async()=>{const s=await MinimalAdapter.snapshot(),ids=LoopCourse,last=[...LoopBoards,...LoopCampaign].find(b=>b.id===ids[ids.length-1]);
+    await MinimalAdapter.restore({...s,board:last.id,rots:last.start.slice(),hits:0,history:[],...(last.rings?{offsets:last.offsets.slice()}:{}),finished:ids.slice(0,-1),reached:ids.length-1,hint:false,focus:0});});
+  for(let n=0;n<400&&!await again.locator('#next-btn').isVisible();n++){await again.locator('#hint-btn').click();await again.waitForTimeout(60);}
+  assert.equal(await again.locator('#next-btn').getAttribute('aria-label'),'Start New Game+');
+  await again.locator('#next-btn').click();await arrived(again,/experiments\.html\?plus=?$/);
+  assert.equal(await again.evaluate(()=>typeof MinimalBridge.nonce),'string','the handshake came along');
   await goHome(page,again);
   assert.equal(new URL(page.url()).hash,'','Home left no game selected');
   // The handshake is carried in one place for every game (adapters/bootstrap.js), so a link a game gains later

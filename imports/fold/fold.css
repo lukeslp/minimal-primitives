@@ -80,6 +80,10 @@ body{background:var(--surface) radial-gradient(ellipse at 35% 25%,var(--surface-
 @media(forced-colors:active){.under-hole{background:none;box-shadow:none;border:1px dashed GrayText}}
 /* A dead end offers the way back where a finished board offers the way on. Hint points at it first. */
 body:has(#dead-end:not([hidden])) #feedback{bottom:116px}
+/* In the control frame the dead-end row keeps its place just above the toolbar; the frame's own place for a row now
+   follows the Next disc. */
+body[data-control-frame] #dead-end{left:50%!important;bottom:max(64px,calc(env(safe-area-inset-bottom) + 64px))!important}
+@media(max-height:520px) and (min-width:560px){body[data-control-frame] #dead-end{bottom:max(12px,env(safe-area-inset-bottom))!important}}
 #back-btn.hint{outline:1px solid var(--on-table,var(--ink));outline-offset:-7px;animation:undo-nudge 1.6s ease-in-out infinite}
 :root[data-motion=reduce] #back-btn.hint{animation:none}
 @media(prefers-reduced-motion:reduce){#back-btn.hint{animation:none}}

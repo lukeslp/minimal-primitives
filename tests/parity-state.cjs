@@ -14,7 +14,7 @@ for(const game of games)test(`${game.id}: other boards and earned access survive
   if(own.nextBoard) await own.nextBoard(frame,{tick:a.tick,keyMove:a.keyMove,solve:a.solve,settings:a.settings});
   else if(['fold','bending','tilt','horologist'].includes(id)) {
     await a.solve(frame,id);
-    await frame.locator(id==='bending'?'#next':'#next-btn').click();await a.tick(page,1200);
+    await frame.locator('#next-btn').click();await a.tick(page,1200);
   } else if(id==='notan') {
     await a.keyMove(frame,id);await frame.locator('#lvl-btn').click();
     await frame.locator('#lv-grid .lv').nth(1).click();

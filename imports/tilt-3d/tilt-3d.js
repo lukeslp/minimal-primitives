@@ -688,7 +688,7 @@ function refusePhase(d) {
     end() { if (along > 1e-4) rest = { dir: d, kind: obstacle(puzzle, place, d) }; marbleLocal.copy(start).addScaledVector(w, along); leanVec.set(0, 0, 0); } };
 }
 // The finish: the marble is out on the floor; light rises through the trays from the lowest to the top, the crest
-// passes and each tray settles to a steady glow. The next arrow comes in while the light is still rising.
+// passes and each tray settles to a steady glow. The next arrow is already there: it comes with the solving tip.
 const wash = { levels: [0, 0, 0], floor: 0 };
 function setWash(v) { for (let k = 0; k < 3; k++) wash.levels[k] = v; wash.floor = v; writeWash(); }
 function writeWash() {
@@ -724,7 +724,7 @@ function run(item) {
   undoStack.push(history.slice()); history.push(d);
   const start = marbleLocal.clone();
   solvedNow = r.solved;
-  if (solvedNow) { if (indexOf(boardId) >= 0 && !done.includes(boardId)) { done.push(boardId); if (campaignDone()) finale = true; } reached = Math.max(reached, Math.min(BOARDS.length - 1, indexOf(boardId) + 1)); lookHintDue = null; endLookHint(); }
+  if (solvedNow) { if (indexOf(boardId) >= 0 && !done.includes(boardId)) { done.push(boardId); if (campaignDone()) finale = true; } reached = Math.max(reached, Math.min(BOARDS.length - 1, indexOf(boardId) + 1)); lookHintDue = null; endLookHint(); showNext = true; }
   if (history.length === 3) lookHintDue = boardId;
   save(); announceTip(d, r); updateUI();
   const phases = [movePhase(d, from, r, start)];
@@ -1070,7 +1070,7 @@ function maybeLookHint() {
 }
 
 // ---------- Chrome ----------
-const icons = { restart: 'M5 7a8 8 0 1 1-1 9M5 3v5h5', undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12', hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z', settings: 'M4 7h16M4 17h16M8 4v6M16 14v6', help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2', next: 'M5 12h14m-6-6 6 6-6 6', replay: 'M21 4v6h-6M3 20v-6h6M5.5 9a7.5 7.5 0 0 1 12.4-2.8L21 10M3 14l3.1 3.8A7.5 7.5 0 0 0 18.5 15' };
+const icons = { restart: 'M5 7a8 8 0 1 1-1 9M5 3v5h5', undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12', hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z', settings: 'M4 7h16M4 17h16M8 4v6M16 14v6', help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2', next: 'M5 12h14M13 6l6 6-6 6', replay: 'M4 11V9a3 3 0 0 1 3-3h12m-3-3 3 3-3 3M20 13v2a3 3 0 0 1-3 3H5m3 3-3-3 3-3' };
 for (const [id, path] of Object.entries(icons)) { const b = $('#' + id + '-btn'); if (b) b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + path + '"/></svg>'; }
 const where = s => 'Level ' + (s.level + 1) + ', row ' + (s.row + 1) + ', column ' + (s.col + 1);
 function say(text) { const n = $('#announcement'); n.textContent = ''; n.textContent = text; }
@@ -1117,10 +1117,12 @@ function updateUI() {
   $('#readout').textContent = (i < 0 ? '∞' : (i + 1) + ' / ' + BOARDS.length) + ' · ' + history.length + ' / ' + par;
   $('#undo-btn').disabled = !undoStack.length && !busy();
   $('#next-btn').hidden = !showNext;
-  // At the end one line shows above the arrow, and the arrow goes on to the pool (Replay only if the pool were empty).
+  // At the end one line shows above the arrow, and the arrow starts New Game+, a board from the pool (Replay from
+  // board 1 only if the pool were empty).
   const end = showNext && ending(), kind = end && !POOL.length ? 'replay' : 'next', nb = $('#next-btn'), line = $('#end-line');
   line.hidden = !end; line.textContent = end ? endLine() : '';
-  if (nb.dataset.kind !== kind) { nb.dataset.kind = kind; nb.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + icons[kind] + '"/></svg>'; nb.setAttribute('aria-label', kind === 'replay' ? 'Replay' : 'Next board'); }
+  if (nb.dataset.kind !== kind) { nb.dataset.kind = kind; nb.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + icons[kind] + '"/></svg>'; }
+  nb.setAttribute('aria-label', kind === 'replay' ? 'Replay from board 1' : end ? 'Start New Game+' : 'Next board');
   canvas.setAttribute('aria-label', describe());
   $('#previous').disabled = i <= 0; $('#following').disabled = i < 0 || i >= reached || i === BOARDS.length - 1;
   updateCatalog(); updateHintButton();
@@ -1222,4 +1224,6 @@ window.__tilt3d = {
       ring: { count: cueCount, active: !!cueState, still: !!(cueState && cueState.still) } };
   }
 };
-window.__minimalize = { bounds() { placeStack(); return bounds(); } };
+// The stack as it stands at rest: a tip's lean is left out, so the frame places the next arrow, which comes with the
+// solving tip, where it will stand once the stack is level again.
+window.__minimalize = { bounds() { const lean = leanVec.clone(); leanVec.set(0, 0, 0); placeStack(); const b = bounds(); leanVec.copy(lean); placeStack(); return b; } };

@@ -1,5 +1,7 @@
 // Towers resume adapter. Runs inside the game's closure, after its first render.
 const __minimalPrimer=()=>{try{return localStorage.getItem(K.primer)!==null;}catch(_){return false;}};
+// A saved board's marks with the board's fixed towers in place (the game's fillGivens, for one board).
+const __minimalFill=(id,cells)=>{const p=ids.has(id)&&board(id);return p&&Array.isArray(cells)&&cells.length===p.n*p.n?cells.map((x,i)=>p.given[i]||x):cells;};
 // A turn in progress or a drag under the finger comes to rest on the nearest quarter.
 const __minimalRest=()=>{if(spin){cancelAnimationFrame(spin.frame);spin=null;}swipe=null;swiped=false;turn=((Math.round(turn/QUARTER)%4)+4)%4*QUARTER;};
 const __minimal=MinimalBridge.install({
@@ -9,6 +11,10 @@ const __minimal=MinimalBridge.install({
   restore(d){
     // A free-play board lives in `gen`; set it first so board('generated') can find it.
     if(d&&'gen' in d)gen=d.gen?MinimalBridge.clone(d.gen):null;
+    // Marks saved under a fixed tower added since (game-riffs PR 202, eleven campaign boards) take its height, as the
+    // game's own save loader does (fillGivens): the board in hand, each Undo step and every board kept in the store.
+    if(d&&d.S&&Array.isArray(d.S.cells))d={...d,S:{...d.S,cells:__minimalFill(d.at,d.S.cells),undo:Array.isArray(d.S.undo)?d.S.undo.map(u=>__minimalFill(d.at,u)):d.S.undo}};
+    if(d&&d.store&&typeof d.store==='object'&&d.store.boards&&typeof d.store.boards==='object')d={...d,store:{...d.store,boards:Object.fromEntries(Object.entries(d.store.boards).map(([id,cells])=>[id,__minimalFill(id,cells)]))}};
     const next=d&&board(d.at);
     if(!next||!Array.isArray(d.S?.cells)||d.S.cells.length!==next.n*next.n||!Array.isArray(d.S.undo)||!d.store||!d.progress||!d.prefs)throw Error('Invalid Towers snapshot');
     stopTour();__minimalRest();

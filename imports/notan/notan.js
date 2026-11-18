@@ -136,7 +136,7 @@
   const cursor = $('.cursor'), hintEl = $('.hint'), caption = $('#caption'), capName = $('#cap-name'), nextBtn = $('#next-btn');
   const lvlBtn = $('#lvl-btn'), lvlText = $('#lvl-text'), clock = $('#clock'), live = $('#live');
   const undoBtn = $('#undo-btn'), modeBtn = $('#mode-btn'), helpBtn = $('#help-btn');
-  const shareBtn = $('#share-btn');
+  const shareBtn = $('#share-btn'), endLine = $('#end-line');
   const help = $('#help'), levels = $('#levels'), lvGrid = $('#lv-grid'), lvMeta = $('#lv-meta'), sizesEl = $('#sizes');
   const settings = $('#settings'), settingsBtn = $('#settings-btn');
   const resetConfirm = $('#reset-confirm'), hintBtn = $('#hint-btn');
@@ -197,13 +197,15 @@
     renderQuickChoices();
 
     // If focus was on the old board or its Next button, keep it on the board.
-    const refocus = caption.contains(document.activeElement) || grid.contains(document.activeElement);
+    const refocus = caption.contains(document.activeElement) || nextBtn === document.activeElement || grid.contains(document.activeElement);
     // Drop the solved state without animating the new board in from the old offset.
     board.classList.add('instant');
     board.classList.remove('solved');
     caption.classList.remove('show');
     caption.hidden = true;
     unlockNotice.hidden = true;
+    nextBtn.hidden = true;
+    endLine.hidden = true;
     build();
     layout();
     renderAll();
@@ -301,6 +303,8 @@
     const dx = Math.round(tx - g.left - k * g.cw), dy = Math.round(ty - g.top - k * g.ch);
     board.style.cssText = `--cell:${g.cell}px;--f:${g.f}px;--cw:${g.cw}px;--ch:${g.ch}px;--dot:${Math.max(3, Math.round(g.cell * 0.16))}px;--solved:translate(${dx}px,${dy}px) scale(${k.toFixed(4)});left:${g.left}px;top:${g.top}px;width:${bw}px;height:${bh}px`;
     caption.style.top = Math.round(ty + ph + 14) + 'px';
+    // The picture's place once solved, for the control frame: the disc stands under it and its caption.
+    S.print = { x: Math.round(tx), y: Math.round(ty), w: pw, h: ph };
     showBands(S.bandAt == null ? -1 : S.bandAt);
     placeCursor();
     placeHint();
@@ -672,20 +676,27 @@
     board.classList.add('solved');
     capName.textContent = p.name;
     const allDone = !quiet && !p.endless && had < all && solvedCount() === all;
-    unlockNotice.textContent = allDone ? 'All ' + all + ' boards solved.' : 'New Game+ unlocked';
-    unlockNotice.hidden = !allDone && (p.endless || p.plus || p.index !== RAMP.length - 1);
+    // The caption keeps the name and the New Game+ notice; the end of everything is the end line above Next.
+    unlockNotice.textContent = 'New Game+ unlocked';
+    unlockNotice.hidden = allDone || p.endless || p.plus || p.index !== RAMP.length - 1;
+    endLine.textContent = 'All ' + all + ' boards solved.';
+    endLine.hidden = !allDone;
     shareBtn.hidden = !p.endless;
     shareBtn.textContent = 'Share blank';
-    nextBtn.setAttribute('aria-label', p.endless ? 'Next board' : !p.plus && p.index === RAMP.length - 1 ? 'Start New Game+' : p.index + 1 < sequence(p).length ? 'Next level' : firstUnsolved() ? 'First unsolved level' : 'Choose what to play next');
+    const replay = !p.endless && !(p.index + 1 < sequence(p).length) && !(!p.plus && save.plusUnlocked) && !firstUnsolved();
+    nextBtn.setAttribute('aria-label', p.endless ? 'Next board' : !p.plus && p.index === RAMP.length - 1 ? 'Start New Game+' : p.index + 1 < sequence(p).length ? 'Next level' : !replay ? 'First unsolved level' : 'Replay from board 1');
+    nextBtn.querySelector('path').setAttribute('d', replay ? REPLAY_ICON : NEXT_ICON);
     caption.hidden = false;
     layout();
     requestAnimationFrame(() => requestAnimationFrame(() => caption.classList.add('show')));
+    // Next comes at the solve, as the picture settles; focus stays where it was.
+    nextBtn.hidden = false;
     hud();
-    if (!quiet) announce((!unlockNotice.hidden ? unlockNotice.textContent.replace(/\.?$/, '. ') : '') + 'Solved: ' + p.name + ', in ' + fmt(S.time) + '. Press Enter for the next one.');
-    // Keyboard players land on Next; pointer players just tap anywhere.
-    if (S.kbd) nextBtn.focus({ preventScroll: true });
+    const said = !endLine.hidden ? endLine.textContent : !unlockNotice.hidden ? unlockNotice.textContent : '';
+    if (!quiet) announce((said ? said.replace(/\.?$/, '. ') : '') + 'Solved: ' + p.name + ', in ' + fmt(S.time) + '. Press Enter for the next one.');
   }
-  // Past the last level, the first level not yet solved, New Game+'s once it is open.
+  const NEXT_ICON = 'M5 12h14M13 6l6 6-6 6', REPLAY_ICON = 'M4 11V9a3 3 0 0 1 3-3h12m-3-3 3 3-3 3M20 13v2a3 3 0 0 1-3 3H5m3 3-3-3 3-3';
+  // Past the last level, the first level not yet solved, New Game+'s once it is open; with every level solved, level 1 again.
   function firstUnsolved() { return RAMP.concat(save.plusUnlocked ? PLUS : []).find((q) => typeof save.solved[q.id] !== 'number'); }
   function next() {
     const p = S.puz;
@@ -697,7 +708,7 @@
       return;
     }
     else if (firstUnsolved()) open(firstUnsolved());
-    else { openLevels(true); return; }
+    else open(RAMP[0]);
     announce(label(S.puz) + ', ' + S.puz.w + ' by ' + S.puz.h);
   }
 
@@ -1082,4 +1093,15 @@
   open(initial());
   // How to play opens only from the ? button or the ? key, never on load (Luke, 2026-10-04).
   window.__notan = { S, RAMP, PLUS, open, next, endless, isSolved };
+  // What is painted, for the control frame: once solved, the picture where it settles and the caption's lines under it.
+  window.__minimalize = Object.freeze({ bounds() {
+    if (!S.solved || !S.print) return null;
+    const o = (board.offsetParent || document.body).getBoundingClientRect();
+    let x = o.left + S.print.x, y = o.top + S.print.y, r = x + S.print.w, b = y + S.print.h;
+    for (const n of caption.hidden ? [] : caption.children) {
+      if (n.hidden || n.classList.contains('control-completion') || !n.getClientRects().length) continue;
+      const q = n.getBoundingClientRect(); x = Math.min(x, q.left); y = Math.min(y, q.top); r = Math.max(r, q.right); b = Math.max(b, q.bottom);
+    }
+    return { x, y, width: r - x, height: b - y };
+  } });
 })();
