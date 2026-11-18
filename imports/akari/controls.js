@@ -1,7 +1,7 @@
 /* Shared Minimal control presentation. Luke Steuber. */
 (function () {
   'use strict';
-  const config = {"id":"akari","completionRoot":"board-stage","bar":".toolbar","undo":"undo-btn","hint":"hint-btn","tools":["mark-btn"],"settings":"settings-btn","help":"help-btn","restart":"restart-btn","completion":["completion"],"required":["undo-btn","hint-btn"],"keys":["arrows","select"]};
+  const config = {"id":"akari","bar":".toolbar","undo":"undo-btn","hint":"hint-btn","tools":["mark-btn"],"settings":"settings-btn","help":"help-btn","restart":"restart-btn","completion":["next-btn"],"required":["undo-btn","hint-btn"],"keys":["arrows","select"]};
   // Native payloads have their own release/acceptance contract.
   if (window.HEXSWEEPER_SPHERE_APP) return;
   // Where this file was loaded from; an inlined copy (a one-page build) has no
@@ -58,41 +58,96 @@
         button.classList.add('control-icon');
       }
     }
-    // A standalone Next sits centred in the gap between the board and the
-    // toolbar when the gap holds it, otherwise centred on the toolbar's row
-    // between its two groups, so it never covers the board or a control. In
-    // landscape, where the toolbar stands at the side, it sits beside the board.
+    // A game's end lines (class control-end-line, placed below) stand on the
+    // page, ahead of the toolbar, not inside a row the game moves or animates.
+    for(const n of document.querySelectorAll('.control-end-line'))if(n.parentElement!==document.body)document.body.insertBefore(n,bar.parentElement===document.body?bar:null);
+    // A standalone Next (the disc) sits centered in the gap between the board
+    // and the toolbar when the gap holds it, otherwise on the toolbar's row,
+    // centered in the free span between its two groups, so it never covers the
+    // board or a control. In landscape, where the toolbar stands at the side,
+    // it sits beside the board.
     const nexts=completionNodes.filter(n=>n.matches('button'));
     let spot=null,place=null;
     if(nexts.length){
-      const board=document.querySelector(config.board||'#board');
-      // Where the disc stands: its left (undefined for the CSS centre) and its
-      // bottom, or null for the stylesheet's own place. Access reads it too, so
-      // its pad keeps clear of the disc before the disc appears.
+      const shown=n=>!!n&&n.isConnected&&!n.hidden&&n.getClientRects().length>0;
+      // An SVG is measured by what it draws, so a page-sized drawing still leaves its gap.
+      const boxOf=n=>{
+        if(n instanceof SVGSVGElement)try{const box=n.getBBox(),m=n.getScreenCTM();if(m&&box.width&&box.height){const p=[new DOMPoint(box.x,box.y).matrixTransform(m),new DOMPoint(box.x+box.width,box.y+box.height).matrixTransform(m)];return {left:Math.min(p[0].x,p[1].x),right:Math.max(p[0].x,p[1].x),top:Math.min(p[0].y,p[1].y),bottom:Math.max(p[0].y,p[1].y)};}}catch(_){}
+        const r=n.getBoundingClientRect();return {left:r.left,top:r.top,right:r.right,bottom:r.bottom};
+      };
+      const union=(a,b)=>a?{left:Math.min(a.left,b.left),top:Math.min(a.top,b.top),right:Math.max(a.right,b.right),bottom:Math.max(a.bottom,b.bottom)}:b;
+      // What the game has painted, in this order: the game's own measure
+      // (__minimalize.bounds()), the drawing games.json names (bounds: a
+      // selector, or a canvas and the hook that holds its view), then the
+      // board element (board, or #board). An element larger than its drawing
+      // would leave the disc on the toolbar row with an empty gap above it.
+      // Where the painted box and the board element agree to a pixel (a
+      // hairline's half pixel, say), the element's box stands, so a board
+      // that already is its drawing keeps its disc where it was.
+      const drawn=()=>{
+        let painted=null;const d=config.bounds,all=sel=>{let u=null;for(const n of document.querySelectorAll(sel)){if(!shown(n))continue;const r=boxOf(n);if(r.right-r.left>=1||r.bottom-r.top>=1)u=union(u,r);}return u;};
+        const own=all(config.board||'#board');
+        try{const b=window.__minimalize&&window.__minimalize.bounds();if(b&&b.width>0&&b.height>0)painted={left:b.x,top:b.y,right:b.x+b.width,bottom:b.y+b.height};}catch(_){}
+        if(!painted&&d&&typeof d==='object'){const n=document.querySelector(d.element),g=d.view.split('.').reduce((o,k)=>o&&o[k],window);if(n&&g&&g.scale){const r=n.getBoundingClientRect();painted={left:r.left+g.x,top:r.top+g.y,right:r.left+g.x+d.size[0]*g.scale,bottom:r.top+g.y+d.size[1]*g.scale};}}
+        if(!painted&&typeof d==='string')painted=all(d);
+        return painted&&own&&['left','top','right','bottom'].every(k=>Math.abs(painted[k]-own[k])<=1)?own:painted||own;
+      };
+      // Where the disc stands: its center's left (undefined for the CSS
+      // center) and its bottom, or null for the stylesheet's own place. Access
+      // reads it too, so its pad keeps clear of the disc before it appears.
       spot=()=>{
-        const size=64,clear=size+16;
-        const tools=[...bar.querySelectorAll('button')].filter(b=>b.offsetParent!==null).map(b=>b.getBoundingClientRect());
-        if(!board||!tools.length)return null;
-        // An SVG board is measured by what it draws, so a page-sized drawing still leaves its gap.
-        let b=board.getBoundingClientRect();
-        if(board instanceof SVGSVGElement)try{const box=board.getBBox(),m=board.getScreenCTM();if(m&&box.width&&box.height){const p=[new DOMPoint(box.x,box.y).matrixTransform(m),new DOMPoint(box.x+box.width,box.y+box.height).matrixTransform(m)];b={left:Math.min(p[0].x,p[1].x),right:Math.max(p[0].x,p[1].x),top:Math.min(p[0].y,p[1].y),bottom:Math.max(p[0].y,p[1].y)};}}catch(_){}
+        const size=64,clear=size+16,visible=b=>b.offsetParent!==null;
+        const tools=[...bar.querySelectorAll('button')].filter(visible).map(n=>n.getBoundingClientRect()),b=drawn();
+        if(!b||!tools.length)return null;
         const bottom=centre=>Math.max(6,Math.round(innerHeight-centre-size/2));
         if(matchMedia('(max-height:520px) and (min-width:560px)').matches){
           const side=Math.min(...tools.map(r=>r.left))-b.right,x=side>=clear?b.right+side/2:b.left>=clear?b.left/2:null;
           if(x===null)return null;
           return {left:Math.round(x),bottom:bottom((Math.max(0,b.top)+Math.min(innerHeight,b.bottom))/2)};
         }
-        const top=Math.min(...tools.map(r=>r.top)),row=(top+Math.max(...tools.map(r=>r.bottom)))/2,gap=top-b.bottom;
-        return {bottom:bottom(gap>=clear?b.bottom+gap/2:row)};
+        const top=Math.min(...tools.map(r=>r.top)),gap=top-b.bottom;
+        if(gap>=clear)return {bottom:bottom(b.bottom+gap/2)};
+        // On the toolbar's row: the disc's bottom on the toolbar's bottom, its
+        // center midway between the last action and the first of Settings and
+        // Help, at least 8 px from each. Where the row has no such room it
+        // stands just above the toolbar, as a completion row does.
+        const group=sel=>[...bar.querySelectorAll(sel+' button')].filter(visible).map(n=>n.getBoundingClientRect());
+        const acts=group('.control-actions'),meta=group('.control-meta'),frame=bar.getBoundingClientRect();
+        const from=acts.length?Math.max(...acts.map(r=>r.right)):frame.left,to=meta.length?Math.min(...meta.map(r=>r.left)):frame.right;
+        if(to-from<size+16)return {bottom:Math.round(innerHeight-top+10)};
+        const x=(from+to)/2;
+        return {left:Math.abs(x-innerWidth/2)<1?undefined:Math.round(x),bottom:Math.max(6,Math.round(innerHeight-Math.max(...tools.map(r=>r.bottom))))};
+      };
+      // A game's line about the finish ("All 50 boards solved.", "That's
+      // ten.", "Folded in 3."), given the class control-end-line, stands 8 px
+      // above the disc and centered on it; with more than one, the last in the
+      // page is nearest the disc. Where that would meet the board, a control,
+      // the readout or the edge of the page, the lines stand under the readout.
+      const placeLines=()=>{
+        const body=document.body,lines=[...document.querySelectorAll('.control-end-line')].filter(n=>shown(n)&&n.textContent.trim());
+        delete body.dataset.endLine;
+        if(!lines.length)return;
+        let shift=0;for(const n of [...lines].reverse()){n.style.setProperty('--control-end-shift',shift+'px');shift+=n.getBoundingClientRect().height+4;}
+        const avoid=[drawn(),...[...document.querySelectorAll('.control-toolbar button,.control-restart,#readout,.control-completion')].filter(shown).map(n=>n.getBoundingClientRect())].filter(Boolean);
+        const meets=(r,q)=>Math.min(r.right,q.right)-Math.max(r.left,q.left)>0&&Math.min(r.bottom,q.bottom)-Math.max(r.top,q.top)>0;
+        if(!lines.some(n=>{const r=n.getBoundingClientRect();return r.left<0||r.right>innerWidth||r.top<0||avoid.some(q=>meets(r,q));}))return;
+        const read=byId('readout'),under=shown(read)?read.getBoundingClientRect():null;
+        body.style.setProperty('--control-end-top',Math.round(under?under.bottom+6:16)+'px');
+        if(under)body.style.setProperty('--control-end-left',Math.round((under.left+under.right)/2)+'px');else body.style.removeProperty('--control-end-left');
+        body.dataset.endLine='top';
+        let drop=0;for(const n of lines){n.style.setProperty('--control-end-drop',drop+'px');drop+=n.getBoundingClientRect().height+4;}
       };
       place=()=>{
         const style=document.body.style,s=spot();style.removeProperty('--control-next-left');
-        if(!s){style.removeProperty('--control-next-bottom');return;}
-        if(s.left!==undefined)style.setProperty('--control-next-left',s.left+'px');
-        style.setProperty('--control-next-bottom',s.bottom+'px');
+        if(!s)style.removeProperty('--control-next-bottom');
+        else{if(s.left!==undefined)style.setProperty('--control-next-left',s.left+'px');style.setProperty('--control-next-bottom',s.bottom+'px');}
+        placeLines();
       };
-      for(const n of nexts)new MutationObserver(()=>{if(!n.hidden)requestAnimationFrame(place);}).observe(n,{attributes:true,attributeFilter:['hidden']});
-      addEventListener('resize',()=>requestAnimationFrame(place));requestAnimationFrame(place);
+      // Placed again whenever a completion appears, an end line changes, or the page resizes.
+      const again=()=>requestAnimationFrame(place);
+      for(const n of completionNodes)new MutationObserver(()=>{if(!n.hidden)again();}).observe(n,{attributes:true,attributeFilter:['hidden']});
+      for(const n of new Set([...document.querySelectorAll('.control-end-line'),...(config.endLine||[]).map(byId).filter(Boolean)]))new MutationObserver(again).observe(n,{attributes:true,attributeFilter:['hidden','class'],childList:true,characterData:true,subtree:true});
+      addEventListener('resize',again);again();
     }
     for(const n of [...bar.children])if(!n.matches('button')&&!n.contains(reset)&&!n.querySelector('button'))n.remove();
     bar.classList.add('control-toolbar');bar.setAttribute('role','toolbar');bar.setAttribute('aria-label','Game controls');

@@ -831,15 +831,15 @@ function rings() {
   board.dataset.carrying = String(!!carry);
 }
 // The board's name, and where the next arrow leads once it is solved: the next board; after the last board,
-// the first one not yet finished, or free play once all thirty are; after a free board, a new free board.
-function boardName() { return isFree() ? 'Free play board' : `Board ${boards.indexOf(puzzle) + 1} of ${boards.length}`; }
+// the first one not yet finished, or New Game+ (free play) once all are; after a New Game+ board, another.
+function boardName() { return isFree() ? 'New Game+ board' : `Board ${boards.indexOf(puzzle) + 1} of ${boards.length}`; }
 const theEnd = () => !isFree() && puzzle === boards.at(-1) && complete() && solvedNow();
 function onward() {
-  if (isFree()) return {label: 'New free board', go: () => startFree(true)};
+  if (isFree()) return {label: 'Next board', go: () => startFree(true)};
   const i = boards.indexOf(puzzle);
   if (i < boards.length - 1) return {label: 'Next board', go: () => go(boards[i + 1].id)};
   const left = boards.find(b => !finished.has(b.id));
-  return left ? {label: `Board ${boards.indexOf(left) + 1}`, go: () => go(left.id)} : {label: 'Free play', go: () => startFree(false)};
+  return left ? {label: `Board ${boards.indexOf(left) + 1}`, go: () => go(left.id)} : {label: 'Start New Game+', go: () => startFree(false)};
 }
 function sync() {
   updateScene(); rings();
@@ -850,6 +850,8 @@ function sync() {
   $('#readout').textContent = `${name} · ${hits} / ${E.par(puzzle)}`;
   $('#readout').setAttribute('aria-label', `${theEnd() ? 'The end. ' : ''}${boardName()}; ${hits} hits; par ${E.par(puzzle)}`);
   $('#next-btn').hidden = !(!carry && solved); $('#next-btn').setAttribute('aria-label', next.label);
+  // At the end one line stands above the arrow.
+  $('#end-line').textContent = `All ${boards.length} boards solved.`; $('#end-line').hidden = $('#next-btn').hidden || !theEnd();
   $('#undo-btn').disabled = !history.length; $('#hint-btn').disabled = solved; updateCatalog();
 }
 
@@ -925,7 +927,7 @@ async function perform(action) {
   if (run !== epoch) return;
   if (solved) {
     // The next arrow is already showing and usable; the color carries the moment, and nothing else moves.
-    announce(`All shadows match. Board solved in ${hits} hits. Par ${E.par(puzzle)}. ${theEnd() ? 'The end. Free play is open in Settings and behind the next arrow.' : `${onward().label} is next.`}`);
+    announce(`All shadows match. Board solved in ${hits} hits. Par ${E.par(puzzle)}. ${theEnd() ? 'The end. New Game+ is open in Settings and behind the next arrow.' : `${onward().label} is next.`}`);
     const finish = tween(FINISH_MS, t => { tint = t * t * (3 - 2 * t); updateLight(); requestRender(); });
     if (grew) settleCube(...target, action.carried ? LIFT : .06);
     await finish;
@@ -998,7 +1000,7 @@ function startFree(fresh) {
   mode = 'free';
   if (resume) open(kept.board, copy(kept.heights), kept.hits, kept.history);
   else { recent = [...recent, drawn.seed].slice(-RECENT); open(drawn, E.start(drawn), 0, []); }
-  announce(`Free play board, ${puzzle.cubes} cubes.`);
+  announce(`New Game+ board, ${puzzle.cubes} cubes.`);
   return true;
 }
 const set = (r, c, to) => enqueue({type: 'set', r, c, to}), add = (r, c) => enqueue({type: 'step', r, c, delta: 1});
@@ -1293,9 +1295,11 @@ function hookup() {
     get hint() { return hint ? {r: hint.r, c: hint.c, to: hint.to, reason: hint.reason} : null; }, get announcement() { return $('#announcement').textContent; }, get frames() { return frames; }, get settle() { return settle ? settle.offset : 0; }, get timing() { return {...timing}; }, get reached() { return reached; }, get tint() { return tint; },
   };
   // The painted bounds are the frame every view fits in, centered as each view is, so they hold still as the view swings.
+  // An empty tray draws nothing, so with no cube in it (a solved board) the bounds end at the room's lowest point.
   window.__minimalize = {bounds() {
-    const fw = frameSize.w / 2, fh = frameSize.h / 2;
-    const a = client({x: (layout.cx - fw - camera.left) * view.scale, y: (camera.top - layout.cy - fh) * view.scale}), z = client({x: (layout.cx + fw - camera.left) * view.scale, y: (camera.top - layout.cy + fh) * view.scale});
+    const fw = frameSize.w / 2, fh = frameSize.h / 2, empty = !carry && E.compare(puzzle, heights).tray === 0;
+    const low = empty ? Math.max(layout.cy - fh, layout.room.minY) : layout.cy - fh;
+    const a = client({x: (layout.cx - fw - camera.left) * view.scale, y: (camera.top - layout.cy - fh) * view.scale}), z = client({x: (layout.cx + fw - camera.left) * view.scale, y: (camera.top - low) * view.scale});
     return {x: a.x, y: a.y, width: z.x - a.x, height: z.y - a.y};
   }};
 }

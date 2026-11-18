@@ -31,7 +31,16 @@
   const isObject = v => v && typeof v === 'object' && !Array.isArray(v);
   let progress = read(K.progress, v => isObject(v) && v.version === 1 && Array.isArray(v.completed) && v.completed.every(id => ids.has(id)), { version: 1, completed: [] });
   const prefs = read(K.settings, v => isObject(v) && v.version === 1 && ['system', 'light', 'dark'].includes(v.theme) && ['system', 'reduce'].includes(v.motion) && ['iso', 'flat'].includes(v.view), { version: 1, theme: 'system', motion: 'system', view: 'iso' });
-  const store = read(K.current, v => isObject(v) && v.version === 1 && ids.has(v.at) && isObject(v.boards) && Object.keys(v.boards).every(id => ids.has(id) && E.stateValid(board(id), v.boards[id])), { version: 1, at: L[0].id, boards: {} });
+  // Saved marks under a fixed tower added since they were saved (November 17, 2026) take its height, so the
+  // save still fits the board and nothing else in it moves.
+  const fillGivens = v => {
+    if (isObject(v) && isObject(v.boards)) for (const id of Object.keys(v.boards)) {
+      const p = ids.has(id) && board(id), cells = v.boards[id];
+      if (p && Array.isArray(cells) && cells.length === p.n * p.n) v.boards[id] = cells.map((x, i) => p.given[i] || x);
+    }
+    return v;
+  };
+  const store = read(K.current, v => fillGivens(v) && isObject(v) && v.version === 1 && ids.has(v.at) && isObject(v.boards) && Object.keys(v.boards).every(id => ids.has(id) && E.stateValid(board(id), v.boards[id])), { version: 1, at: L[0].id, boards: {} });
   const heights = (a, len, n) => Array.isArray(a) && a.length === len && a.every(h => Number.isInteger(h) && h >= 0 && h <= n);
   gen = read(K.generated, v => isObject(v) && v.version === 1 && Number.isInteger(v.seed) && Number.isInteger(v.n) && v.n >= 2 && v.n <= 6 && typeof v.playing === 'boolean' &&
     isObject(v.clues) && E.SIDES.every(side => heights(v.clues[side], v.n, v.n)) && heights(v.given, v.n * v.n, v.n) && E.stateValid(v, v.cells), null);
@@ -47,8 +56,7 @@
   const S = { cells: cellsOf(at).slice(), undo: [], focus: 0, hint: null, solved: false, keyboard: false };
 
   // ---- Icons
-  const paths = { undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12', hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z', next: 'M5 12h14M13 6l6 6-6 6', settings: 'M4 7h16M4 17h16M8 4v6M16 14v6', help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2', reset: 'M5 7a8 8 0 1 1-1 9M5 3v5h5', turn: 'M12 4.5 19 8l-7 3.5L5 8zM4 14.5c1.6 2.6 4.6 4 8 4s6.4-1.4 8-4M20 14.5v3.6M20 14.5h-3.6', more: 'M12 5v14M5 12h14' };
-  const icon = name => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + paths[name] + '"/></svg>';
+  const paths = { undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12', hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z', next: 'M5 12h14M13 6l6 6-6 6', settings: 'M4 7h16M4 17h16M8 4v6M16 14v6', help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2', reset: 'M5 7a8 8 0 1 1-1 9M5 3v5h5', turn: 'M12 4.5 19 8l-7 3.5L5 8zM4 14.5c1.6 2.6 4.6 4 8 4s6.4-1.4 8-4M20 14.5v3.6M20 14.5h-3.6' };
   for (const [id, name] of [['restart-btn', 'reset'], ['undo-btn', 'undo'], ['hint-btn', 'hint'], ['turn-btn', 'turn'], ['next-btn', 'next'], ['settings-btn', 'settings'], ['help-btn', 'help']])
     $('#' + id).innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + paths[name] + '"/></svg>';
   function say(text) { $('#feedback').textContent = text; $('#announce').textContent = ''; }
@@ -328,10 +336,11 @@
     $('#completion').hidden = !S.solved;
     // The line under a solve that leaves the whole campaign done; the status line says it to screen readers.
     $('#ending').hidden = !ended; $('#ending').textContent = ended ? ENDING : '';
+    // Next is the frame's disc, there from the solve on while the light makes its visit. With the whole campaign
+    // done it starts New Game+, and on a New Game+ board it deals the next one.
     const next = $('#next-btn');
-    next.disabled = !S.solved;
-    next.setAttribute('aria-label', fresh ? 'New board' : 'Next puzzle');
-    if (next.dataset.icon !== (fresh ? 'more' : 'next')) { next.dataset.icon = fresh ? 'more' : 'next'; next.innerHTML = icon(next.dataset.icon); }
+    next.disabled = !S.solved; next.hidden = !S.solved;
+    next.setAttribute('aria-label', fresh ? (at === 'generated' ? 'Next board' : 'Start New Game+') : 'Next puzzle');
     $('#feedback').classList.toggle('sr-only', S.solved);
     // A board outside the campaign is listed as what it is, at the head of the list, while it is on the page: an
     // opening board or a New Game+ board. The list never stands blank, and choosing a campaign board from it leaves
@@ -363,13 +372,12 @@
     if (gen && gen.playing) { gen.playing = false; write(K.generated, gen); }
   }
   function checkSolved(announce) {
-    const was = S.solved, solvedBoard = puzzle;
+    const was = S.solved;
     S.solved = E.inspect(puzzle, S.cells).solved;
     if (S.solved) {
       if (ids.has(at) && !progress.completed.includes(at)) progress.completed.push(at);
       if (announce) say(ids.has(at) && allDone() ? ENDING : 'Complete.');
       if (!was && announce) startTour();
-      if (!was && announce && S.keyboard) requestAnimationFrame(() => { if (S.solved && puzzle === solvedBoard && !document.querySelector('dialog[open]')) $('#next-btn').focus({ preventScroll: true }); });
     }
   }
   function commit(before) {

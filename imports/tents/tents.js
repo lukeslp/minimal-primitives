@@ -49,7 +49,7 @@
     tent: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 23 21h-8.2L12 14.5 9.2 21H1Z"/></svg>',
     grass: '<svg class="dot" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2.4"/></svg>'
   };
-  const ICONS = { undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12', hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z', next: 'M5 12h14M13 6l6 6-6 6', more: 'M12 5v14M5 12h14', settings: 'M4 7h16M4 17h16M8 4v6M16 14v6', help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2', reset: 'M5 7a8 8 0 1 1-1 9M5 3v5h5' };
+  const ICONS = { undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12', hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z', next: 'M5 12h14M13 6l6 6-6 6', settings: 'M4 7h16M4 17h16M8 4v6M16 14v6', help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2', reset: 'M5 7a8 8 0 1 1-1 9M5 3v5h5' };
   for (const [id, name] of [['restart-btn', 'reset'], ['undo-btn', 'undo'], ['hint-btn', 'hint'], ['next-btn', 'next'], ['settings-btn', 'settings'], ['help-btn', 'help']]) $('#' + id).innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICONS[name] + '"/></svg>';
 
   function say(text) { $('#feedback').textContent = text; }
@@ -197,9 +197,11 @@
     $('#completion').hidden = !S.solved;
     // The line under a solve that leaves the whole campaign done; the status line says it to screen readers.
     $('#ending').hidden = !ended; $('#ending').textContent = ended ? ENDING : '';
-    const next = $('#next-btn'), glyph = fresh ? 'more' : 'next';
-    next.setAttribute('aria-label', fresh ? 'New board' : 'Next puzzle');
-    if (next.dataset.icon !== glyph) { next.dataset.icon = glyph; next.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICONS[glyph] + '"/></svg>'; }
+    // Next is the frame's disc, there from the solve on while the woods grow in. With the whole campaign done it
+    // starts New Game+, and on a New Game+ board it deals the next one.
+    const next = $('#next-btn');
+    next.hidden = !S.solved;
+    next.setAttribute('aria-label', fresh ? (at === 'generated' ? 'Next board' : 'Start New Game+') : 'Next puzzle');
     $('#free-row').hidden = !allDone();
     $('#feedback').classList.toggle('sr-only', S.solved);
     $('#campaign').value = n < 0 ? '' : at;
@@ -224,13 +226,11 @@
     if (gen && gen.playing) { gen.playing = false; write(K.generated, gen); }
   }
   function judge(announce) {
-    const was = S.solved, played = puzzle;
     S.solved = E.inspect(puzzle, S.cells).solved;
     if (!S.solved) return;
     if (ids.has(at) && !progress.completed.includes(at)) progress.completed.push(at);
     if (!announce) return;
     say(ids.has(at) && allDone() ? ENDING : 'Solved.');
-    if (!was && S.keyboard) requestAnimationFrame(() => { if (S.solved && puzzle === played && !document.querySelector('dialog[open]')) $('#next-btn').focus({ preventScroll: true }); });
   }
   function commit(before) {
     if (before.some((v, i) => v !== S.cells[i])) S.undo.push(before);

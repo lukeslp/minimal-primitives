@@ -230,12 +230,14 @@ function update(atRest = false, before = null, landed = null) {
   const solvedCount = campaign.filter((_, i) => finished(i)).length;
   $('readout').textContent = inPool() ? `+${record.board - campaign.length + 1} · ${solvedCount} ✓` : `${record.board + 1} / ${campaign.length} · ${solvedCount} ✓`;
   canvas.setAttribute('aria-label', `Bending, ${inPool() ? `New Game+ stage ${record.board - campaign.length + 1}` : `stage ${record.board + 1} of ${campaign.length}`}: ${result.lit.length} beams, ${stage().planets.length} planets`);
+  // Next comes at the solve. The control frame stands it under the well; without the frame the row below holds it.
   $('completion').hidden = !stage().solved;
+  $('next-btn').hidden = !stage().solved;
   // At the end the line shows above the arrow, and the arrow starts New Game+.
   const end = ending();
   $('end-line').hidden = !end;
   $('end-line').textContent = end ? endLine() : '';
-  $('next').setAttribute('aria-label', end ? 'Start New Game+' : inPool() ? 'Next board' : 'Next stage');
+  $('next-btn').setAttribute('aria-label', end ? 'Start New Game+' : inPool() ? 'Next board' : 'Next stage');
   $('undo').disabled = history.length === 0;
   positionButtons();
   animation();
@@ -279,7 +281,6 @@ function place(planet, index) {
   history.push(snapshot());
   stage().planets[planet] = index;
   update(true, before, was);
-  if (stage().solved && document.body.dataset.input === 'keyboard') $('next').focus({ preventScroll: true });
 }
 function keyboard(event, planet) {
   const keys = ['Enter', ' ', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Backspace', 'Delete'];
@@ -504,7 +505,7 @@ function preferences() {
 $('undo').addEventListener('click', undo);
 $('restart').addEventListener('click', restart);
 $('hint').addEventListener('click', hint);
-$('next').addEventListener('click', next);
+$('next-btn').addEventListener('click', next);
 $('help-button').addEventListener('click', () => showSheet('help', 'help-button'));
 $('settings-button').addEventListener('click', settings);
 ['help', 'settings'].forEach(id => $(id).addEventListener('click', event => { if (event.target === $(id)) $(id).close(); }));
@@ -532,6 +533,14 @@ load(record.board);
 preferences();
 document.fonts.ready.then(() => draw());
 animation();
+// What is painted, for the control frame: on a solved stage the tray under the well is empty, so the drawing is the
+// well alone and the Next disc stands in the room under it; otherwise null, and the frame uses games.json's bounds.
+window.__minimalize = Object.freeze({ bounds() {
+  if (!stage().solved) return null;
+  // The rim, and the probes' numerals round it (drawn at radius 288, about 8 high): 296 from the centre.
+  const rect = canvas.getBoundingClientRect(), { scale, x, y } = view.geometry, reach = 296;
+  return { x: rect.left + x + (WELL.centre - reach) * scale, y: rect.top + y + (WELL.centre - reach) * scale, width: 2 * reach * scale, height: 2 * reach * scale };
+} });
 window.__rimlight = {
   // `boards` is the campaign; `current` is the board on screen, a stage or a New Game+ board.
   boards: campaign, pool, mode,

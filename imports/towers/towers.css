@@ -99,7 +99,7 @@ button:focus-visible,select:focus-visible,summary:focus-visible{outline:2px soli
    once in each row and column, so no height shows least; the one color the board lacks is the next one
    up, and no tower sinks into the page. Black reads on all five, in both themes, so what is written on
    the page and the towers' edges go to black. The ground lets go of its own fill, so towers that stand
-   back in a view stand back into the page, and the Next box is open. The numbers that are not in use
+   back in a view stand back into the page. The numbers that are not in use
    stay a step quieter, in a dark shade of the page. Settings and Help keep their own paper. */
 html[data-field="2"]{--field:#9ad0c2}html[data-field="3"]{--field:#f4d58d}html[data-field="4"]{--field:#f2a65a}html[data-field="5"]{--field:#ee7b5f}html[data-field="6"]{--field:#d98fb3}
 html[data-field] body{background-color:var(--field);transition:background-color .7s}
@@ -107,14 +107,16 @@ html[data-field] body>:not(dialog){--ink:#000;--sub:#000;--text:#000}
 html[data-field] .ground path{fill:transparent}
 html[data-field] .board.solved .clue text{fill:color-mix(in srgb,var(--field) 30%,#000)}
 html[data-field] .board.solved .clue.viewing text{fill:#000}
-html[data-field] #completion #next-btn{background:transparent}
 
 .completion{display:flex;flex-direction:column;align-items:center;gap:8px;min-height:48px;animation:next-reveal .45s .15s both}
 /* With all thirty solved, one line above the arrow says so. */
 .ending{margin:0;color:var(--text);font:14px/1.3 var(--sans);text-align:center;white-space:nowrap}
 .ending[hidden]{display:none}.row[hidden]{display:none}
 .completion[hidden]{display:none}
-#completion #next-btn{border:1px solid var(--ink)!important;background:var(--bg)}
+/* In the control frame, Next is the frame's disc and the line above it the frame's end line; the row is empty. */
+body[data-control-frame] #completion{display:none}
+/* On a field the ink is black in both themes, so the disc's arrow takes the field's color, not the page's. */
+html[data-field] body[data-control-frame] button#next-btn.control-completion{color:var(--field)!important}
 @keyframes next-reveal{from{opacity:0;translate:0 4px}to{opacity:1;translate:0 0}}
 @keyframes pulse{50%{opacity:.3}}
 
@@ -166,4 +168,4 @@ kbd{font-family:var(--mono)}
   .ground path{fill:Canvas;stroke:GrayText}.sheet{border-color:CanvasText}
 }
 @media(forced-colors:active){.board.solved .cell .top,.board.solved .cell.given .top,.board.solved.flat .cell .tile{fill:Canvas}.board.solved .cell .left,.board.solved .cell .right{fill:GrayText}.board.solved .labels text,.board.solved .labels .given text{fill:CanvasText;stroke:Canvas}}
-@media(forced-colors:active){html[data-field] body{background-color:Canvas}html[data-field] body>:not(dialog){--ink:CanvasText;--sub:CanvasText;--text:CanvasText}html[data-field] .ground path{fill:Canvas}html[data-field] .board.solved .clue text{fill:CanvasText}html[data-field] #completion #next-btn{background:Canvas}}
+@media(forced-colors:active){html[data-field] body{background-color:Canvas}html[data-field] body>:not(dialog){--ink:CanvasText;--sub:CanvasText;--text:CanvasText}html[data-field] .ground path{fill:Canvas}html[data-field] .board.solved .clue text{fill:CanvasText}}

@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<script src="./pwa.js?v=ccbd96c0" defer></script><link rel="stylesheet" href="./akari.css?v=f276d813">
+<script src="./pwa.js?v=ccbd96c0" defer></script><link rel="stylesheet" href="./akari.css?v=422b2a3e">
 <meta name="description" content="Light every open square. Lamps must never shine on each other.">
 <meta property="og:title" content="Akari">
 <meta property="og:description" content="Light every open square. Lamps must never shine on each other.">
@@ -22,9 +22,9 @@
 <meta name="twitter:description" content="Light every open square. Lamps must never shine on each other.">
 <meta name="twitter:image" content="https://lukesteuber.com/games/akari/og.png?v=b85a70ea3a97">
 <meta name="twitter:image:alt" content="Akari puzzle with pure-white lamps, cast shadows, black numbered walls and smooth darker unlit panels.">
-<link rel="stylesheet" href="./controls.css?v=97b7114c">
+<link rel="stylesheet" href="./controls.css?v=e9a44e73">
 </head>
-<body><header><button id="restart-btn" class="ib" aria-label="Restart puzzle"></button><h1 class="sr-only">Akari</h1><div id="readout" class="readout"></div></header><main id="board-shell" aria-label="Akari puzzle"><div id="board-stage" class="board-stage"><div id="board" class="board" role="grid" aria-label="Light Up board"></div><div id="completion" class="completion" hidden><button id="share-btn" class="ib" aria-label="Share this puzzle" title="Share this puzzle"></button><button id="next-btn" class="ib" aria-label="Next campaign puzzle"></button><p id="milestone" class="milestone"></p></div></div></main><p id="feedback" role="status" aria-live="polite"></p><p id="share-status" class="sr-only" role="status"></p>
+<body><header><button id="restart-btn" class="ib" aria-label="Restart puzzle"></button><h1 class="sr-only">Akari</h1><div id="readout" class="readout"></div></header><main id="board-shell" aria-label="Akari puzzle"><div id="board-stage" class="board-stage"><div id="board" class="board" role="grid" aria-label="Light Up board"></div><div id="completion" class="completion" hidden><button id="share-btn" class="ib" aria-label="Share this puzzle" title="Share this puzzle"></button><button id="next-btn" class="ib" type="button" aria-label="Next campaign puzzle" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button><p id="milestone" class="milestone control-end-line" hidden></p></div></div></main><p id="feedback" role="status" aria-live="polite"></p><p id="share-status" class="sr-only" role="status"></p>
 <nav class="toolbar" aria-label="Game controls"><div><button id="undo-btn" class="ib" aria-label="Undo"></button><button id="mark-btn" class="ib" aria-label="Mark empty" aria-pressed="false"></button></div><div><button id="hint-btn" class="ib" aria-label="Hint"></button><button id="settings-btn" class="ib" aria-label="Settings"></button><button id="help-btn" class="ib" aria-label="Help"></button></div></nav>
 <dialog id="settings" class="sheet" aria-labelledby="settings-title"><div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
 <h3 class="group">This board</h3><label class="row">Campaign <select id="campaign"></select></label><div class="row"><button id="previous">Previous</button><button id="following">Next</button></div><div class="row"><span>Current board</span><button id="reset">Restart</button></div>
@@ -38,5 +38,5 @@
 <div class="controls"><p>Tap — bulb → × → blank. Drag paints.</p><p>Hold or right-click — mark empty. Mark mode swaps the shortcuts.</p><p>Lighter panels are lit; darker panels still need light.</p></div>
 <details class="help-more"><summary>More controls</summary><p>Each number needs that many bulbs beside it. Gray means it needs more, blue means the count matches, and bright yellow means too many. A diagonal glow does not count as light.</p><p>Hint previews a move. Tap it again to apply.</p><p>Arrows move. Enter or Space cycles; Mark mode marks directly; X marks empty. Z undoes. Restart clears this puzzle; Undo restores it. Escape cancels a gesture.</p><p>For a larger board, choose Enlarge, then Pan in Settings.</p></details>
 </div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
-<script src="./engine.js?v=61e3518f"></script><script src="./levels.js?v=867dea6b"></script><script src="./paint-input.js?v=ed666dec"></script><script src="./light-field.js?v=552f4046"></script><script src="./akari.js?v=a193e8fa"></script><script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script><script defer src="./controls.js?v=ab2eb5ed"></script>
+<script src="./engine.js?v=61e3518f"></script><script src="./levels.js?v=867dea6b"></script><script src="./paint-input.js?v=ed666dec"></script><script src="./light-field.js?v=552f4046"></script><script src="./akari.js?v=ab3e51b0"></script><script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script><script defer src="./controls.js?v=508301ed"></script>
 </body></html>

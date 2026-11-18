@@ -64,6 +64,21 @@ html[data-motion="reduce"] body[data-control-frame] button.control-completion:no
 @media(prefers-reduced-motion:reduce) {
   body[data-control-frame] button.control-completion:not(#control-frame-none),body[data-control-frame] button.control-completion:not(#control-frame-none)::after {animation:none!important;}
 }
+/* A game's line about the finish (class control-end-line): 8 px above the
+   disc, centered on it (bottom = the disc's bottom + 72 px), the last line in
+   the page nearest the disc. Where that would meet the board or a control,
+   frame.js sets data-end-line="top" and the lines stand under the readout.
+   The game keeps its own type and color. */
+body[data-control-frame] .control-end-line {
+  position:fixed!important;top:auto!important;right:auto!important;left:var(--control-next-left,50%)!important;
+  bottom:calc(var(--control-next-bottom,max(64px,calc(env(safe-area-inset-bottom) + 64px))) + 72px + var(--control-end-shift,0px))!important;
+  transform:translateX(-50%)!important;width:max-content!important;max-width:calc(100vw - 32px)!important;margin:0!important;
+  text-align:center;white-space:normal;z-index:50;pointer-events:none;
+}
+body[data-control-frame] .control-end-line[hidden] {display:none!important;}
+body[data-control-frame][data-end-line="top"] .control-end-line {
+  top:calc(var(--control-end-top,16px) + var(--control-end-drop,0px))!important;bottom:auto!important;left:var(--control-end-left,50%)!important;
+}
 body[data-control-frame] .control-sheet button {min-width:44px;min-height:44px;}
 body[data-control-frame] .control-sheet .modal-content {box-sizing:border-box;max-height:calc(100dvh - 16px);overflow:auto;}
 body[data-control-frame] .control-toolbar [hidden],body[data-control-frame] .control-completion[hidden] {display:none!important;}

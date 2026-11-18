@@ -100,6 +100,9 @@
   const hue = b => (sampling ? boards : ALL).indexOf(b) % palettes.length;
   const isExtra = b => !sampling && extras.includes(b);
   const isOpen = b => sampling || (isExtra(b) ? finished.has(FINALE.id) || finished.has(b.id) || more.has(b.id) : place(b.id) >= 0 && place(b.id) <= reached);
+  // The first course board not yet finished; on the course's last board with none left, Next starts New Game+.
+  const courseLeft = () => course.find(b => !finished.has(b.id)) || null;
+  const plusEnd = () => !sampling && current === FINALE && !courseLeft();
   // A solve opens the next course board.
   const progress = () => { if (!sampling && place(current.id) >= 0) reached = Math.max(reached, Math.min(course.length - 1, place(current.id) + 1)); };
   // Names: course boards by place, "Board 6 of 25"; More boards as +1 to +25.
@@ -144,7 +147,9 @@
       const b = measure.getBBox(); frames.set(current.id, { x: b.x - .18, y: b.y - .18, width: b.width + .36, height: b.height + .36 }); measure.remove();
     }
     const f = frames.get(current.id), shell = $('#board-shell'), rail = matchMedia('(orientation:landscape) and (max-height:500px)').matches;
-    const scale = Math.min((shell.clientWidth - (rail ? 48 : 0)) / f.width, (shell.clientHeight - (rail ? 0 : 48)) / f.height);
+    // Under the board a 72 px band (#completion) is kept, so a board that fills the height leaves the Next disc,
+    // which then stands on the toolbar's row, clear of its lines.
+    const scale = Math.min((shell.clientWidth - (rail ? 48 : 0)) / f.width, (shell.clientHeight - (rail ? 0 : 72)) / f.height);
     board.setAttribute('viewBox', `${f.x} ${f.y} ${f.width} ${f.height}`);
     board.style.width = `${f.width * scale}px`; board.style.height = `${f.height * scale}px`;
     // Lines stay a ninth of a tile wide on dense boards but never thicker than 6 px.
@@ -172,7 +177,11 @@
     $('#undo-btn').disabled = !history.length && !busy;
     locked = E.solved(arranged(), rots); if (locked) hover = null;
     board.tabIndex = locked ? -1 : 0; board.dataset.locked = String(locked);
-    $('#next-btn').hidden = !nextReady || last(); board.dataset.solved = String(locked); board.dataset.busy = String(busy); rings();
+    // On board 25 with every course board finished, Next starts New Game+ and the end line stands above it.
+    const end = nextReady && plusEnd();
+    $('#next-btn').hidden = !nextReady || last(); $('#next-btn').setAttribute('aria-label', end ? 'Start New Game+' : 'Next board');
+    $('#end-line').hidden = !end; $('#end-line').textContent = end ? `All ${course.length} boards solved.` : '';
+    board.dataset.solved = String(locked); board.dataset.busy = String(busy); rings();
   }
   // The finish is one reveal: the solved board turns out to be a piece of a
   // whole Mandaza. Its tiles are cells of one hex grid whose other cells come
@@ -710,12 +719,12 @@
   async function finishPicture(token) {
     makeFinish();
     const growing = growField();
-    // The next arrow and the save button come at once, usable while the
-    // picture draws on behind them. A keyboard player lands on the arrow;
-    // after a tap or click nothing is left focused, so no outline suggests a
+    // The next arrow comes at once, usable while the picture draws on behind
+    // it. Focus does not move to it: a keyboard player keeps the board; after
+    // a tap or click nothing is left focused, so no outline suggests a
     // selection.
     nextReady = true; updateChrome();
-    if (document.activeElement === board) { if (typing) $('#next-btn').focus({ preventScroll: true }); else board.blur(); }
+    if (document.activeElement === board && !typing) board.blur();
     const ready = await growing;
     if (token !== epoch || !ready) return;
     const done = await reveal();
@@ -954,11 +963,12 @@
   }
   function undo() { clearInput(); const old = history.pop(); if (old) { rots = old.rots.slice(); hits = old.hits; if (current.rings) offsets = old.offsets.slice(); } nextReady = E.solved(arranged(), rots); render(); save(); announce(old ? `Turn undone. ${hitsWord()}.` : 'No turns to undo.'); }
   function restart() { clearInput(); openerFade = 0; locks.clear(); delete lockBook[current.id]; rots = current.start.slice(); offsets = startOffsets(current); hits = 0; history = []; nextReady = false; render(); save(); announce('Board restarted.'); }
-  // The course's last board has no next arrow (New Game+ is offered there),
-  // nor has the last of More boards; More boards lead on to the next open
-  // one; the samples go round.
-  const following = () => { if (sampling) return boards[(boards.indexOf(current) + 1) % boards.length]; if (current === FINALE) return null; const n = boards.indexOf(current) + 1; return n < boards.length && isOpen(boards[n]) ? boards[n] : null; };
-  const last = () => !following();
+  // Past the course's last board the arrow goes to the first course board not
+  // yet finished; with every one finished it starts New Game+ (the tilings, on
+  // experiments.html). The last of More boards has none; More boards lead on
+  // to the next open one; the samples go round.
+  const following = () => { if (sampling) return boards[(boards.indexOf(current) + 1) % boards.length]; if (current === FINALE) return courseLeft(); const n = boards.indexOf(current) + 1; return n < boards.length && isOpen(boards[n]) ? boards[n] : null; };
+  const last = () => !following() && !plusEnd();
   function go(id) {
     const b = boards.find(b => b.id === id); if (!b) return;
     clearInput(); openerFade = 0; current = b; locks = new Set(lockBook[b.id] || []); rots = b.start.slice(); offsets = startOffsets(b); hits = 0; history = []; focus = middle(b); nextReady = false; render(); save(); announce(`${label(b)}.`); arrive();
@@ -1146,7 +1156,7 @@
   const icons = { restart: 'M5 7a8 8 0 1 1-1 9M5 3v5h5', undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12', hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z', next: 'M5 12h14M13 6l6 6-6 6', save: 'M12 4v11M7 10l5 5 5-5M5 20h14', settings: 'M4 7h16M4 17h16M8 4v6M16 14v6', help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2' };
   for (const [id, d] of Object.entries(icons)) { const n = $('#' + id + '-btn'); if (n) n.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`; }
   $('#restart-btn').onclick = restart; $('#undo-btn').onclick = undo; $('#hint-btn').onclick = () => enqueue({ type: 'hint' });
-  $('#next-btn').onclick = () => { const b = following(); if (nextReady && b) go(b.id); };
+  $('#next-btn').onclick = () => { if (!nextReady) return; if (plusEnd()) { location.href = './experiments.html?plus'; return; } const b = following(); if (b) go(b.id); };
   for (const id of ['settings', 'help']) { $('#' + id + '-btn').onclick = () => { const keepFinish = finishComplete; clearInput(); nextReady = E.solved(arranged(), rots); if (keepFinish) { syncFinish(); updateChrome(); } else render(); if (id === 'settings') catalog(); $('#' + id).showModal(); }; $('#' + id).addEventListener('close', () => $('#' + id + '-btn').focus()); }
   // Settings lists the course's boards, then More boards: current, completed,
   // available or locked. More boards say "After board 25" until it closes.

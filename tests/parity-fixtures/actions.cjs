@@ -121,7 +121,7 @@ async function base_solve(f,id) {
       await hint(f,id);await tick(pageOf(f),800);
     }
   }
-  const next=f.locator(id==='bending'?'#next':'#next-btn');
+  const next=f.locator('#next-btn');
   assert(await next.isVisible(),`${id}: original controls did not complete first board`);
 }
 // Games added after the first twelve keep their own steps in games/<id>.cjs:

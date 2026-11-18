@@ -3,7 +3,8 @@
 // library's saves, made by the older build; the update must still open them. Each fixture holds one save per
 // game, taken in a shipped build: a move on the first board, then Home. saves-2ba8a67.json is from 0.5.5
 // (game-riffs 2ba8a67), saves-c965c4f.json from 0.5.7 (c965c4f, with Cube Maze, Tangles and Weaves),
-// saves-261303e.json from 0.5.8 (261303e), saves-d3d9b9e.json from 0.5.9 (d3d9b9e). Add one from each shipped build
+// saves-261303e.json from 0.5.8 (261303e), saves-d3d9b9e.json from 0.5.9 (d3d9b9e), saves-29b29ad.json from 0.5.10
+// (29b29ad). Add one from each shipped build
 // before its games are pinned again.
 const {test,after}=require('node:test');
 const assert=require('node:assert/strict');
@@ -11,7 +12,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const h=require('./parity-fixtures/browser.cjs'),a=require('./parity-fixtures/actions.cjs');
 const KEY='lukesteuber.minimal.collection.v1:saves';
-const FIXTURES=[['0.5.5','saves-2ba8a67.json'],['0.5.7','saves-c965c4f.json'],['0.5.8','saves-261303e.json'],['0.5.9','saves-d3d9b9e.json']].map(([build,name])=>{const fixture=fs.readFileSync(path.join(__dirname,'upgrade-fixtures',name),'utf8');return{build,fixture,old:JSON.parse(fixture)};});
+const FIXTURES=[['0.5.5','saves-2ba8a67.json'],['0.5.7','saves-c965c4f.json'],['0.5.8','saves-261303e.json'],['0.5.9','saves-d3d9b9e.json'],['0.5.10','saves-29b29ad.json']].map(([build,name])=>{const fixture=fs.readFileSync(path.join(__dirname,'upgrade-fixtures',name),'utf8');return{build,fixture,old:JSON.parse(fixture)};});
 const {old}=FIXTURES[0];
 let browser;const getBrowser=async()=>browser||(browser=await h.launch());
 after(async()=>browser?.close());
@@ -23,11 +24,13 @@ const CONVERTED={bending:old=>({'rimlight.dark.v2':JSON.stringify(old.record)})}
 // pool boards dealt. Since 9ad63d8 (0.5.10): `order: 3` (Tilt, Tilt 3D, Cast, Horologist) or `order: 2` (Tangles) says
 // reached counts in the twenty-five-board campaign; Tangles keeps the boards it had open outside the course (`more`);
 // Folding's progress is v3, counted in the campaign; Weaves keeps settled marks (`kept`, also on each Undo step), the
-// mark mode and how far its sixteen-board course is open. A save on a first board restores with them added.
+// mark mode and how far its sixteen-board course is open. Since game-riffs PR 201 (0.5.11) Weaves also keeps the
+// optional cloths dealt after its course (`pool`). A save on a first board restores with them added.
 const ADDED={tilt:s=>({...s,order:3,pool:s.pool||[]}),'tilt-3d':s=>({...s,order:3,pool:s.pool||[]}),cast:s=>({...s,order:3}),horologist:s=>({...s,order:3,pool:[]}),
-  'shoo-minimal':s=>({...s,store:{...s.store,pool:s.store.pool||[]}}),'cube-maze':s=>({...s,pool:[]}),tangles:s=>({...s,order:2,more:[]}),
+  // Shoo's page left `wasSolved` behind in game-riffs PR 206 (it only moved focus to Next); the snapshot no longer carries it.
+  'shoo-minimal':({wasSolved,...s})=>({...s,store:{...s.store,pool:s.store.pool||[]}}),'cube-maze':s=>({...s,pool:[]}),tangles:s=>({...s,order:2,more:[]}),
   fold:s=>({...s,progress:{version:3,completed:s.progress.completed,available:s.progress.available,newGamePlus:s.progress.newGamePlus,pool:[]}}),
-  weaves:s=>({...s,history:s.history.map(h=>({...h,kept:[]})),kept:[],keepMode:false,course:1,courseReached:Math.max(0,...s.finished.map(id=>['w01','w02','w03','c01','c02','w04'].indexOf(id)+1))})};
+  weaves:s=>({...s,history:s.history.map(h=>({...h,kept:h.kept||[]})),kept:s.kept||[],keepMode:!!s.keepMode,course:1,courseReached:s.course===1?s.courseReached:Math.max(0,...s.finished.map(id=>['w01','w02','w03','c01','c02','w04'].indexOf(id)+1)),pool:[]})};
 // Where a save leaves the player, in this build's terms: the board, what is finished, how far the campaign is open,
 // and for Bending the stage on the saved board.
 function where(id,s){
@@ -110,6 +113,35 @@ for(const c of CASES)test(`${c.game}: a 0.5.9 save (${c.case}) opens where the g
   const done=w=>w.finished||w.done,before=done(where(c.game,c.save.state));
   assert.ok(before.length>0||c.case==='mid');
   for(const id of before)assert.ok(done(got).includes(id),`${c.game} ${c.case}: ${id} stays finished`);
+  await home(library.page,game);
+});
+
+// Upgrade cases from the shipped 0.5.10 build (game-riffs 29b29ad), for the two games whose saves change in 0.5.11.
+// Towers (PR 202) puts a fixed tower on eleven campaign boards; the cases hold marks of another height where the new
+// towers stand, on the board in hand and on boards kept in the store (`mid`, `fin`), and on a board that also gains
+// clues (`clues`). Weaves (PR 201) deals its optional cloths after the sixteen-board course and keeps the round in
+// `pool`: part way through the course (`mid`), on an optional cloth before it is done (`opt`), and on an optional
+// cloth with the course done (`fin`, an endless cloth now). Opened from the library save, the game's own keys or both,
+// the game opens in the same place with the same marks, and nothing finished is lost.
+const CASES_0510=JSON.parse(fs.readFileSync(path.join(__dirname,'upgrade-fixtures','saves-29b29ad-cases.json'),'utf8')).cases;
+const marks=(id,s)=>id==='towers'?{cells:s.S.cells,boards:s.store.boards}:{grid:s.grid,pool:s.pool};
+for(const c of CASES_0510)test(`${c.game}: a 0.5.10 save (${c.case}) opens where the game opens its own`,async t=>{
+  const game=h.games.find(g=>g.id===c.game);
+  assert.equal(c.save.source.slice(0,7),'29b29ad');
+  const library=await opened(t,game,{[KEY]:JSON.stringify({[c.game]:c.save})});
+  const own=await opened(t,game,c.native);
+  const both=await opened(t,game,{...c.native,[KEY]:JSON.stringify({[c.game]:c.save})});
+  const want=where(c.game,own.state);
+  assert.deepEqual(where(c.game,library.state),want,c.game+' '+c.case+' opens where the game opens its own 0.5.10 save');
+  assert.deepEqual(where(c.game,both.state),want,c.game+' '+c.case+' with both saves on the device');
+  assert.deepEqual(marks(c.game,library.state),marks(c.game,own.state),c.game+' '+c.case+': the same marks as the game reads');
+  assert.deepEqual(marks(c.game,both.state),marks(c.game,own.state),c.game+' '+c.case+': the same marks with both saves');
+  for(const id of where(c.game,c.save.state).finished)assert.ok(want.finished.includes(id),`${c.game} ${c.case}: ${id} stays finished`);
+  if(c.game==='towers'){
+    // Every fixed tower stands at its height in the board in hand, and the marks elsewhere are the saved ones.
+    const s=library.state,saved=c.save.state.S.cells,given=require(path.join(__dirname,'..','imports','towers','levels.js')).find(p=>p.id===s.at).given;
+    s.S.cells.forEach((v,i)=>assert.equal(v,given[i]||saved[i],`${c.case}: cell ${i}`));
+  }
   await home(library.page,game);
 });
 

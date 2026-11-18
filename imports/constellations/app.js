@@ -2,7 +2,7 @@
 (() => {
  'use strict';
  const E=Constellations,B=ConstellationBoards,$=id=>document.getElementById(id),NS='http://www.w3.org/2000/svg',KEY='constellations.v2',OLD='constellations.v1';
- const icons={restart:'M4 10a8 8 0 1 1 1 8M4 4v6h6',undo:'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12',hint:'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z',next:'M5 12h14m-6-6 6 6-6 6',replay:'M21 4v6h-6M3 20v-6h6M5.5 9a7.5 7.5 0 0 1 12.4-2.8L21 10M3 14l3.1 3.8A7.5 7.5 0 0 0 18.5 15',settings:'M4 7h16M4 17h16M8 4v6M16 14v6',help:'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2',close:'M6 6l12 12M18 6 6 18'};
+ const icons={restart:'M4 10a8 8 0 1 1 1 8M4 4v6h6',undo:'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12',hint:'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z',next:'M5 12h14M13 6l6 6-6 6',replay:'M4 11V9a3 3 0 0 1 3-3h12m-3-3 3 3-3 3M20 13v2a3 3 0 0 1-3 3H5m3 3-3-3 3-3',settings:'M4 7h16M4 17h16M8 4v6M16 14v6',help:'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2',close:'M6 6l12 12M18 6 6 18'};
  const icon=name=>'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+icons[name]+'"/></svg>';
  for(const [id,name]of[['restart-btn','restart'],['undo-btn','undo'],['hint-btn','hint'],['next-btn','next'],['settings-btn','settings'],['help-btn','help']])$(id).innerHTML=icon(name);
  document.querySelectorAll('.close').forEach(n=>n.innerHTML=icon('close'));
@@ -63,12 +63,12 @@
   const end=!$('next-btn').hidden&&ending(),kind=end?'replay':'next',nb=$('next-btn');
   $('end-line').hidden=!end;$('end-line').textContent=end?endLine():'';
   if(nb.dataset.kind!==kind){nb.dataset.kind=kind;nb.innerHTML=icon(kind);}
-  nb.setAttribute('aria-label',ending()?'Replay':'Next board');
+  nb.setAttribute('aria-label',ending()?'Replay from board 1':'Next board');
  }
+ // Next is already showing: it comes at the solve, while the figure celebrates, and focus stays where it was.
  function finish(){
   clearTimeout(finishTimer);finishTimer=null;$('board').classList.remove('celebrating');
   $('next-btn').hidden=!E.inspect(p,s.weights).solved;endShown();
-  if(!$('next-btn').hidden&&keyboard)$('next-btn').focus({preventScroll:true});
  }
  function completion(solved){
   if(solved===wasSolved)return;
@@ -76,7 +76,7 @@
   if(solved){s.selected=null;s.hint=null;cancel();if(buttons.includes(document.activeElement))document.activeElement.blur();}
   $('board').classList.toggle('solved',solved);document.documentElement.classList.toggle('night',solved);
   // The constellation's name appears only once its figure is complete, so the shape is found, not announced.
-  $('sky-name').textContent=solved?p.name:'';$('sky-name').hidden=!solved;$('board').classList.remove('celebrating');$('next-btn').hidden=true;endShown();
+  $('sky-name').textContent=solved?p.name:'';$('sky-name').hidden=!solved;$('board').classList.remove('celebrating');$('next-btn').hidden=!solved;endShown();
   if(solved){if(still()||document.hidden)finish();else{$('board').classList.add('celebrating');finishTimer=setTimeout(finish,1200);}}
  }
  function finishedStars(report){

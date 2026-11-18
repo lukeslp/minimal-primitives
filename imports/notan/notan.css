@@ -308,6 +308,9 @@ button { font: inherit; color: inherit; }
 .caption .share-btn { min-height: 36px; }
 .caption .share-btn[hidden] { display: none; }
 .caption p { margin: 0; font: 500 calc(13px * var(--zoom))/1.3 var(--mono); letter-spacing: 0.04em; color: var(--sub); }
+/* The line at the end of everything; the control frame stands it above the Next disc. */
+.end-line { margin: 0; font: 500 calc(13px * var(--zoom))/1.3 var(--mono); letter-spacing: 0.04em; color: var(--sub); text-align: center; }
+.end-line[hidden] { display: none; }
 
 /* ---------- corner icons ---------- */
 .bar {

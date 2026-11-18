@@ -8,6 +8,8 @@
   const smooth = x => x * x * (3 - 2 * x), beat = x => 1 - (1 - x) ** 3;
   let board = boards[0], grid = E.start(board), hits = 0, history = [], finished = new Set();
   let prefs = { theme: 'system', motion: 'system' }, protectSave = false, saved = null, kept = new Set(), keepMode = false;
+  // The optional cloths Next has served since the endless round last ran out.
+  let played = [];
   function validGrid(g, b) {
     return Array.isArray(g) && g.length === b.rows && g.every(row => Array.isArray(row) && row.length === b.cols && row.every(v => v === 1 || v === -1)) && b.pins.every(([r, c, v]) => g[r][c] === v);
   }
@@ -23,6 +25,8 @@
       if (!validKept(s.kept, b) || !s.history.every(h => validKept(h.kept, b))) throw Error('Invalid notes');
       board = b; grid = copy(s.grid); hits = s.hits; history = s.history; finished = new Set(s.finished); prefs = s.settings; saved = s;
       kept = new Set(s.kept || []);
+      // An unknown or repeated id in the round is dropped, never a reason to refuse the save.
+      played = Array.isArray(s.pool) ? [...new Set(s.pool.filter(id => course.more.some(b => b.id === id)))] : [];
     }
   } catch (_) { protectSave = true; }
   // Keep the legacy catalog index for old records and adapters. The small
@@ -50,7 +54,7 @@
   function announce(text) { $('#announcement').textContent = text; }
   function save() {
     if (protectSave) return;
-    try { localStorage.setItem(KEY, JSON.stringify({ board: board.id, grid, hits, history, kept: [...kept], finished: [...finished], settings: prefs, campaign: 1, reached, course: 1, courseReached })); } catch (_) {}
+    try { localStorage.setItem(KEY, JSON.stringify({ board: board.id, grid, hits, history, kept: [...kept], finished: [...finished], settings: prefs, campaign: 1, reached, course: 1, courseReached, pool: played })); } catch (_) {}
   }
   function svg(tag, attrs, parent) {
     const n = document.createElementNS(NS, tag);
@@ -508,10 +512,11 @@
   function draw() { if (built !== board) build(); drawCloth(); drawRings(); }
   function chrome() {
     const loose = E.loose(board, grid), solved = E.solved(board, grid), [r, c] = focus;
-    const main = course.index(board.id), label = main < 0 ? `Optional cloth ${course.more.indexOf(board) + 1}` : `Board ${main + 1}`;
+    const main = course.index(board.id), label = main < 0 ? `Optional cloth ${course.more.indexOf(board) + 1}` : `Board ${main + 1}`, endless = main < 0 && allDone();
     boardNode.setAttribute('aria-label', `${label}, ${count(board.rows, 'row')} by ${count(board.cols, 'column')}. ${solved ? 'Cloth finished.' : looseText(loose) + '.'} ${hitsWord()}, par ${parOf(board)}. Focus row ${r + 1}, column ${c + 1}, ${grid[r][c] === 1 ? 'weft over' : 'warp over'}${pinned(r, c) ? ', pinned' : kept.has(r * board.cols + c) ? ', marked settled' : ', free'}${inLoose(loose, r, c) ? ', in a loose stretch' : ''}.`);
-    $('#readout').textContent = `${main < 0 ? '+' + (course.more.indexOf(board) + 1) : main + 1} / ${main < 0 ? course.more.length : course.main.length} · ${hits} / ${parOf(board)}`;
-    $('#readout').setAttribute('aria-label', `${label} of ${main < 0 ? course.more.length : course.main.length}; ${hitsWord()}; par ${parOf(board)}`);
+    // After the course an optional cloth shows the infinity sign where a board shows its number, as Tilt's pool and Cast's free play do.
+    $('#readout').textContent = `${endless ? '∞' : `${main < 0 ? '+' + (course.more.indexOf(board) + 1) : main + 1} / ${main < 0 ? course.more.length : course.main.length}`} · ${hits} / ${parOf(board)}`;
+    $('#readout').setAttribute('aria-label', `${endless ? 'Endless cloth' : `${label} of ${main < 0 ? course.more.length : course.main.length}`}; ${hitsWord()}; par ${parOf(board)}`);
     $('#keep-btn').setAttribute('aria-pressed', String(keepMode));
     $('#undo-btn').disabled = history.length === 0;
     $('#hint-btn').disabled = solved;
@@ -519,13 +524,25 @@
     catalog();
   }
   // The end of the main course. Next takes the following board; after the last,
-  // the first board not yet finished. With every board finished it becomes
-  // Replay, which starts again at board 1 and keeps the finished marks.
+  // the first board not yet finished. With every main board finished, Next goes
+  // on to the forty-four optional cloths, drawn at random, each once before any
+  // comes back. Before that, an optional cloth's Next returns to the main boards.
+  // Replay, from board 1 with the finished marks kept, is left for an empty pool.
   const allDone = () => course.main.every(b => finished.has(b.id)), endLine = `All ${course.main.length} boards solved.`;
+  let drawn = null;
+  function drawPool() {
+    if (drawn && drawn !== board) return drawn;
+    let left = course.more.filter(b => b !== board && !played.includes(b.id));
+    if (!left.length) left = course.more.filter(b => b !== board);
+    drawn = left[Math.floor(Math.random() * left.length)] || null;
+    return drawn;
+  }
   function nextTarget() {
     const i = course.index(board.id);
-    if (i < 0) return course.main.find(b => !finished.has(b.id)) || course.main[0];
-    return i < course.main.length - 1 ? course.main[i + 1] : course.main.find(b => !finished.has(b.id)) || null;
+    if (i >= 0 && i < course.main.length - 1) return course.main[i + 1];
+    const open = course.main.find(b => !finished.has(b.id));
+    if (i < 0) return open || drawPool() || course.main[0];
+    return open || drawPool();
   }
   let nextMode = 'next';
   function showNext(solved) {
@@ -535,7 +552,7 @@
       nextMode = mode;
       next.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${icons[mode]}"/></svg>`;
     }
-    next.setAttribute('aria-label', course.index(board.id) < 0 ? 'Return to main boards' : mode === 'replay' ? 'Replay from board 1' : 'Next board');
+    next.setAttribute('aria-label', course.index(board.id) < 0 && !allDone() ? 'Return to main boards' : mode === 'replay' ? 'Replay from board 1' : 'Next board');
     line.textContent = endLine;
     line.hidden = !solved || !allDone() || course.index(board.id) < 0;
   }
@@ -628,7 +645,11 @@
       if (previous) { kept = new Set(previous.kept || []); await change(previous.grid, previous.hits, false, token); announce(`Move undone. ${hitsWord()}.`); }
       else { rest(); announce('No move to undo.'); }
     } else if (action.type === 'restart' || action.type === 'go') {
-      if (action.type === 'go') { const next = boards.find(b => b.id === action.id); if (!next || !available(next)) return; board = next; }
+      if (action.type === 'go') {
+        const next = boards.find(b => b.id === action.id); if (!next || !available(next)) return; board = next; drawn = null;
+        // After the course, an optional cloth opened counts as served; the round ends once all have been.
+        if (course.index(board.id) < 0 && allDone()) { const served = played.filter(id => id !== board.id).concat(board.id); played = served.length >= course.more.length ? [] : served; }
+      }
       grid = E.start(board); hits = 0; history = []; kept.clear(); keepMode = false; hint = null; hover = null; refusal = null; focus = [0, 0]; fit(); rest(); save();
       announce(action.type === 'restart' ? 'Board restarted.' : course.index(board.id) < 0 ? `Optional cloth ${course.more.indexOf(board) + 1}.` : `Board ${course.index(board.id) + 1}.`);
     }
@@ -730,7 +751,7 @@
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) animation?.finish();
   });
-  window.__weave = { boards, get board() { return board.id; }, get state() { return { rows: board.rows, cols: board.cols, grid: copy(grid), pins: board.pins.map(p => p.slice()), loose: E.loose(board, grid), solved: E.solved(board, grid), hits, par: parOf(board), kept: [...kept] }; }, get reached() { return reached; }, get courseReached() { return courseReached; }, course, flip, undo, restart, go };
+  window.__weave = { boards, get board() { return board.id; }, get state() { return { rows: board.rows, cols: board.cols, grid: copy(grid), pins: board.pins.map(p => p.slice()), loose: E.loose(board, grid), solved: E.solved(board, grid), hits, par: parOf(board), kept: [...kept] }; }, get reached() { return reached; }, get courseReached() { return courseReached; }, get played() { return played.slice(); }, course, flip, undo, restart, go };
   window.__minimalize = { bounds() {
     const box = cloth.getBBox(), m = cloth.getScreenCTM();
     const corners = [[box.x, box.y], [box.x + box.width, box.y], [box.x, box.y + box.height], [box.x + box.width, box.y + box.height]].map(([x, y]) => new DOMPoint(x, y).matrixTransform(m));

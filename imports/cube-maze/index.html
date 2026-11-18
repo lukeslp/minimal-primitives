@@ -6,13 +6,13 @@
 <meta name="color-scheme" content="dark"><meta name="theme-color" content="#1a1a1a">
 <meta name="description" content="Tip a glass cube and turn its slices until the marble rolls out of the spout.">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://stats.dr.eamer.dev; worker-src 'self'; connect-src ws://127.0.0.1:47913 'self' https://stats.dr.eamer.dev; img-src 'self' data: https://stats.dr.eamer.dev; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'">
-<title>Cube Maze</title><link rel="icon" href="./favicon.svg"><link rel="stylesheet" href="./cube-maze.css?v=1944a529">
-<link rel="stylesheet" href="./controls.css?v=97b7114c">
+<title>Cube Maze</title><link rel="icon" href="./favicon.svg"><link rel="stylesheet" href="./cube-maze.css?v=2ae549a6">
+<link rel="stylesheet" href="./controls.css?v=e9a44e73">
 <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
 </head>
 <body>
 <header><h1 class="sr-only">Cube Maze</h1><button id="restart-btn" class="ib" type="button" aria-label="Restart board"></button><div id="readout" class="readout"></div></header>
-<main id="play"><canvas id="scene" role="img" aria-label="Glass cube"></canvas><div id="completion"><button id="next-btn" class="ib" type="button" aria-label="Next board" hidden></button></div></main>
+<main id="play"><canvas id="scene" role="img" aria-label="Glass cube"></canvas><div id="completion"><p id="end-line" class="end-line control-end-line" hidden></p><button id="next-btn" class="ib" type="button" aria-label="Next board" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div></main>
 <p id="announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
 <nav class="toolbar" aria-label="Game controls"><div><button id="undo-btn" class="ib" type="button" aria-label="Undo"></button><button id="hint-btn" class="ib" type="button" aria-label="Hint" aria-pressed="false"></button></div><div><button id="settings-btn" class="ib" type="button" aria-label="Settings"></button><button id="help-btn" class="ib" type="button" aria-label="Help"></button></div></nav>
 <dialog id="settings" class="sheet" aria-labelledby="settings-title"><div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
@@ -26,6 +26,6 @@
 <p>Drag with two fingers (or right-drag) to look around; pinch or scroll to zoom.</p>
 <details class="help-more"><summary>More controls</summary><p>The top line shows the board, then moves made and par.</p><p>Once all 25 boards are solved, the arrow and Settings go on to New Game+: the 25 boards the campaign leaves out, at random.</p><p>Hint shows a next move; press it again to play it.</p><p>The arrow keys roll the cube toward that side of the screen. F, B, L, R, U and D turn the front, back, left, right, top and bottom layers; on a three-cubie cube M, C and S turn the middle ones. Shift turns the other way. Q and E turn the view, + and − zoom, and 0 resets it. Z or Backspace undoes; H asks for a hint.</p><p>One switch (Settings, Access): the highlight first lights the four arrows together. Press to choose them, then press again when the arrow you want is lit; it rolls the cube that way. The drag key comes next: two gliding lines set where the drag starts, two more set where it ends, and a drag across the cube turns a layer. Undo, Hint and Next come last.</p></details>
 </div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
-<script src="./engine.js?v=cfe746da"></script><script src="./boards.js?v=5e5107c1"></script><script src="./campaign.js?v=c435fa4c"></script><script src="./feet.js?v=cc200edc"></script><script type="module" src="./cube-maze.js?v=aedf3aae"></script>
-<script defer src="./controls.js?v=1c5ca024"></script>
+<script src="./engine.js?v=cfe746da"></script><script src="./boards.js?v=5e5107c1"></script><script src="./campaign.js?v=c435fa4c"></script><script src="./feet.js?v=cc200edc"></script><script type="module" src="./cube-maze.js?v=ef5bfc7d"></script>
+<script defer src="./controls.js?v=b6f41afa"></script>
 </body></html>

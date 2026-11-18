@@ -340,7 +340,7 @@ let marbleCell = 0, marbleOffset = V3(), marbleOut = false, marbleWorld = V3();
 let roll = null, layer = null, turnAngle = 0, rise = 0;
 // The lean: the cube tips a little toward a level direction (a swipe beside it, a tap, a hint) without rolling.
 const leanVec = V3(), leanGoal = V3(), LEAN_MAX = 15 * Math.PI / 180;
-let anim = null, queue = [], drag = null, gesture = null, showNext = false, lightMode = 'marble';
+let anim = null, queue = [], drag = null, gesture = null, showNext = false, lightMode = 'marble', finale = false;
 // The free look: a turn around the cube (any angle, the whole circle), an elevation and a zoom window.
 // Looking never touches the rules. A release within about 12 degrees of a quarter settles onto it.
 const look = { yaw: 0, pitch: PITCH, zoom: 1, vx: 0, vy: 0, anim: null };
@@ -628,7 +628,7 @@ function fallPhase(tr, s) {
 }
 function finishPhases(s) {
   let w, wash = null, arrived = false;
-  // The next arrow comes about two seconds after the last move, while the light is still washing back.
+  // The next arrow is already there, since the solving move; the announcement waits for the light to wash back.
   const arrive = () => { if (arrived) return; arrived = true; showNext = hasNext(); updateUI(); announceSolved(); };
   // Each tube node lights when the wash reaches it: first along the network from the spout, then the pieces
   // the network never joined. The crest passes, and every tube settles to a steady glow brighter than play.
@@ -687,8 +687,9 @@ function startMove(move, from, lean) {
   const before = state, q0 = orient.clone(), r = E.apply(state, move);
   state = r.state; history.push(move.slice());
   // Only campaign boards count as solved; a New Game+ board is played for itself.
-  if (state.out && !inPool() && !completed.includes(boardId)) completed.push(boardId);
-  if (state.out) { lookHintDue = null; endLookHint(); }
+  if (state.out && !inPool() && !completed.includes(boardId)) { completed.push(boardId); if (campaignDone()) finale = true; }
+  // The next arrow comes with the solving move, while the marble still falls and the light washes through.
+  if (state.out) { lookHintDue = null; endLookHint(); showNext = hasNext(); }
   clearHint(); save(); updateUI(); announceMove(move, r.trace); if (history.length === 3) lookHintDue = boardId;
   const phases = [lean && move[0] === 'tip' ? leanPhase(move[1], q0) : null, move[0] === 'tip' ? rollPhase(move[1], q0) : turnPhase(move, from, r)];
   phases.push(fallPhase(r.trace, state));
@@ -714,14 +715,16 @@ function go(id) {
   drawn = null;
   // A round ends once every pool board has been dealt; opening the board in hand again deals nothing new.
   if (POOL.some(b => b.id === id)) { const dealt = played.filter(x => x !== id).concat(id); played = dealt.length >= POOL.length ? [] : dealt; }
-  queue = []; anim = null; drag = null; gesture = null; lookHintDue = null; endLookHint(); clearHint(); clearSel(); endLayer(); boardId = id; history = []; resetLook(true); buildBoard(); syncAll(); save(); arrival();
+  finale = false; queue = []; anim = null; drag = null; gesture = null; lookHintDue = null; endLookHint(); clearHint(); clearSel(); endLayer(); boardId = id; history = []; resetLook(true); buildBoard(); syncAll(); save(); arrival();
   // The status line belongs to the board on screen: a new board replaces the last one's result.
   announce(boardName() + '. Par ' + board.par + '.');
   return true;
 }
 // After a solve there is always somewhere to go: the next board, one still unsolved, or, with the campaign finished,
 // a New Game+ board: one of the pool not dealt since the pool was last used up, never the board just played.
+// The solve that finishes the campaign, wherever it falls (finale), goes on to New Game+ too.
 function nextOf() {
+  if (finale && campaignDone()) return drawPool();
   const i = BOARDS.findIndex(b => b.id === boardId);
   return (i >= 0 && BOARDS[i + 1]) || BOARDS.find(b => b.id !== boardId && !completed.includes(b.id)) || (campaignDone() ? drawPool() : BOARDS[0]);
 }
@@ -1149,7 +1152,7 @@ function showHint(move) {
 function updateHintButton() { $('#hint-btn').setAttribute('aria-pressed', String(!!hint || !!hintWorker)); $('#hint-btn').disabled = !!state && state.out; $('#undo-btn').classList.toggle('hinted', hint === 'undo'); }
 
 // ---------- Chrome ----------
-const icons = { restart: 'M5 8V3m0 5h5M5 8a8 8 0 1 1-1 9', undo: 'M9 5 4 10l5 5M4 10h10a6 6 0 0 1 0 12', hint: 'M9 18h6m-5 3h4M8 14a6 6 0 1 1 8 0l-1 2H9z', settings: 'M4 6h16M4 12h16M4 18h16M9 3v6m7 0v6m-8 0v6', help: 'M9 8a3 3 0 1 1 5 2c-2 1-2 2-2 4m0 4v.1', next: 'M5 12h14m-6-6 6 6-6 6' };
+const icons = { restart: 'M5 8V3m0 5h5M5 8a8 8 0 1 1-1 9', undo: 'M9 5 4 10l5 5M4 10h10a6 6 0 0 1 0 12', hint: 'M9 18h6m-5 3h4M8 14a6 6 0 1 1 8 0l-1 2H9z', settings: 'M4 6h16M4 12h16M4 18h16M9 3v6m7 0v6m-8 0v6', help: 'M9 8a3 3 0 1 1 5 2c-2 1-2 2-2 4m0 4v.1', next: 'M5 12h14M13 6l6 6-6 6' };
 for (const [id, path] of Object.entries(icons)) { const b = $('#' + id + '-btn'); if (b) b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + path + '"/></svg>'; }
 const sizeWords = { 2: '2 by 2 by 2', 3: '3 by 3 by 3' };
 function updateUI() {
@@ -1159,8 +1162,10 @@ function updateUI() {
   $('#readout').textContent = (i < 0 ? '∞' : (i + 1) + ' / ' + BOARDS.length) + ' · ' + history.length + ' / ' + board.par;
   $('#undo-btn').disabled = !history.length && !busy();
   $('#next-btn').hidden = !showNext;
-  // With the campaign finished, the arrow from a campaign board starts New Game+.
+  // With the campaign finished, the arrow from a campaign board starts New Game+, under one line that says so.
   if (showNext) $('#next-btn').setAttribute('aria-label', i >= 0 && POOL.includes(nextOf()) ? 'Start New Game+' : 'Next board');
+  const end = showNext && state.out && i >= 0 && campaignDone() && (finale || i === BOARDS.length - 1);
+  $('#end-line').textContent = end ? 'All ' + BOARDS.length + ' boards solved.' : ''; $('#end-line').hidden = !end;
   canvas.setAttribute('aria-label', 'Glass cube ' + sizeWords[n] + ', ' + boardName().toLowerCase() + ', ' + movesWord(history.length) + ', par ' + board.par + (state.out ? ', solved' : ''));
   const sel = $('#board-select'); sel.value = i < 0 ? '' : boardId;
   for (const o of sel.options) o.textContent = (BOARDS.findIndex(b => b.id === o.value) + 1) + ' / ' + BOARDS.length + (completed.includes(o.value) ? ' · solved' : '');
@@ -1276,4 +1281,13 @@ window.__cubeMaze = {
     lean: { deg: leanVec.length() * 180 / Math.PI, x: leanVec.x, z: leanVec.z, side: leanVec.length() > 1e-3 ? worldWord(nearestLevelWorld(leanVec)) : null },
     ring: { count: cueCount, active: !!cueState, still: !!(cueState && cueState.still), radius: cueMat.uniforms.uRad.value / pxWorld, alpha: cueState ? cueMat.uniforms.uA.value : 0 } }; }
 };
-window.__minimalize = { bounds() { placeCube(); return bounds(); } };
+// The cube as it stands at rest: a roll, a slice turn's lift and a lean are left out, so the frame places the next
+// arrow, which comes with the solving move, where it will stand once the cube has settled. (A cube's corners and feet
+// stand in the same place whichever face is up.)
+window.__minimalize = { bounds() {
+  const was = { roll, layer, turnAngle, lean: leanVec.clone() };
+  roll = null; layer = null; turnAngle = 0; leanVec.set(0, 0, 0); placeCube();
+  const b = bounds();
+  ({ roll, layer, turnAngle } = was); leanVec.copy(was.lean); placeCube();
+  return b;
+} };

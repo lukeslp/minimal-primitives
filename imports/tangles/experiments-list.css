@@ -11,15 +11,3 @@
 .experiments .progress{font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums;text-align:right}
 .experiments-title{font:500 16px/1.3 var(--mono);margin:20px 0 12px}
 .experiments-help .experiments-title{margin-top:20px}.experiments-help ul{margin:0;padding-left:20px}.experiments-help li{margin:2px 0}.experiments-help a{color:inherit;display:inline-block;min-height:32px;padding:4px 0;text-underline-offset:3px}
-/* New Game+, offered on Loop's last board: a round ink disc like the
-   experiments' Next, raised clear of Loop's own controls at the centre. */
-#plus-btn{position:fixed;left:50%;bottom:max(124px,calc(env(safe-area-inset-bottom) + 124px));transform:translateX(-50%);z-index:50;width:64px;height:64px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;box-shadow:0 0 0 6px var(--bg);text-decoration:none}
-#plus-btn[hidden]{display:none}
-#plus-btn svg{width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
-#plus-btn::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--ink);opacity:0;pointer-events:none}
-#plus-btn:not([hidden])::after{animation:plus-call 1.2s ease-out 1.5s 1}
-@keyframes plus-call{0%{transform:scale(.92);opacity:.75}100%{transform:scale(1.6);opacity:0}}
-#plus-btn:focus-visible{outline:3px solid var(--ink);outline-offset:8px}
-@media(orientation:landscape) and (max-height:500px){#plus-btn{bottom:max(12px,env(safe-area-inset-bottom));left:calc(50% + 64px)}}
-@media(prefers-reduced-motion:reduce){#plus-btn::after{animation:none!important}}
-:root[data-motion=reduce] #plus-btn::after{animation:none!important}

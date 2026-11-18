@@ -6,8 +6,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<script src="./pwa.js?v=ccbd96c0" defer></script><link rel="stylesheet" href="./tents.css?v=216391a7">
-<link rel="stylesheet" href="./controls.css?v=97b7114c">
+<script src="./pwa.js?v=ccbd96c0" defer></script><link rel="stylesheet" href="./tents.css?v=7a0e465f">
+<link rel="stylesheet" href="./controls.css?v=e9a44e73">
 <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
 <meta name="description" content="Give every tree its own tent, keep the tents apart, and match the numbers on each row and column.">
 <meta property="og:title" content="Tents">
@@ -26,7 +26,7 @@
 <meta name="twitter:image:alt" content="A grid of trees with tents pitched beside some of them, dots on the squares ruled out, and a number at the end of each row and column.">
 </head>
 <body><header><button id="restart-btn" class="ib" aria-label="Restart puzzle"></button><h1 class="sr-only">Tents</h1><div id="readout" class="readout"></div></header>
-<main id="board-shell" aria-label="Tents puzzle"><div class="board-stage"><div id="board" class="board" role="grid" aria-label="Tents board"></div><div id="completion" class="completion" hidden><p id="ending" class="ending" aria-hidden="true" hidden></p><button id="next-btn" class="ib" aria-label="Next puzzle"></button></div></div></main>
+<main id="board-shell" aria-label="Tents puzzle"><div class="board-stage"><div id="board" class="board" role="grid" aria-label="Tents board"></div><div id="completion" class="completion" hidden><p id="ending" class="ending control-end-line" aria-hidden="true" hidden></p><button id="next-btn" class="ib" type="button" aria-label="Next puzzle" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div></div></main>
 <p id="feedback" role="status" aria-live="polite"></p>
 <nav class="toolbar" aria-label="Game controls"><div><button id="undo-btn" class="ib" aria-label="Undo"></button><button id="hint-btn" class="ib" aria-label="Hint"></button></div><div><button id="settings-btn" class="ib" aria-label="Settings"></button><button id="help-btn" class="ib" aria-label="Help"></button></div></nav>
 <dialog id="settings" class="sheet" aria-labelledby="settings-title"><div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
@@ -41,6 +41,6 @@
 <div class="controls"><p>Tap: tent, then a dot, then blank. A dot is your note that a cell stays empty. Drag across cells to dot them; start the drag on a dot to clear dots.</p><p>A short line ties each tent to a tree beside it. A number turns gray when its line is exact and is boxed when it has too many. Tents that break a rule are hatched.</p></div>
 <details class="help-more"><summary>More controls</summary><p>Hint shows the next cell that can be worked out and says why. Tap it again to apply.</p><p>Arrows move. Enter or Space cycles a cell. <kbd>Z</kbd> or Backspace undoes. <kbd>H</kbd> hints. Restart clears the board; Undo brings it back.</p></details>
 </div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
-<script src="./engine.js?v=981836ec"></script><script src="./levels.js?v=e1c70d5f"></script><script src="./tents.js?v=fd3e0387"></script>
-<script defer src="./controls.js?v=7847229b"></script>
+<script src="./engine.js?v=981836ec"></script><script src="./levels.js?v=e1c70d5f"></script><script src="./tents.js?v=49ef54ad"></script>
+<script defer src="./controls.js?v=f8d12ba8"></script>
 </body></html>
