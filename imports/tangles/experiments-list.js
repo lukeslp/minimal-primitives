@@ -26,11 +26,11 @@
   const section = document.createElement('section'), title = document.createElement('h3'), list = document.createElement('ol');
   section.setAttribute('aria-labelledby', 'experiments-title'); title.id = 'experiments-title'; title.className = 'experiments-title'; title.textContent = 'Experiments';
   list.id = 'experiments'; list.className = 'experiments'; section.append(title, list);
-  const boards = $('#catalog-title'); if (boards) boards.closest('section').after(section); else $('#settings .sheet-body').append(section);
+  const boards = $('#more-title') || $('#catalog-title'); if (boards) boards.closest('section').after(section); else $('#settings .sheet-body').append(section);
   function refresh() {
     const done = finished(), open = beaten(); list.replaceChildren();
     const all = SETS.reduce((a, s) => a + s.boards.length, 0), plusDone = SETS.reduce((a, s) => a + s.boards.filter(id => done.has(id)).length, 0);
-    item(list, { label: 'New Game+', state: open ? `${plusDone} / ${all}` : 'After board 50', href: './experiments.html?plus', shape: 'M12 5v14M5 12h14', disabled: !open });
+    item(list, { label: 'New Game+', state: open ? `${plusDone} / ${all}` : `After board ${typeof LoopCourse !== 'undefined' ? LoopCourse.length : 50}`, href: './experiments.html?plus', shape: 'M12 5v14M5 12h14', disabled: !open });
     for (const s of SETS) item(list, { label: s.name, state: `${s.boards.filter(id => done.has(id)).length} / ${s.boards.length}`, href: `./experiments.html?set=${s.id}`, shape: s.swatch.path, box: s.swatch.box });
   }
   refresh();
@@ -58,7 +58,7 @@
   const board = $('#board');
   function watch() {
     const show = board?.dataset.solved === 'true' && window.__loop?.board?.id === LAST;
-    // Loop saves board 50 as finished, which is what opens New Game+; this
+    // Loop saves its last board as finished, which is what opens New Game+; this
     // page writes nothing of its own.
     if (show === plus.hidden) plus.hidden = !show;
   }

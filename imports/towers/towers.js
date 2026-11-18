@@ -263,7 +263,46 @@
     const f = S.focus, ring = svg.querySelector('.focus-ring');
     ring.setAttribute('d', poly(quad(G, Math.floor(f / n), f % n, S.cells[f], .9)));
     ring.setAttribute('class', 'focus-ring' + (puzzle.given[f] ? ' on-given' : ''));
+    root.classList.toggle('picking', pickerOpen());
   }
+
+  /* Heights in one tap. On a touch screen a tap still raises a square by one, and it also brings up a
+     strip of heights for that square under the board: the empty square, then 1 … N. A press held on a
+     square (any pointer) brings the strip up without raising. One tap on the strip sets the height, so
+     a square never needs more than two taps and an overshoot never costs a lap. The keyboard has its
+     digits; the strip stays away while the Access pad is on, which brings its own keys round the board. */
+  let picking = false;
+  const pickerOpen = () => picking && !S.solved && !puzzle.given[S.focus] && !document.body.dataset.access;
+  const where = i => 'row ' + (Math.floor(i / puzzle.n) + 1) + ', column ' + (i % puzzle.n + 1);
+  const CLEAR = 'M5 12 12 7.5 19 12 12 16.5Z';
+  function drawPicker() {
+    const strip = $('#picker'), open = pickerOpen();
+    if (!open) { if (!strip.hidden) { const had = strip.contains(document.activeElement); strip.hidden = true; if (had) focusCell(S.focus, true); } return; }
+    const n = puzzle.n, f = S.focus, v = S.cells[f];
+    if (strip.children.length !== n + 1) {
+      strip.replaceChildren(...Array.from({ length: n + 1 }, (_, h) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.dataset.v = h;
+        b.setAttribute('aria-label', h ? 'Height ' + h : 'Clear');
+        b.innerHTML = h ? String(h) : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + CLEAR + '"/></svg>';
+        return b;
+      }));
+    }
+    strip.setAttribute('aria-label', 'Heights for ' + where(f));
+    for (const b of strip.children) b.setAttribute('aria-pressed', String(Number(b.dataset.v) === v));
+    strip.hidden = false;
+    placePicker();
+  }
+  // Under the board when there is room, over it when there is room there, else at the foot of the frame.
+  function placePicker() {
+    const strip = $('#picker'), svg = $('#board svg');
+    if (strip.hidden || !svg) return;
+    const shell = $('#board-shell').getBoundingClientRect(), box = svg.getBoundingClientRect(), h = strip.offsetHeight, gap = 8;
+    let top = box.bottom - shell.top + gap;
+    if (top + h > shell.height) top = box.top - shell.top - gap - h >= 0 ? box.top - shell.top - gap - h : shell.height - h;
+    strip.style.top = Math.round(top) + 'px';
+  }
+  function closePicker() { if (!picking) return; picking = false; draw(); drawPicker(); }
 
   // Where the opening boards lead back to: the board the player was on, a New Game+ board included (as on a reload).
   const resumeAt = () => gen && gen.playing ? 'generated' : store.at;
@@ -282,7 +321,7 @@
   }
   const ENDING = 'All ' + L.length + ' boards solved.';
   function render() {
-    draw();
+    draw(); drawPicker();
     const n = L.findIndex(p => p.id === at), fresh = S.solved && nextTarget() === 'new', ended = S.solved && n >= 0 && allDone();
     $('#undo-btn').disabled = !S.undo.length;
     $('#readout').textContent = at === 'generated' ? puzzle.n + ' × ' + puzzle.n + ' · ' + progress.completed.length + ' ✓' : n < 0 ? '' : (n + 1) + ' / ' + L.length + ' · ' + progress.completed.length + ' ✓';
@@ -373,7 +412,7 @@
     if (openingAt(id) < 0) replaying = false;
     S.cells = cellsOf(id).slice();
     S.undo = []; S.focus = 0; S.hint = null; S.solved = false; S.keyboard = false;
-    stopTour(); view = null;
+    stopTour(); view = null; picking = false;
     say(''); checkSolved(false); build(); render(); save();
     if (location.search) history.replaceState(null, '', location.pathname);
   }
@@ -408,17 +447,62 @@
   // ---- Input. The nearest tower under the pointer takes the tap: SVG hit-tests front to back.
   // The tap that solves a board is not also a tap on the solved board, so the light's first visit
   // (startTour) is not stopped as soon as it is started.
-  let solvingTap = null;
+  let solvingTap = null, press = null, held = false, lastPointer = 'mouse';
   $('#board').addEventListener('click', e => {
     const node = e.target.closest('.cell');
+    if (held) { held = false; return; }
     if (!node || swiped) return;
     S.keyboard = false;
     const i = Number(node.dataset.i);
     S.focus = i;
-    if (S.solved || puzzle.given[i]) { draw(); return; }
+    if (S.solved || puzzle.given[i]) { picking = false; render(); return; }
+    if (lastPointer === 'touch' || lastPointer === 'pen') picking = true;
     raise(i);
     if (S.solved) solvingTap = e;
   });
+  // A press held still on a square for a moment brings up its heights, and the click that follows is not a tap.
+  $('#board').addEventListener('pointerdown', e => {
+    lastPointer = e.pointerType || 'mouse'; held = false; clearTimeout(press && press.timer); press = null;
+    const node = e.target.closest('.cell');
+    if (!node || e.button !== 0 || !e.isPrimary || S.solved) return;
+    const i = Number(node.dataset.i);
+    if (puzzle.given[i]) return;
+    press = { id: e.pointerId, x: e.clientX, y: e.clientY, timer: setTimeout(() => {
+      press = null;
+      if (S.solved || (swipe && swipe.moved)) return;
+      held = true; S.keyboard = false; S.focus = i; picking = true; S.hint = null; render();
+      announce('Heights for ' + where(i) + '.');
+    }, 450) };
+  });
+  const letGo = e => {
+    if (!press || e.pointerId !== press.id) return;
+    if (e.type === 'pointermove' && Math.hypot(e.clientX - press.x, e.clientY - press.y) <= 8) return;
+    clearTimeout(press.timer); press = null;
+  };
+  for (const type of ['pointermove', 'pointerup', 'pointercancel']) $('#board-shell').addEventListener(type, letGo);
+  new MutationObserver(() => { draw(); drawPicker(); }).observe(document.body, { attributes: true, attributeFilter: ['data-access'] });
+  $('#board').addEventListener('contextmenu', e => { if (e.target.closest('.cell')) e.preventDefault(); });
+  $('#picker').addEventListener('pointerdown', e => e.stopPropagation());
+  $('#picker').addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b || !pickerOpen()) return;
+    S.keyboard = e.detail === 0;
+    const i = S.focus, v = Number(b.dataset.v);
+    setCell(i, v);
+    if (!S.solved) announce(where(i)[0].toUpperCase() + where(i).slice(1) + ': ' + (v ? 'height ' + v : 'empty') + '.');
+    // A height chosen by key keeps the key on the strip; the solve moves it to Next (checkSolved).
+    if (S.keyboard && !S.solved) { const again = $('#picker').querySelector('button[data-v="' + v + '"]'); if (again) again.focus({ preventScroll: true }); }
+  });
+  $('#picker').addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); const i = S.focus; closePicker(); focusCell(i, true); return; }
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const all = [...$('#picker').children], k = all.indexOf(document.activeElement);
+    if (k < 0) return;
+    e.preventDefault(); e.stopPropagation();
+    all[Math.max(0, Math.min(all.length - 1, k + (e.key === 'ArrowRight' ? 1 : -1)))].focus({ preventScroll: true });
+  });
+  // A press on the frame away from the squares and the strip puts the strip away.
+  $('#board-shell').addEventListener('pointerdown', e => { if (picking && !e.target.closest('.cell')) closePicker(); });
   $('#board').addEventListener('keydown', e => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     // Arrows move as the board now faces: the same key goes the same way on the page after any turn.
@@ -440,6 +524,7 @@
         else return;
     }
     e.preventDefault();
+    if (picking) { picking = false; render(); }
     // The edge is named as the board's own: its left stays its left however it is turned.
     if (to === S.focus && e.key.startsWith('Arrow')) { const i = S.focus, rr = Math.floor(i / n), cc = i % n, met = [cc === 0 && 'Left', rr === 0 && 'Top', cc === n - 1 && 'Right', rr === n - 1 && 'Bottom'], k = { ArrowLeft: 0, ArrowUp: 1, ArrowRight: 2, ArrowDown: 3 }[e.key]; announce((met[(k + q) % 4] || met[(k + 4 - q) % 4] || met.find(Boolean)) + ' edge.'); }
     else if (to >= 0) announce('');
@@ -536,7 +621,7 @@
     if (replaying && openingAt(at) >= 0) { switchBoard(resumeAt()); return; }
     replaying = true; switchBoard(OPENING[0].id);
   });
-  window.addEventListener('resize', draw);
+  window.addEventListener('resize', () => { draw(); placePicker(); });
 
   applyPrefs(); checkSolved(false); build(); render(); save();
   // For the tests: the state, and where on the page a cell's top face is.
@@ -544,6 +629,7 @@
     S, keys: K,
     get puzzle() { return puzzle; }, get at() { return at; }, get progress() { return progress; }, get generated() { return gen; },
     get turn() { return { angle: turn, quarters: quarters(), resting: atRest() }; },
+    get picking() { return pickerOpen(); },
     point(i) {
       const box = $('#board svg').getBoundingClientRect(), n = puzzle.n, p = G.P(Math.floor(i / n) + .5, i % n + .5, S.cells[i]);
       return { x: box.left + p[0], y: box.top + p[1] };

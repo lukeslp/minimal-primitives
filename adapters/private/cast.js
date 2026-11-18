@@ -3,7 +3,7 @@
 const __minimal=MinimalBridge.install({
   rulesVersion:'__RULES__',scoringPolicy:'__POLICY__',
   describe(){return{id:isFree()?'free-'+puzzle.seed:puzzle.id,mode:isFree()?'free':'campaign',layout:{n:puzzle.n,maxH:puzzle.maxH,left:puzzle.left,right:puzzle.right,plan:puzzle.plan,cubes:puzzle.cubes},solved:solvedNow(),repeat:finished.has(puzzle.id),restored:hits>0,value:hits,progress:{completed:finished.size}};},
-  snapshot(){const slot=x=>x&&{board:x.board.id??null,seed:x.board.seed??null,heights:copy(x.heights),hits:x.hits,history:x.history.map(s=>({heights:copy(s.heights),hits:s.hits}))};return{mode,board:isFree()?null:puzzle.id,seed:isFree()?puzzle.seed:null,parked:slot(parked),recent:recent.slice(),heights:copy(heights),hits,history:history.map(s=>({heights:copy(s.heights),hits:s.hits})),finished:[...finished],reached,order:2,motion:prefs.motion,hint,focus:focus.slice(),keyboard,view:viewRest,text:$('#announcement').textContent,ui:MinimalBridge.ui()};},
+  snapshot(){const slot=x=>x&&{board:x.board.id??null,seed:x.board.seed??null,heights:copy(x.heights),hits:x.hits,history:x.history.map(s=>({heights:copy(s.heights),hits:s.hits}))};return{mode,board:isFree()?null:puzzle.id,seed:isFree()?puzzle.seed:null,parked:slot(parked),recent:recent.slice(),heights:copy(heights),hits,history:history.map(s=>({heights:copy(s.heights),hits:s.hits})),finished:[...finished],reached,order:3,motion:prefs.motion,hint,focus:focus.slice(),keyboard,view:viewRest,text:$('#announcement').textContent,ui:MinimalBridge.ui()};},
   restore(d){
     // A free board is rebuilt from its seed; the campaign board by id. The other one waits in `parked`.
     // Campaign boards are looked up among all fifty: a save may name one the thirty-board campaign left out.
@@ -21,17 +21,21 @@ const __minimal=MinimalBridge.install({
     mode=free?'free':'campaign';parked=pb?{board:pb,heights:copy(d.parked.heights),hits:d.parked.hits,history:d.parked.history.map(s=>({heights:copy(s.heights),hits:s.hits}))}:null;
     if(Array.isArray(d.recent))recent=d.recent.filter(x=>Number.isInteger(x));
     puzzle=b;heights=copy(d.heights);hits=d.hits;history=d.history.map(s=>({heights:copy(s.heights),hits:s.hits}));
-    // The game's own reading (since game-riffs d3d9b9e the campaign is thirty of the fifty): finished marks on any of
-    // the fifty stay; a campaign board the thirty left out gives way to the first campaign board not finished (or the
-    // last, where free play opens, once all thirty are); a save without order 2 counts reached in the fifty-board order
-    // and keeps every campaign board it had open.
+    // The game's own reading (since game-riffs 9ad63d8 the campaign is twenty-five of the fifty): finished marks on any
+    // of the fifty stay; a campaign board left out gives way to the first campaign board not finished (or the last,
+    // where free play opens, once all twenty-five are), except that one of the five boards the thirty of 0.5.9 had and
+    // the twenty-five do not goes on from the open campaign board nearest it among the thirty. Reached counts in the
+    // twenty-five with order 3, in the thirty with order 2 and in the fifty-board order with neither, and every
+    // campaign board a save had open stays open.
     finished=new Set(d.finished.filter(id=>ALL.some(b=>b.id===id)));prefs.motion=d.motion;
     const fresh=board=>({board,heights:E.start(board),hits:0,history:[]}),standIn=()=>boards.find(b=>!finished.has(b.id))||boards.at(-1);
+    const leftBoard=!free&&!boards.includes(puzzle)&&ORDER_2.includes(puzzle.id)&&!boards.every(b=>finished.has(b.id))?puzzle.id:null;
     let left=false;
     if(!free&&!boards.includes(puzzle)){({board:puzzle,heights,hits,history}=fresh(standIn()));left=true;}
     if(free&&parked&&!boards.includes(parked.board))parked=fresh(standIn());
-    const was=Math.max(0,Math.min(ALL.length-1,d.reached)),opened=d.order===2?Math.min(boards.length-1,was):Math.max(...ALL.slice(0,was+1).map(b=>boards.indexOf(b)));
+    const was=Math.max(0,Math.min(ALL.length-1,d.reached)),opened=d.order===3?Math.min(boards.length-1,was):Math.max(-1,...(d.order===2?ORDER_2.map(id=>ALL.find(b=>b.id===id)):ALL).slice(0,was+1).map(b=>boards.indexOf(b)));
     reached=Math.min(boards.length-1,Math.max(0,opened,openedBy(finished),boards.indexOf(free?parked?.board:puzzle)));
+    if(leftBoard){const at=ORDER_2.indexOf(leftBoard),far=b=>Math.abs(ORDER_2.indexOf(b.id)-at);({board:puzzle,heights,hits,history}=fresh(boards.slice(0,reached+1).reduce((best,b)=>far(b)<far(best)||(far(b)===far(best)&&ORDER_2.indexOf(b.id)>ORDER_2.indexOf(best.id))?b:best)));}
     hint=left?null:d.hint;focus=left?[0,0]:d.focus.slice();hover=null;
     // The finish is one value since game-riffs e558e7f (the room takes its color): 1 on a finished board. cast.json
     // carries its declaration as a hook that changes nothing, so the build stops if the game renames it.

@@ -1,10 +1,12 @@
 /* Cast · 3D: a lit plaster room, its three lamps, input and saves. By Luke Steuber. */
 import * as THREE from './vendor/three.module.min.js';
 
-// The campaign (campaign.js) plays thirty of the fifty boards in boards.js, in its own order. Saves are checked against
+// The campaign (campaign.js) plays twenty-five of the fifty boards in boards.js, in its own order. Saves are checked against
 // all fifty, so a finished mark on a board left out stays.
-const E = globalThis.CastEngine, ALL = globalThis.CastBoards, boards = globalThis.CastCampaign.map(id => ALL.find(b => b.id === id)), Free = globalThis.CastFree, $ = s => document.querySelector(s);
+const E = globalThis.CastEngine, R = globalThis.CastReason, ALL = globalThis.CastBoards, boards = globalThis.CastCampaign.map(id => ALL.find(b => b.id === id)), Free = globalThis.CastFree, $ = s => document.querySelector(s);
 const KEY = 'cast-3d.v1', NS = 'http://www.w3.org/2000/svg';
+// From November 16 to 17, 2026 the campaign was these thirty, and reached (order 2) counted in their order.
+const ORDER_2 = ['c01', 'c02', 'c04', 'c03', 'c05', 'c06', 'c07', 'c08', 'c09', 'c10', 'c13', 'c12', 'c11', 'c16', 'c17', 'c18', 'c42', 'c19', 'c38', 'c22', 'c21', 'c20', 'c35', 'c25', 'c36', 'c29', 'c43', 'c48', 'c41', 'c50'];
 const board = $('#board'), canvas = $('#scene'), marks = $('#marks'), reducedQuery = matchMedia('(prefers-reduced-motion:reduce)'), forcedColors = matchMedia('(forced-colors:active)');
 // Room proportions in cube units: wall thickness, the cube's bevel and the carried cube's lift. The room
 // stands flush on the page, which is the ground plane. The camera is truly isometric. Shadow maps are
@@ -77,7 +79,7 @@ try {
     // boards and the motion setting load as saved, and every other board keeps its cubes.
     if (b && v.revision === undefined && REDRAWN.has(b.id) && validHits(v.hits) && Array.isArray(v.history)) { v.heights = E.start(b); v.hits = 0; v.history = []; }
     if (!v || !b || !validHeights(v.heights, b) || !validHits(v.hits) || !Array.isArray(v.finished) || !v.finished.every(id => ALL.some(b => b.id === id)) || !['system', 'reduce'].includes(v.motion) || !Array.isArray(v.history) || !v.history.every(s => validHeights(s.heights, b) && validHits(s.hits))) throw new Error('Invalid save');
-    if (v.campaign !== undefined && (v.campaign !== 2 || !Number.isInteger(v.reached) || v.reached < 0 || v.reached >= (v.order === 2 ? boards : ALL).length)) throw new Error('Invalid save');
+    if (v.campaign !== undefined && (v.campaign !== 2 || !Number.isInteger(v.reached) || v.reached < 0 || v.reached >= (v.order === 3 ? boards : v.order === 2 ? ORDER_2 : ALL).length)) throw new Error('Invalid save');
     // Free play keeps its own board beside the campaign's: its seed, cubes, hits and undo. The campaign's
     // fields stay as they were, so a save from free play still opens in a page from before it. A free slot
     // that cannot be read is dropped and the campaign loads as saved.
@@ -94,7 +96,9 @@ try {
 let puzzle = ALL.find(b => b.id === saved?.board) || boards[0], heights = saved ? copy(saved.heights) : E.start(puzzle), hits = saved?.hits || 0;
 let history = saved?.history || [], finished = new Set(saved?.finished || []), prefs = {motion: saved?.motion || 'system'};
 // A player last on a board left out of the campaign goes on from the first campaign board not finished, or, with all
-// thirty finished, from the last, where free play opens.
+// twenty-five finished, from the last, where free play opens. One of the five boards that left on November 17, 2026
+// goes on from the open campaign board nearest it among the thirty (placed once `reached` is known, below).
+const leftBoard = !boards.includes(puzzle) && ORDER_2.includes(puzzle.id) && !boards.every(b => finished.has(b.id)) ? puzzle.id : null;
 if (!boards.includes(puzzle)) { puzzle = boards.find(b => !finished.has(b.id)) || boards.at(-1); heights = E.start(puzzle); hits = 0; history = []; }
 // Free play: after the last board, boards drawn in the page by the campaign's rules. `mode` is the board in
 // hand; the other one waits in `parked` (the campaign's board while playing free, the free board otherwise).
@@ -106,10 +110,12 @@ const complete = () => boards.every(b => finished.has(b.id));
 // next for good. A save from before the campaign keeps boards 1–12 open, and finishing any board opens
 // its successor, so a save that finished board 12 opens board 13.
 const openedBy = done => Math.max(-1, ...[...done].map(id => boards.findIndex(b => b.id === id))) + 1;
-// Before November 16, 2026 the campaign was all fifty, in boards.js's order, and reached counted in that order: a save
-// without order 2 keeps every campaign board it had open.
-const fromSave = saved ? (saved.campaign === 2 ? saved.reached : 11) : 0, opened = saved?.order === 2 ? fromSave : Math.max(...ALL.slice(0, fromSave + 1).map(b => boards.indexOf(b)));
+// Before November 16, 2026 the campaign was all fifty, in boards.js's order, and reached counted in that order; until
+// November 17 it was the thirty of ORDER_2 (order 2); now order 3 counts in campaign.js. Every campaign board a save had
+// open stays open.
+const fromSave = saved ? (saved.campaign === 2 ? saved.reached : 11) : 0, opened = saved?.order === 3 ? fromSave : Math.max(-1, ...(saved?.order === 2 ? ORDER_2.map(id => ALL.find(b => b.id === id)) : ALL).slice(0, fromSave + 1).map(b => boards.indexOf(b)));
 let reached = Math.min(boards.length - 1, Math.max(opened, openedBy(finished), saved ? boards.indexOf(isFree() ? parked.board : puzzle) : 0));
+if (leftBoard && !isFree()) { const at = ORDER_2.indexOf(leftBoard), far = b => Math.abs(ORDER_2.indexOf(b.id) - at); puzzle = boards.slice(0, reached + 1).reduce((best, b) => far(b) < far(best) || (far(b) === far(best) && ORDER_2.indexOf(b.id) > ORDER_2.indexOf(best.id)) ? b : best); heights = E.start(puzzle); }
 let hint = null, focus = [0, 0], keyboard = false, hover = null, gesture = null, carry = null, wheel = null;
 let busy = false, queue = [], epoch = 0;
 // `tint` is how far the finish's color has come in, 0 in play and 1 on a finished board.
@@ -123,7 +129,7 @@ function announce(message) { $('#announcement').textContent = message; }
 function save() {
   if (preserveSave) return;
   const here = {board: puzzle, heights, hits, history}, camp = isFree() ? parked : here, free = isFree() ? here : parked;
-  const record = {board: camp.board.id, heights: camp.heights, hits: camp.hits, history: camp.history, finished: [...finished], ...prefs, campaign: 2, order: 2, reached, revision: REVISION};
+  const record = {board: camp.board.id, heights: camp.heights, hits: camp.hits, history: camp.history, finished: [...finished], ...prefs, campaign: 2, order: 3, reached, revision: REVISION};
   if (free) record.free = {seed: free.board.seed, heights: free.heights, hits: free.hits, history: free.history};
   if (isFree()) record.play = 'free';
   if (recent.length) record.recent = recent;
@@ -800,6 +806,13 @@ function rings() {
     el('polygon', {points: pts(topSquare(hint.r, hint.c, hint.to, .1)), class: 'hint-ghost'});
     const z0 = heights[hint.r][hint.c];
     if (hint.to > z0) for (const [r, c] of [[hint.r + .9, hint.c + .1], [hint.r + .9, hint.c + .9], [hint.r + .1, hint.c + .9]]) { const a = toView(c, z0, r), b = toView(c, hint.to, r); el('line', {class: 'hint-ghost', x1: a.x, y1: a.y, x2: b.x, y2: b.y}); }
+    // What forces it, in the hint's own dashes: the wall shadow's whole strip, a line under the cubes left in the tray, or a floor square.
+    for (const m of hint.reason ? hint.reason.marks : []) {
+      if (m.side === 'left') { const t = puzzle.left[m.i]; el('polygon', {points: pts([[0, m.i + .06], [t, m.i + .06], [t, m.i + .94], [0, m.i + .94]].map(([y, z]) => toView(.004, y, z))), class: 'hint-reason', 'data-wall': 'left', 'data-index': m.i}); }
+      else if (m.side === 'right') { const t = puzzle.right[m.i]; el('polygon', {points: pts([[m.i + .06, 0], [m.i + .06, t], [m.i + .94, t], [m.i + .94, 0]].map(([x, y]) => toView(x, y, .004))), class: 'hint-reason', 'data-wall': 'right', 'data-index': m.i}); }
+      else if (m.tray) { const left = Math.max(1, E.compare(puzzle, heights).tray), half = trayView.step / 2; el('line', {class: 'hint-reason', 'data-tray': '', x1: trayView.slots[0].x - half, x2: trayView.slots[left - 1].x + half, y1: trayView.bottom + 6, y2: trayView.bottom + 6}); }
+      else el('polygon', {points: pts(topSquare(m.r, m.c, m.floor ? .004 : heights[m.r][m.c] + .004, .14)), class: 'hint-reason', 'data-square': `${m.r},${m.c}`});
+    }
   }
   if (hover && !gesture && !solved) el('polygon', {points: pts(topSquare(...hover, heights[hover[0]][hover[1]] + .004, .08)), class: 'hover-ring'});
   if (keyboard) el('polygon', {points: pts(topSquare(...focus, heights[focus[0]][focus[1]] + .006, .04)), class: 'focus-ring'});
@@ -849,7 +862,8 @@ function tween(duration, frame) {
   return new Promise(resolve => {
     const start = performance.now(); let id;
     const job = {finish: () => { if (!animations.has(job)) return; animations.delete(job); cancelAnimationFrame(id); frame(1); resolve(); }}, finish = job.finish;
-    const tick = now => { const t = Math.min(1, (now - start) / duration); frame(t); if (t === 1 || reduced()) finish(); else id = requestAnimationFrame(tick); };
+    // A frame's timestamp can come from before the tween began; t starts at 0, so the finish's color never steps back.
+    const tick = now => { const t = Math.min(1, Math.max(0, (now - start) / duration)); frame(t); if (t === 1 || reduced()) finish(); else id = requestAnimationFrame(tick); };
     animations.add(job); id = requestAnimationFrame(tick);
   });
 }
@@ -873,8 +887,8 @@ async function perform(action) {
   if (action.type === 'hint') {
     if (solvedNow()) return;
     if (hint) { const h = hint; hint = null; return perform({type: 'set', r: h.r, c: h.c, to: h.to}); }
-    hint = E.hint(puzzle, heights); sync();
-    if (hint) announce(`Hint: row ${hint.r + 1}, column ${hint.c + 1}, height ${hint.to}. Press Hint again to place it.`);
+    hint = R.hint(puzzle, heights); sync();
+    if (hint) announce(`Hint: row ${hint.r + 1}, column ${hint.c + 1}, height ${hint.to}. ${R.words(puzzle, hint)}${hint.reason ? ' ' : ''}Press Hint again to place it.`);
     return;
   }
   const {r, c} = action, validCell = (r, c) => Number.isInteger(r) && Number.isInteger(c) && r >= 0 && c >= 0 && r < puzzle.n && c < puzzle.n;
@@ -1276,7 +1290,7 @@ function hookup() {
     light: lightMasks, cellPoint, poolPoints, project(x, y, z) { return client(toView(x, y, z)); },
     get carry() { return carry ? {source: carry.source ? carry.source.slice() : null, slot: carry.slot ?? null, target: carry.target ? carry.target.slice() : null, preview: carryCasts} : null; },
     get view() { return {rest: RESTS[viewRest].name, at: viewAt, rests: RESTS.map(r => r.name), moving: !!viewJob}; }, setView(name) { const i = RESTS.findIndex(r => r.name === name); if (i >= 0) goView(i, true); return i >= 0; },
-    get frames() { return frames; }, get settle() { return settle ? settle.offset : 0; }, get timing() { return {...timing}; }, get reached() { return reached; }, get tint() { return tint; },
+    get hint() { return hint ? {r: hint.r, c: hint.c, to: hint.to, reason: hint.reason} : null; }, get announcement() { return $('#announcement').textContent; }, get frames() { return frames; }, get settle() { return settle ? settle.offset : 0; }, get timing() { return {...timing}; }, get reached() { return reached; }, get tint() { return tint; },
   };
   // The painted bounds are the frame every view fits in, centered as each view is, so they hold still as the view swings.
   window.__minimalize = {bounds() {

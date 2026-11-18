@@ -4,8 +4,16 @@
   // ?samples=1 opens a short preview of the campaign's conceits (linked tiles
   // and a turning ring) with a save of its own.
   const sampling = new URLSearchParams(location.search).get('samples') === '1' && typeof LoopSamples !== 'undefined';
-  // The campaign is the first twelve boards and the campaign's thirty-eight.
-  const E = LoopEngine, boards = sampling ? LoopSamples : LoopBoards.concat(typeof LoopCampaign !== 'undefined' ? LoopCampaign : []), $ = s => document.querySelector(s), NS = 'http://www.w3.org/2000/svg', KEY = sampling ? 'loop.samples.v2' : 'loop.v1';
+  // Fifty boards by id: the first twelve and the campaign's thirty-eight. The
+  // main course plays twenty-five of them in course.js's order; the other
+  // twenty-five follow as More boards, in id order, open once the course's last
+  // board closes. `boards` is the course then More boards, so every board is
+  // still known to the save.
+  const E = LoopEngine, ALL = LoopBoards.concat(typeof LoopCampaign !== 'undefined' ? LoopCampaign : []);
+  const course = typeof LoopCourse !== 'undefined' ? LoopCourse.map(id => ALL.find(b => b.id === id)).filter(Boolean) : ALL.slice(), extras = ALL.filter(b => !course.includes(b));
+  const boards = sampling ? LoopSamples : course.concat(extras), $ = s => document.querySelector(s), NS = 'http://www.w3.org/2000/svg', KEY = sampling ? 'loop.samples.v2' : 'loop.v1';
+  // Saves made with this course carry `order: 2`; `reached` then counts places in the course.
+  const ORDER = 2, FINALE = course[course.length - 1], OPENERS = 3;
   // How turning rings show themselves, chosen with ?ring= (light, bezel,
   // groove); an unknown value falls back to the first. The choice touches no save.
   const choose = (name, options) => { const v = new URLSearchParams(location.search).get(name); return options.includes(v) ? v : options[0]; };
@@ -48,25 +56,59 @@
     const raw = localStorage.getItem(KEY);
     if (raw !== null) {
       const s = JSON.parse(raw), b = boards.find(b => b.id === s?.board);
-      if (!b || !validPosition(s, b) || !Array.isArray(s.history) || !s.history.every(p => validPosition(p, b)) || !Array.isArray(s.finished) || !s.finished.every(id => boards.some(b => b.id === id)) || !['system', 'light', 'dark'].includes(s.settings?.theme) || !['system', 'reduce'].includes(s.settings?.motion) || !validLocks(s.locks) || s.reached !== undefined && !(Number.isInteger(s.reached) && s.reached >= 0 && s.reached < boards.length)) throw Error('Invalid save');
+      if (!b || !validPosition(s, b) || !Array.isArray(s.history) || !s.history.every(p => validPosition(p, b)) || !Array.isArray(s.finished) || !s.finished.every(id => boards.some(b => b.id === id)) || !['system', 'light', 'dark'].includes(s.settings?.theme) || !['system', 'reduce'].includes(s.settings?.motion) || !validLocks(s.locks) || s.order !== undefined && (sampling || s.order !== ORDER) || s.more !== undefined && !(!sampling && Array.isArray(s.more) && s.more.every(id => extras.some(b => b.id === id))) || s.reached !== undefined && !(Number.isInteger(s.reached) && s.reached >= 0 && s.reached < (sampling ? boards.length : s.order === ORDER ? course.length : ALL.length))) throw Error('Invalid save');
       saved = s;
     }
   } catch (_) { corrupt = true; }
-  let current = boards.find(b => b.id === saved?.board) || boards[0], rots = saved?.rots.slice() || current.start.slice(), hits = saved?.hits || 0, offsets = saved?.offsets?.slice() || startOffsets(current);
-  let history = saved?.history || [], hint = null, focus = middle(current), hover = null, keyboard = false, pressed = null;
+  const finished = new Set(saved?.finished || []), more = new Set(saved?.more || []);
+  // Progress. A course board is open up to `reached`, a place in the course: a
+  // fresh save opens the first, and solving a board opens the next for good.
+  // More boards open once the course's last board closes; one already finished,
+  // or open before the course was cut to twenty-five, stays open (`more`).
+  // The samples are all open.
+  const place = id => course.findIndex(b => b.id === id), oldPlace = id => ALL.findIndex(b => b.id === id);
+  let reached = 0, current = boards.find(b => b.id === saved?.board) || boards[0];
+  if (sampling) reached = boards.length - 1;
+  else if (saved && saved.order === ORDER) reached = Math.min(course.length - 1, Math.max(saved.reached ?? 0, place(current.id), ...[...finished].map(id => place(id) + (place(id) >= 0 ? 1 : 0))));
+  else if (saved) {
+    // A save from the fifty-board course counted places among all fifty, and
+    // one from before the campaign could choose any of the first twelve, as
+    // finishing the twelfth opened the thirteenth. Every board it had open
+    // stays open: the course up to the furthest of them, and the cut ones
+    // under More boards. Finished boards stay finished.
+    const was = Math.min(ALL.length - 1, Math.max(saved.reached ?? 11, oldPlace(current.id), ...[...finished].map(id => oldPlace(id) + 1)));
+    reached = Math.min(course.length - 1, Math.max(0, ...course.map((b, n) => oldPlace(b.id) <= was ? n : 0), ...course.map((b, n) => finished.has(b.id) ? n + 1 : 0)));
+    for (const b of extras) if (oldPlace(b.id) <= was && !finished.has(b.id)) more.add(b.id);
+    // A player on a cut board moves to the nearest open course board, by the
+    // old order, an unfinished one first; that board starts fresh.
+    if (!course.includes(current)) {
+      const from = oldPlace(current.id), open = course.slice(0, reached + 1), near = list => list.sort((a, b) => Math.abs(oldPlace(a.id) - from) - Math.abs(oldPlace(b.id) - from) || oldPlace(b.id) - oldPlace(a.id))[0];
+      current = near(open.filter(b => !finished.has(b.id))) || near(open);
+    }
+  }
+  const resume = saved && current.id === saved.board;
+  let rots = resume ? saved.rots.slice() : current.start.slice(), hits = resume ? saved.hits : 0, offsets = resume && saved.offsets ? saved.offsets.slice() : startOffsets(current);
+  let history = resume ? saved.history : [], hint = null, focus = middle(current), hover = null, keyboard = false, pressed = null;
   // A player can lock a tile they are sure of: a locked tile refuses every
   // turn until unlocked. Locks are not moves: no hits, no undo, kept per board
   // in the save and cleared by restart.
   const lockBook = {}; for (const [id, list] of Object.entries(saved?.locks || {})) if (list.length) lockBook[id] = list.slice();
   let locks = new Set(lockBook[current.id] || []);
   const special = b => !!(b.links || b.rings);
-  const settings = { theme: 'system', motion: 'system', ...saved?.settings }, finished = new Set(saved?.finished || []), pars = new Map(boards.map(b => [b.id, special(b) ? E.parAll(b) : E.par(b)]));
-  // Progress: every board up to `reached` is open. A fresh save opens the
-  // first; solving a board opens the next for good. Saves from before the
-  // campaign could already choose any of the first twelve boards, so they keep
-  // them, and one that finished the twelfth opens the thirteenth. The samples
-  // are all open.
-  let reached = sampling ? boards.length - 1 : Math.min(boards.length - 1, Math.max(saved ? saved.reached ?? 11 : 0, boards.indexOf(current), ...[...finished].map(id => boards.findIndex(b => b.id === id) + 1)));
+  const settings = { theme: 'system', motion: 'system', ...saved?.settings }, pars = new Map(boards.map(b => [b.id, special(b) ? E.parAll(b) : E.par(b)]));
+  // Palettes follow the fifty boards' id order, so a board keeps its colours wherever it is played.
+  const hue = b => (sampling ? boards : ALL).indexOf(b) % palettes.length;
+  const isExtra = b => !sampling && extras.includes(b);
+  const isOpen = b => sampling || (isExtra(b) ? finished.has(FINALE.id) || finished.has(b.id) || more.has(b.id) : place(b.id) >= 0 && place(b.id) <= reached);
+  // A solve opens the next course board.
+  const progress = () => { if (!sampling && place(current.id) >= 0) reached = Math.max(reached, Math.min(course.length - 1, place(current.id) + 1)); };
+  // Names: course boards by place, "Board 6 of 25"; More boards as +1 to +25.
+  const extraNo = b => extras.indexOf(b) + 1;
+  const label = b => sampling ? `Board ${boards.indexOf(b) + 1} of ${boards.length}` : isExtra(b) ? `More board ${extraNo(b)} of ${extras.length}` : `Board ${place(b.id) + 1} of ${course.length}`;
+  const counter = b => sampling ? `${boards.indexOf(b) + 1} / ${boards.length}` : isExtra(b) ? `+${extraNo(b)}` : `${place(b.id) + 1} / ${course.length}`;
+  // The first boards show each tile's edge until the first turn, then fade it.
+  let openerFade = 0, openerEdges = null;
+  const opener = () => !sampling && place(current.id) >= 0 && place(current.id) < OPENERS && (hits === 0 && !history.length || openerFade && performance.now() - openerFade < 650);
   // Tile borders are an option, off unless a save says 'on'.
   settings.borders = settings.borders === 'on' ? 'on' : 'off';
   // The board as it stands, with its rings turned; plain boards are themselves.
@@ -87,7 +129,7 @@
   function state() { const a = arranged(), out = { rots: rots.slice(), loose: E.loose(a, rots), solved: E.solved(a, rots), hits, par: pars.get(current.id) }; if (current.rings) out.offsets = offsets.slice(); return out; }
   function save() {
     if (corrupt) return;
-    try { localStorage.setItem(KEY, JSON.stringify({ board: current.id, rots, hits, history, finished: [...finished], settings, ...(current.rings ? { offsets } : {}), ...(Object.keys(lockBook).length ? { locks: lockBook } : {}), ...(sampling ? {} : { reached }) })); } catch (_) {}
+    try { localStorage.setItem(KEY, JSON.stringify({ board: current.id, rots, hits, history, finished: [...finished], settings, ...(current.rings ? { offsets } : {}), ...(Object.keys(lockBook).length ? { locks: lockBook } : {}), ...(sampling ? {} : { order: ORDER, reached, ...(more.size ? { more: [...more] } : {}) }) })); } catch (_) {}
   }
   function fit() {
     if (!frames.has(current.id)) {
@@ -123,10 +165,10 @@
       if (hint) for (const i of hint.ring !== undefined ? a.tiles.map((t, i) => i).filter(i => E.ring(a.tiles[i].q, a.tiles[i].r) === hint.ring) : hint.tiles || [hint.tile]) svg('polygon', { class: 'hint-ring', points: hex(a.tiles[i], .84), 'aria-hidden': true }, marks);
     }
     const s = state();
-    board.setAttribute('aria-label', `Board ${boards.indexOf(current) + 1} of ${boards.length}. ${s.solved ? 'Every line closed' : looseWord(s.loose.length)}. ${hitsWord()}; par ${s.par}.` + (s.solved ? '' : ` Focus tile ${focus + 1}, turn ${rots[focus] + 1} of 6.`));
+    board.setAttribute('aria-label', `${label(current)}. ${s.solved ? 'Every line closed' : looseWord(s.loose.length)}. ${hitsWord()}; par ${s.par}.` + (s.solved ? '' : ` Focus tile ${focus + 1}, turn ${rots[focus] + 1} of 6.`));
   }
   function updateChrome() {
-    $('#readout').textContent = `${boards.indexOf(current) + 1} / ${boards.length} · ${hits} / ${pars.get(current.id)}`;
+    $('#readout').textContent = `${counter(current)} · ${hits} / ${pars.get(current.id)}`;
     $('#undo-btn').disabled = !history.length && !busy;
     locked = E.solved(arranged(), rots); if (locked) hover = null;
     board.tabIndex = locked ? -1 : 0; board.dataset.locked = String(locked);
@@ -184,7 +226,7 @@
     const at = t * (palette.length - 1), i = Math.min(Math.floor(at), palette.length - 2), f = at - i;
     return `rgb(${palette[i].map((v, channel) => Math.round(v + (palette[i + 1][channel] - v) * f)).join(', ')})`;
   }
-  const palette = () => visibleStops(palettes[boards.indexOf(current) % palettes.length], dark());
+  const palette = () => visibleStops(palettes[hue(current)], dark());
   // Board loops are ordered from the centre outward; loops at one distance go by angle.
   const radial = (a, b) => (Math.round(Math.hypot(a.x, a.y) * 1e6) - Math.round(Math.hypot(b.x, b.y) * 1e6)) || Math.atan2(a.y, a.x) - Math.atan2(b.y, b.x);
   const driftTime = () => finish && !reduced() ? finish.clock : 0;
@@ -247,6 +289,14 @@
     const borders = svg('g', { class: 'borders', 'aria-hidden': true }, board), still = svg('g', {}, borders); rims = new Map();
     for (const k of current.rings || []) rims.set(k, svg('g', { 'data-ring': k, transform: 'rotate(0 0 0)' }, borders));
     for (const t of shape.tiles) svg('polygon', { class: 'tile-border', points: hex(t, 1) }, rims.get(E.ring(t.q, t.r)) || still);
+    // On the first boards each tile's edge shows until the first turn, so the
+    // piece a tap turns is plain before any press, then fades in 0.6 s.
+    if (opener() && !E.solved(shape, rots)) {
+      const edges = svg('g', { class: 'opener', 'aria-hidden': true }, board);
+      if (hits || history.length) { edges.dataset.fading = ''; edges.style.animationDelay = `-${Math.round(performance.now() - openerFade)}ms`; }
+      for (const t of shape.tiles) svg('polygon', { class: 'opener-edge', points: hex(t, 1) }, edges);
+      openerEdges = edges;
+    } else openerEdges = null;
     ink = svg('g', { class: 'paint' }, board); dots = svg('g', { class: 'ends' }, board); marks = svg('g', { class: 'marks' }, board);
     shape.tiles.forEach((t, i) => {
       const c = E.center(t.q, t.r), g = svg('g', { 'data-tile': i, transform: `rotate(0 ${xy(c)})`, ...((current.rings || []).includes(E.ring(t.q, t.r)) ? { 'data-ring': E.ring(t.q, t.r) } : {}) }, ink); groups.push(g);
@@ -270,6 +320,8 @@
       twins[j] = [g];
     }));
     fit();
+    // The edges stay within the board's frame, clear of the readout and toolbar.
+    if (openerEdges) { const f = frames.get(current.id), clip = svg('clipPath', { id: 'loop-opener-clip' }, defs); svg('rect', { x: f.x, y: f.y, width: f.width, height: f.height }, clip); openerEdges.setAttribute('clip-path', 'url(#loop-opener-clip)'); }
     const closed = showFinish && E.solved(arranged(), rots);
     if (closed) makeFinish();
     updateChrome();
@@ -707,7 +759,7 @@
     const R = b.radius, cap = Math.max(34, PICTURE / 13), a = Math.min(cap, PICTURE / (Math.max(3 * R + 2, Math.sqrt(3) * (2 * R + 1)) + 4)), m = { a, e: PICTURE / 2, f: PICTURE / 2 };
     const plan = planField({ width: PICTURE, height: PICTURE }, m, { board: b, shape, rots: turns });
     let step; do { slice.until = performance.now() + 8; step = plan.next(); if (!step.done) await frameStep(); } while (!step.done);
-    const field = step.value, loops = [...own, ...field.traces], colours = visibleStops(palettes[boards.indexOf(b) % palettes.length], true), scale = a * field.zoom;
+    const field = step.value, loops = [...own, ...field.traces], colours = visibleStops(palettes[hue(b)], true), scale = a * field.zoom;
     const lines = document.createElement('canvas'); lines.width = lines.height = PICTURE;
     const lx = lines.getContext('2d'); lx.setTransform(scale, 0, 0, scale, m.e, m.f); lx.lineWidth = field.lineTile; lx.lineCap = lx.lineJoin = 'round';
     const groups = new Map();
@@ -859,9 +911,9 @@
       await tween(260, p => { const x = p - 1, eased = 1 + 2 * x * x * x + x * x; spinRing(k, members, start + (end - start) * eased); });
       if (token !== epoch) return;
       // A ring step counts as one gesture; a drag that carries it two steps counts two.
-      if (steps !== 0) { history.push({ rots: rots.slice(), hits, ...(current.rings ? { offsets: offsets.slice() } : {}) }); ({ rots, offsets } = E.turnRing(current, rots, offsets, k, steps)); hits += Math.abs(steps); }
+      if (steps !== 0) { firstTurn(); history.push({ rots: rots.slice(), hits, ...(current.rings ? { offsets: offsets.slice() } : {}) }); ({ rots, offsets } = E.turnRing(current, rots, offsets, k, steps)); hits += Math.abs(steps); }
       render(false);
-      if (E.solved(arranged(), rots)) { finished.add(current.id); reached = Math.max(reached, Math.min(boards.length - 1, boards.indexOf(current) + 1)); announce(`Every line closed. ${hitsWord()}; par ${pars.get(current.id)}.`); save(); await finishPicture(token); }
+      if (E.solved(arranged(), rots)) { finished.add(current.id); progress(); announce(`Every line closed. ${hitsWord()}; par ${pars.get(current.id)}.`); save(); await finishPicture(token); }
       else { shimmer(before); announce(steps ? `Ring ${k} turned ${Math.abs(steps) === 1 ? 'one step' : Math.abs(steps) + ' steps'} ${steps > 0 ? 'clockwise' : 'counterclockwise'}. ${hitsWord()}. ${looseWord(E.loose(arranged(), rots).length)}.` : `Ring ${k} returned.`); save(); }
       return;
     }
@@ -874,12 +926,14 @@
     dots.querySelectorAll(`[data-tile="${i}"]`).forEach(n => n.remove()); updateChrome();
     await tween(180, p => { const eased = 1 - (1 - p) ** 3; for (const j of members) spinTile(j, `rotate(${start + (end - start) * eased} ${xy(E.center(shape.tiles[j].q, shape.tiles[j].r))})`); });
     if (token !== epoch) return;
-    if (steps !== 0) { history.push({ rots: rots.slice(), hits, ...(current.rings ? { offsets: offsets.slice() } : {}) }); rots = E.turnUnit(current, rots, i, steps); hits++; }
+    if (steps !== 0) { firstTurn(); history.push({ rots: rots.slice(), hits, ...(current.rings ? { offsets: offsets.slice() } : {}) }); rots = E.turnUnit(current, rots, i, steps); hits++; }
     render(false);
     const closed = E.solved(arranged(), rots);
-    if (closed) { finished.add(current.id); reached = Math.max(reached, Math.min(boards.length - 1, boards.indexOf(current) + 1)); announce(`Every line closed. ${hitsWord()}; par ${pars.get(current.id)}.`); save(); await finishPicture(token); }
+    if (closed) { finished.add(current.id); progress(); announce(`Every line closed. ${hitsWord()}; par ${pars.get(current.id)}.`); save(); await finishPicture(token); }
     else { shimmer(before); announce(steps ? `Tile ${i + 1}${members.length > 1 ? ` and ${members.length - 1} linked` : ''} turned ${count(Math.abs(steps), 'step')} ${steps > 0 ? 'clockwise' : 'counterclockwise'}. ${hitsWord()}. ${looseWord(E.loose(arranged(), rots).length)}.` : `Tile ${i + 1} returned to its turn.`); save(); }
   }
+  // The first turn on an opening board fades its tile edges; reduced motion drops them at once.
+  function firstTurn() { if (opener() && !openerFade) openerFade = reduced() ? 0 : performance.now(); }
   async function drain() {
     if (busy) return; busy = true; updateChrome();
     while (queue.length) { const job = queue.shift(); await act(job.action); job.resolve(); }
@@ -899,12 +953,15 @@
     if (gesture) clearTimeout(gesture.hold); gesture = null; if (wheel) clearTimeout(wheel.timer); wheel = null; hint = null; hover = null;
   }
   function undo() { clearInput(); const old = history.pop(); if (old) { rots = old.rots.slice(); hits = old.hits; if (current.rings) offsets = old.offsets.slice(); } nextReady = E.solved(arranged(), rots); render(); save(); announce(old ? `Turn undone. ${hitsWord()}.` : 'No turns to undo.'); }
-  function restart() { clearInput(); locks.clear(); delete lockBook[current.id]; rots = current.start.slice(); offsets = startOffsets(current); hits = 0; history = []; nextReady = false; render(); save(); announce('Board restarted.'); }
-  // The campaign's last board has no next arrow; the samples go round.
-  const last = () => !sampling && current === boards[boards.length - 1];
+  function restart() { clearInput(); openerFade = 0; locks.clear(); delete lockBook[current.id]; rots = current.start.slice(); offsets = startOffsets(current); hits = 0; history = []; nextReady = false; render(); save(); announce('Board restarted.'); }
+  // The course's last board has no next arrow (New Game+ is offered there),
+  // nor has the last of More boards; More boards lead on to the next open
+  // one; the samples go round.
+  const following = () => { if (sampling) return boards[(boards.indexOf(current) + 1) % boards.length]; if (current === FINALE) return null; const n = boards.indexOf(current) + 1; return n < boards.length && isOpen(boards[n]) ? boards[n] : null; };
+  const last = () => !following();
   function go(id) {
     const b = boards.find(b => b.id === id); if (!b) return;
-    clearInput(); current = b; locks = new Set(lockBook[b.id] || []); rots = b.start.slice(); offsets = startOffsets(b); hits = 0; history = []; focus = middle(b); nextReady = false; render(); save(); announce(`Board ${boards.indexOf(b) + 1} of ${boards.length}.`); arrive();
+    clearInput(); openerFade = 0; current = b; locks = new Set(lockBook[b.id] || []); rots = b.start.slice(); offsets = startOffsets(b); hits = 0; history = []; focus = middle(b); nextReady = false; render(); save(); announce(`${label(b)}.`); arrive();
   }
   function local(e) { const matrix = board.getScreenCTM(); return matrix ? new DOMPoint(e.clientX, e.clientY).matrixTransform(matrix.inverse()) : null; }
   function tileAt(p) {
@@ -1089,26 +1146,33 @@
   const icons = { restart: 'M5 7a8 8 0 1 1-1 9M5 3v5h5', undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12', hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z', next: 'M5 12h14M13 6l6 6-6 6', save: 'M12 4v11M7 10l5 5 5-5M5 20h14', settings: 'M4 7h16M4 17h16M8 4v6M16 14v6', help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2' };
   for (const [id, d] of Object.entries(icons)) { const n = $('#' + id + '-btn'); if (n) n.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`; }
   $('#restart-btn').onclick = restart; $('#undo-btn').onclick = undo; $('#hint-btn').onclick = () => enqueue({ type: 'hint' });
-  $('#next-btn').onclick = () => { if (nextReady && !last()) go(boards[(boards.indexOf(current) + 1) % boards.length].id); };
+  $('#next-btn').onclick = () => { const b = following(); if (nextReady && b) go(b.id); };
   for (const id of ['settings', 'help']) { $('#' + id + '-btn').onclick = () => { const keepFinish = finishComplete; clearInput(); nextReady = E.solved(arranged(), rots); if (keepFinish) { syncFinish(); updateChrome(); } else render(); if (id === 'settings') catalog(); $('#' + id).showModal(); }; $('#' + id).addEventListener('close', () => $('#' + id + '-btn').focus()); }
-  // Settings lists every board: current, completed, available or locked.
+  // Settings lists the course's boards, then More boards: current, completed,
+  // available or locked. More boards say "After board 25" until it closes.
   function catalog() {
-    const list = $('#level-catalog');
-    if (!list.children.length) for (const [n, b] of boards.entries()) {
-      const li = document.createElement('li'), button = document.createElement('button');
-      button.type = 'button'; button.className = 'board'; button.dataset.board = b.id; button.innerHTML = `<span>Board ${n + 1}</span><span class="catalog-state"></span>`;
-      button.onclick = () => { if (n > reached) return; if (b !== current) go(b.id); $('#settings').close(); };
-      li.append(button); list.append(li);
-    }
-    for (const [n, b] of boards.entries()) {
-      const button = list.children[n].firstChild, now = b === current, done = finished.has(b.id);
-      button.dataset.state = now ? 'current' : done ? 'completed' : n <= reached ? 'available' : 'locked'; button.disabled = n > reached;
-      button.querySelector('.catalog-state').textContent = [now ? 'Current' : null, done ? 'Completed' : null, !now && !done ? (n <= reached ? 'Available' : 'Locked') : null].filter(Boolean).join(' · ');
-      if (now) button.setAttribute('aria-current', 'true'); else button.removeAttribute('aria-current');
-      // A finished board's tile carries a button that saves its picture.
-      let saver = list.children[n].querySelector('.save');
-      if (done && !saver) { saver = document.createElement('button'); saver.type = 'button'; saver.className = 'save'; saver.dataset.save = b.id; saver.setAttribute('aria-label', `Save the picture of board ${n + 1}`); saver.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${icons.save}"/></svg>`; saver.onclick = () => savePicture(b.id); list.children[n].append(saver); }
-      if (!done && saver) saver.remove();
+    const lists = [[$('#level-catalog'), sampling ? boards : course]];
+    if (!sampling && extras.length) lists.push([$('#more-catalog'), extras]);
+    const moreSection = $('#more-title')?.closest('section'); if (moreSection) moreSection.hidden = sampling || !extras.length;
+    for (const [list, entries] of lists) {
+      if (!list) continue;
+      if (!list.children.length) for (const b of entries) {
+        const li = document.createElement('li'), button = document.createElement('button');
+        button.type = 'button'; button.className = 'board'; button.dataset.board = b.id; button.innerHTML = `<span>${isExtra(b) ? '+' + extraNo(b) : 'Board ' + (entries.indexOf(b) + 1)}</span><span class="catalog-state"></span>`;
+        button.onclick = () => { if (!isOpen(b)) return; if (b !== current) go(b.id); $('#settings').close(); };
+        li.append(button); list.append(li);
+      }
+      for (const [n, b] of entries.entries()) {
+        const button = list.children[n].firstChild, now = b === current, done = finished.has(b.id), open = isOpen(b);
+        button.dataset.state = now ? 'current' : done ? 'completed' : open ? 'available' : 'locked'; button.disabled = !open;
+        button.querySelector('.catalog-state').textContent = [now ? 'Current' : null, done ? 'Completed' : null, !now && !done ? (open ? 'Available' : isExtra(b) ? `After board ${course.length}` : 'Locked') : null].filter(Boolean).join(' · ');
+        if (now) button.setAttribute('aria-current', 'true'); else button.removeAttribute('aria-current');
+        // A finished board's tile carries a button that saves its picture.
+        const name = isExtra(b) ? `board +${extraNo(b)}` : `board ${n + 1}`;
+        let saver = list.children[n].querySelector('.save');
+        if (done && !saver) { saver = document.createElement('button'); saver.type = 'button'; saver.className = 'save'; saver.dataset.save = b.id; saver.setAttribute('aria-label', `Save the picture of ${name}`); saver.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${icons.save}"/></svg>`; saver.onclick = () => savePicture(b.id); list.children[n].append(saver); }
+        if (!done && saver) saver.remove();
+      }
     }
   }
   // Once there are turning rings, Help names their gestures, in the same three sentences.
@@ -1142,7 +1206,7 @@
     return { x: p.x, y: p.y, width: q.x - p.x, height: q.y - p.y };
   }
   window.__loop = {
-    boards, get board() { return current; }, get state() { return state(); }, turn, ring: turnRing, undo, restart, go: id => { const n = boards.findIndex(b => b.id === id); if (n >= 0 && n <= reached) go(id); }, sampling, affordances: { ring: RING }, motions: () => ({ ...motions }), shimmers: () => ({ ...shimmers, keys: shimmers.keys.slice(), glints: shimmers.glints.map(g => ({ ...g })) }), locks: () => [...locks].sort((a, b) => a - b), reveal: { speed: REVEAL_SPEED, zoom: REVEAL_ZOOM },
+    boards, get board() { return current; }, get state() { return state(); }, turn, ring: turnRing, undo, restart, go: id => { const b = boards.find(b => b.id === id); if (b && isOpen(b)) go(id); }, course: course.map(b => b.id), more: extras.map(b => b.id), sampling, affordances: { ring: RING }, motions: () => ({ ...motions }), shimmers: () => ({ ...shimmers, keys: shimmers.keys.slice(), glints: shimmers.glints.map(g => ({ ...g })) }), locks: () => [...locks].sort((a, b) => a - b), reveal: { speed: REVEAL_SPEED, zoom: REVEAL_ZOOM },
     finishColors: () => finish?.go ? finish.board.map(t => loopColour(t.order, finish.total, driftTime(), palette())) : [],
     field: options => fieldState(options?.detail),
     // The rendered image's size and bytes; the last image stays on image.blob for checks.

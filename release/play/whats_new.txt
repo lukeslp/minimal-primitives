@@ -1,9 +1,11 @@
-More balanced board counts: Towers has 42 boards, Tents 38 and Balance 39. Shoo, Tilt, Tilt · 3D, Cast and Bending play thirty boards that climb steadily; Shoo and Bending then open New Game+.
+Shorter campaigns that end sooner: Bending, Cast, Cube Maze, Folding, Horologist, Shoo, Spiral Galaxies, Tangles, Tilt and Tilt · 3D play twenty-five boards, Noon twenty, then open New Game+ or more boards.
 
-Akari, Bridges, Spiral Galaxies and Horologist play their boards in a smoother order.
+Weaves is rebuilt as a short course of sixteen boards.
 
-In many games, pressing Hint a second time makes the move.
+Hints show their reason in Cast, Balance, Bending and Weaves.
 
-Hexsweeper Sphere: the far side no longer shows through the edge. Photo credits sit under its themes.
+Easier input in Towers and Bridges.
+
+Text follows your phone's text size.
 
 Saved boards and progress are kept.

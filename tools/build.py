@@ -16,7 +16,7 @@ import assets_recipe
 
 ROOT = Path(__file__).resolve().parents[1]
 NOTICES = """Minimal Primitives
-Games and collection by Luke Steuber.
+Games and collection: MIT, in LICENSE.
 
 Hexsweeper: MIT, retained in games/hexsweeper/LICENSE.
 Hexsweeper Sphere geometry (games/hexsweeper/sphere/hexasphere.js): Luke Steuber's port of his hexasphere.ts from Rind, an original implementation inspired by Rob Scanlon's hexasphere.js (https://github.com/arscan/hexasphere.js), MIT License, Copyright (c) 2014-2017 Robert Scanlon.
@@ -72,7 +72,7 @@ def library_tiles(index, games, output):
                       'imageWide': versioned(tile['artWide']) if tile['artWide'] else None,
                       # The Dark and Light themes show the index's line drawing instead, where it has one.
                       'drawing': versioned(tile['lines']) if tile.get('lines') else None,
-                      # Where the game keeps its record and how many boards make its whole set (finished-tile color).
+                      # Where the game keeps its record and the ids of its current main campaign (finished-tile color).
                       'set': tile.get('set'),
                       # The game's own solved board in color, shown in place of the picture once the set is finished.
                       'solved': {'dark': versioned(tile['solved']['dark']), 'light': versioned(tile['solved']['light']),

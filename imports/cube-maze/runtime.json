@@ -3,6 +3,7 @@
   "entry": "index.html",
   "files": [
     "boards.js",
+    "campaign.js",
     "controls.css",
     "controls.js",
     "cube-maze.css",

@@ -185,6 +185,9 @@ canvas { display: block; cursor: crosshair; max-width: 100%; }
   backdrop-filter: blur(8px);
 }
 .modal-overlay.open { opacity: 1; pointer-events: auto; }
+/* A closed menu is invisible, so nothing inside it may take a click or tap
+   meant for the board beneath (.stat-item and the close button opt back in). */
+.modal-overlay:not(.open) * { pointer-events: none !important; }
 .modal-content {
   background: color-mix(in srgb, var(--bg-color, #e0e5ec) 92%, transparent);
   color: var(--text-main, #4a5568);

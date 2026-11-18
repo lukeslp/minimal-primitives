@@ -1,7 +1,7 @@
 {
   "id": "fold",
   "entry": "index.html",
-  "stageCount": 50,
+  "stageCount": 25,
   "files": [
     "engine.js",
     "favicon.svg",
@@ -12,6 +12,7 @@
     "fonts/OFL.txt",
     "index.html",
     "levels.js",
+    "campaign.js",
     "og.png",
     "controls.css",
     "controls.js",

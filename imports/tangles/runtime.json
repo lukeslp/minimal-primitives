@@ -4,6 +4,7 @@
   "files": [
     "boards.js",
     "campaign.js",
+    "course.js",
     "controls.css",
     "controls.js",
     "dodecagons/index.html",

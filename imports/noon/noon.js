@@ -1,7 +1,10 @@
 /* Noon. By Luke Steuber. */
 (function () {
   'use strict';
-  const E = NoonEngine, boards = NoonBoards, $ = s => document.querySelector(s);
+  // The campaign (campaign.js) is twenty of the fifty boards in boards.js, in its own order. Once every one is
+  // finished the game is finished, and New Game+ deals the other thirty (the pool) at random. Saves are checked
+  // against all fifty, so nothing in them is lost; only campaign boards count.
+  const E = NoonEngine, all = NoonBoards, boards = NoonCampaign.map(id => all.find(b => b.id === id)), pool = all.filter(b => !boards.includes(b)), $ = s => document.querySelector(s);
   const KEY = 'noon.v2', OLD_KEY = 'noon.v1', TAU = Math.PI * 2;
   const motionQuery = matchMedia('(prefers-reduced-motion: reduce)'), darkQuery = matchMedia('(prefers-color-scheme: dark)');
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x)), smooth = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x), mix = (a, b, u) => a + (b - a) * u;
@@ -15,8 +18,10 @@
   const validSpeed = s => Number.isInteger(s) && s >= 0 && s < E.STEPS.length;
 
   // Saved play: the board, its filled cells and their history, presses,
-  // finished boards, settings and the timing learned. Every board is open.
-  let board = boards[0], state = E.start(), hits = 0, finished = new Set();
+  // finished boards, settings and the timing learned. Every campaign board is open.
+  // dealt: the pool boards New Game+ has dealt this round, none again until all thirty have been.
+  // parked: the cells of a board that left the campaign, kept for when New Game+ deals it.
+  let board = boards[0], state = E.start(), hits = 0, finished = new Set(), dealt = [], parked = null;
   let prefs = { theme: 'system', motion: 'system', speed: E.DEFAULT_STEP, choose: 'auto', rewards: 'colour', adapt: 'on', sound: 'off', hold: '1500', release: 'off' }, learner = E.learner();
   let protectSave = false;
   const finite = x => typeof x === 'number' && Number.isFinite(x);
@@ -25,9 +30,9 @@
   try {
     const raw = localStorage.getItem(KEY);
     if (raw !== null) {
-      const s = JSON.parse(raw), b = boards.find(x => x.id === s?.board);
+      const s = JSON.parse(raw), b = all.find(x => x.id === s?.board);
       if (!b || s.v !== 2 || !cellList(s.filled, b, b.rows * b.cols) || new Set(s.filled).size !== s.filled.length || !cellList(s.history, b, 5000)) throw Error('Invalid save');
-      if (!Number.isSafeInteger(s.hits) || s.hits < 0 || !Array.isArray(s.finished) || !s.finished.every(id => boards.some(x => x.id === id))) throw Error('Invalid save');
+      if (!Number.isSafeInteger(s.hits) || s.hits < 0 || !Array.isArray(s.finished) || !s.finished.every(id => all.some(x => x.id === id))) throw Error('Invalid save');
       // Settings added later load at their defaults: Rewards in colour, Hold to take back at 1.5 s, Release time off.
       if (s.settings) for (const [k, v] of [['rewards', 'colour'], ['hold', '1500'], ['release', 'off']]) if (s.settings[k] === undefined) s.settings[k] = v;
       // A setting this version does not know falls back to its default rather than
@@ -36,6 +41,21 @@
       if (!s.settings || typeof s.settings !== 'object' || !validTiming(s.timing)) throw Error('Invalid save');
       board = b; state = { filled: s.filled.slice().sort((x, y) => x - y), history: s.history.slice(), view: -1 }; hits = s.hits; finished = new Set(s.finished); prefs = { ...s.settings };
       learner = { w: s.timing.w, s1: s.timing.s1, s2: s.timing.s2, pending: s.timing.pending.map(p => p.slice()) };
+      // Added with New Game+: read when sound, ignored otherwise, so an older save loads as it was.
+      if (Array.isArray(s.dealt)) dealt = [...new Set(s.dealt.filter(id => pool.some(x => x.id === id)))];
+      const pb = s.parked && all.find(x => x.id === s.parked.board);
+      if (pb && cellList(s.parked.filled, pb, pb.rows * pb.cols) && cellList(s.parked.history, pb, 5000) && Number.isSafeInteger(s.parked.hits) && s.parked.hits >= 0) parked = { board: pb.id, filled: s.parked.filled.slice(), history: s.parked.history.slice(), hits: s.parked.hits };
+      // A player last on a board outside the campaign stays on it as a New Game+ board once every campaign board is
+      // finished. Before that, they go on from the nearest campaign board not yet finished (the earlier on a tie),
+      // and the board they left keeps its cells for New Game+.
+      if (!boards.includes(board)) {
+        if (boards.every(x => finished.has(x.id))) { if (!dealt.includes(board.id)) dealt.push(board.id); }
+        else {
+          const k = all.indexOf(board), d = x => Math.abs(all.indexOf(x) - k), open = boards.filter(x => !finished.has(x.id));
+          if (state.filled.length || state.history.length || hits) parked = { board: board.id, filled: state.filled.slice(), history: state.history.slice(), hits };
+          board = open.reduce((a, x) => d(x) < d(a) || d(x) === d(a) && all.indexOf(x) < all.indexOf(a) ? x : a); state = E.start(); hits = 0;
+        }
+      }
     } else {
       // The first version's save held other puzzles; its settings and learned
       // timing carry over, and it is left as it was.
@@ -48,22 +68,33 @@
   } catch (_) { protectSave = true; }
   function save() {
     if (protectSave) return;
-    try { localStorage.setItem(KEY, JSON.stringify({ v: 2, board: board.id, filled: state.filled, history: state.history, hits, finished: [...finished], settings: prefs, timing: learner })); } catch (_) {}
+    try { localStorage.setItem(KEY, JSON.stringify({ v: 2, board: board.id, filled: state.filled, history: state.history, hits, finished: [...finished], settings: prefs, timing: learner, dealt, parked })); } catch (_) {}
   }
 
   const reduced = () => prefs.motion === 'reduce' || motionQuery.matches;
   const dark = () => prefs.theme === 'dark' || prefs.theme === 'system' && darkQuery.matches;
-  // ---- The end, the same in all eight accessible games. Next goes to the
-  // following board and, past the last, to the first unfinished one. Once
-  // every board is finished the readout says so, and on the last board Next
-  // turns into Replay: board 1 again, fresh, with the finished marks kept.
+  // ---- The end, as in the other accessible games, with New Game+ in place
+  // of Replay. Next goes to the following board and, past the last, to the
+  // first unfinished one. Once every campaign board is finished the readout
+  // says so, and on the last board Next turns into Start New Game+, a disc of
+  // two looping arrows in Next's place: it deals a board from the pool, and
+  // Next on a pool board deals another. Every campaign board stays open.
   const ENDING = `All ${boards.length} boards solved.`, ARROW = 'M5 12h14M13 6l6 6-6 6', REPLAY = 'M17 3l3 3-3 3M4 11V9a3 3 0 0 1 3-3h13M7 21l-3-3 3-3M20 13v2a3 3 0 0 1-3 3H4';
-  const allSolved = () => boards.every(b => finished.has(b.id));
-  const ahead = () => boards[boards.indexOf(board) + 1] || boards.find(b => !finished.has(b.id)) || boards[0];
-  const replays = () => !boards[boards.indexOf(board) + 1] && allSolved();
+  const allSolved = () => boards.every(b => finished.has(b.id)), inCampaign = () => boards.includes(board);
+  const replays = () => inCampaign() && !boards[boards.indexOf(board) + 1] && allSolved();
+  // New Game+: a pool board at random, one not dealt this round (a new round starts once all thirty have been,
+  // never with the board just played).
+  function deal() {
+    let left = pool.filter(b => !dealt.includes(b.id) && b !== board);
+    if (!left.length) { dealt = []; left = pool.filter(b => b !== board); }
+    let r = Math.random();
+    try { r = crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296; } catch (_) {}
+    const b = left[Math.floor(r * left.length)]; dealt.push(b.id); return b;
+  }
+  const ahead = () => { if (allSolved() && (replays() || !inCampaign())) return deal(); const i = boards.indexOf(board); return (i >= 0 && boards[i + 1]) || boards.find(b => !finished.has(b.id)) || boards[0]; };
   function labelNext() {
-    const n = $('#next-btn'), again = replays(), label = again ? 'Replay from board 1' : 'Next board', d = again ? REPLAY : ARROW;
-    n.dataset.end = again ? 'replay' : 'next';
+    const n = $('#next-btn'), again = replays(), label = again ? 'Start New Game+' : 'Next board', d = again ? REPLAY : ARROW;
+    n.dataset.end = again ? 'plus' : 'next';
     if (n.getAttribute('aria-label') === label && n.querySelector('path')?.getAttribute('d') === d) return;
     n.setAttribute('aria-label', label);
     n.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
@@ -84,7 +115,7 @@
   let blooms = [];
   const rewards = { blooms: 0, solves: 0 };
   const colourOn = () => prefs.rewards === 'colour';
-  const palette = () => PALETTES[boards.indexOf(board) % PALETTES.length].filter(rgb => dark() ? luminance(rgb) >= .06 : luminance(rgb) <= .7);
+  const palette = () => PALETTES[all.indexOf(board) % PALETTES.length].filter(rgb => dark() ? luminance(rgb) >= .06 : luminance(rgb) <= .7);
   const stop = (pal, t) => { const at = clamp(t, 0, .9999) * (pal.length - 1), i = Math.floor(at), f = at - i, a = pal[i], b = pal[Math.min(pal.length - 1, i + 1)]; return `rgb(${a.map((v, c) => Math.round(v + (b[c] - v) * f)).join(',')})`; };
   function begin(t = performance.now()) {
     const ids = E.contention(board, state, mode());
@@ -459,7 +490,7 @@
       done = { start: t, x: from.x, y: from.y, far, pal: palette() };
     } else done = null;
     chrome(); save();
-    if (nowSolved) { announce(`Picture finished in ${hits} presses. Par ${par()}. ${allSolved() ? ENDING : 'Next board is available.'}`); sound('solve'); return; }
+    if (nowSolved) { announce(`Picture finished in ${hits} presses. Par ${par()}. ${allSolved() && inCampaign() ? ENDING : 'Next board is available.'}`); sound('solve'); return; }
     if (id === 'out') { announce('Back to the board.'); return; }
     if (typeof id === 'string' && id[0] === 'r') { announce(`Row ${state.view + 1}: ${clueText(g.rows[state.view]).join(' ')}.`); return; }
     const changed = id === 'undo' ? before.history[before.history.length - 1] : id;
@@ -513,20 +544,21 @@
   }
 
   function chrome() {
-    const n = boards.indexOf(board) + 1, finishedNow = solved(), g = E.info(board);
-    const end = finishedNow && allSolved();
-    $('#readout-text').textContent = end ? ENDING : `${n} / ${boards.length} · ${hits} / ${par()}`;
+    // A New Game+ board shows presses and par alone: it has no place in the campaign.
+    const n = boards.indexOf(board) + 1, finishedNow = solved(), g = E.info(board), name = n ? `Board ${n} of ${boards.length}` : 'New Game+ board';
+    const end = finishedNow && allSolved() && n > 0;
+    $('#readout-text').textContent = end ? ENDING : n ? `${n} / ${boards.length} · ${hits} / ${par()}` : `${hits} / ${par()}`;
     $('#speed-glyph').innerHTML = meter(prefs.speed, 'small');
-    $('#readout').setAttribute('aria-label', `${end ? ENDING + ' ' : ''}Board ${n} of ${boards.length}; ${hits} presses; par ${par()}; speed ${prefs.speed + 1} of ${E.STEPS.length}`);
+    $('#readout').setAttribute('aria-label', `${end ? ENDING + ' ' : ''}${name}; ${hits} presses; par ${par()}; speed ${prefs.speed + 1} of ${E.STEPS.length}`);
     const clues = (list, word) => list.map((c, k) => `${word} ${k + 1}: ${clueText(c).join(' ')}`).join('; ');
-    $('#board').setAttribute('aria-label', `Board ${n} of ${boards.length}: ${g.R} rows by ${g.C} columns, ${state.filled.length} cells filled. ${clues(g.rows, 'row')}. ${clues(g.cols, 'column')}. ${finishedNow ? 'Picture finished.' : state.view >= 0 ? `Zoomed into row ${state.view + 1}.` : 'Press any key or tap as a clock\'s hand reaches the top.'}`);
+    $('#board').setAttribute('aria-label', `${name}: ${g.R} rows by ${g.C} columns, ${state.filled.length} cells filled. ${clues(g.rows, 'row')}. ${clues(g.cols, 'column')}. ${finishedNow ? 'Picture finished.' : state.view >= 0 ? `Zoomed into row ${state.view + 1}.` : 'Press any key or tap as a clock\'s hand reaches the top.'}`);
     $('#speed-value').textContent = '· ' + (E.STEPS[prefs.speed] / 1000).toFixed(1) + ' s'; $('#speed').setAttribute('aria-valuetext', `${prefs.speed + 1} of ${E.STEPS.length}, ${(E.STEPS[prefs.speed] / 1000).toFixed(1)} seconds a turn`);
     $('#undo-btn').disabled = state.history.length === 0;
     $('#hint-btn').disabled = finishedNow;
     $('#next-btn').hidden = !finishedNow; labelNext();
     catalog();
   }
-  // Settings lists every board as current, completed or available.
+  // Settings lists every campaign board as current, completed or available.
   function catalog() {
     const list = $('#board-catalog');
     if (!list.children.length) boards.forEach((b, i) => {
@@ -551,12 +583,15 @@
   }
   function restart() { reset(); fit(); chrome(); save(); announce('Board restarted.'); }
   // Any board can be opened, from Settings or from the test hook.
+  // A pool board opens fresh, or with the cells it had when it left the campaign.
   function go(id) {
-    const i = boards.findIndex(b => b.id === id);
-    if (i < 0) return false;
-    board = boards[i]; reset(); fit(); chrome(); save();
-    const g = E.info(board);
-    announce(`Board ${i + 1}: ${g.R} rows by ${g.C} columns.`);
+    const b = all.find(x => x.id === id);
+    if (!b) return false;
+    board = b; reset();
+    if (parked && parked.board === id) { state = { filled: parked.filled.slice().sort((x, y) => x - y), history: parked.history.slice(), view: -1 }; hits = parked.hits; parked = null; begin(); }
+    fit(); chrome(); save();
+    const g = E.info(board), i = boards.indexOf(board);
+    announce(`${i < 0 ? 'New Game+ board' : 'Board ' + (i + 1)}: ${g.R} rows by ${g.C} columns.`);
     return true;
   }
 
@@ -637,7 +672,7 @@
   window.addEventListener('resize', fit);
 
   window.__noon = {
-    boards,
+    boards, all, get dealt() { return dealt.slice(); }, get parked() { return parked ? parked.board : null; },
     get board() { return board.id; },
     get reached() { return boards.length - 1; },
     get state() {

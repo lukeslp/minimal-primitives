@@ -3,14 +3,15 @@
 // library's saves, made by the older build; the update must still open them. Each fixture holds one save per
 // game, taken in a shipped build: a move on the first board, then Home. saves-2ba8a67.json is from 0.5.5
 // (game-riffs 2ba8a67), saves-c965c4f.json from 0.5.7 (c965c4f, with Cube Maze, Tangles and Weaves),
-// saves-261303e.json from 0.5.8 (261303e). Add one from each shipped build before its games are pinned again.
+// saves-261303e.json from 0.5.8 (261303e), saves-d3d9b9e.json from 0.5.9 (d3d9b9e). Add one from each shipped build
+// before its games are pinned again.
 const {test,after}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const h=require('./parity-fixtures/browser.cjs'),a=require('./parity-fixtures/actions.cjs');
 const KEY='lukesteuber.minimal.collection.v1:saves';
-const FIXTURES=[['0.5.5','saves-2ba8a67.json'],['0.5.7','saves-c965c4f.json'],['0.5.8','saves-261303e.json']].map(([build,name])=>{const fixture=fs.readFileSync(path.join(__dirname,'upgrade-fixtures',name),'utf8');return{build,fixture,old:JSON.parse(fixture)};});
+const FIXTURES=[['0.5.5','saves-2ba8a67.json'],['0.5.7','saves-c965c4f.json'],['0.5.8','saves-261303e.json'],['0.5.9','saves-d3d9b9e.json']].map(([build,name])=>{const fixture=fs.readFileSync(path.join(__dirname,'upgrade-fixtures',name),'utf8');return{build,fixture,old:JSON.parse(fixture)};});
 const {old}=FIXTURES[0];
 let browser;const getBrowser=async()=>browser||(browser=await h.launch());
 after(async()=>browser?.close());
@@ -18,16 +19,23 @@ after(async()=>browser?.close());
 // an older record, kept by place, is converted once. Its saves from earlier builds cannot come back unchanged, so
 // they are checked as the reordered games' midway saves are, below: against the game's own reading of the same save.
 const CONVERTED={bending:old=>({'rimlight.dark.v2':JSON.stringify(old.record)})};
-// Fields this build's saves carry that earlier ones did not (game-riffs d3d9b9e): `order: 2` says reached counts in
-// campaign places, and `pool` lists the New Game+ or pool boards dealt. An earlier save restores with them added.
-const ADDED={tilt:s=>({...s,order:2,pool:[]}),'tilt-3d':s=>({...s,order:2,pool:[]}),cast:s=>({...s,order:2}),horologist:s=>({...s,order:2}),
-  'shoo-minimal':s=>({...s,store:{...s.store,pool:[]}})};
+// Fields this build's saves carry that earlier ones did not. Since game-riffs d3d9b9e: `pool` lists the New Game+ or
+// pool boards dealt. Since 9ad63d8 (0.5.10): `order: 3` (Tilt, Tilt 3D, Cast, Horologist) or `order: 2` (Tangles) says
+// reached counts in the twenty-five-board campaign; Tangles keeps the boards it had open outside the course (`more`);
+// Folding's progress is v3, counted in the campaign; Weaves keeps settled marks (`kept`, also on each Undo step), the
+// mark mode and how far its sixteen-board course is open. A save on a first board restores with them added.
+const ADDED={tilt:s=>({...s,order:3,pool:s.pool||[]}),'tilt-3d':s=>({...s,order:3,pool:s.pool||[]}),cast:s=>({...s,order:3}),horologist:s=>({...s,order:3,pool:[]}),
+  'shoo-minimal':s=>({...s,store:{...s.store,pool:s.store.pool||[]}}),'cube-maze':s=>({...s,pool:[]}),tangles:s=>({...s,order:2,more:[]}),
+  fold:s=>({...s,progress:{version:3,completed:s.progress.completed,available:s.progress.available,newGamePlus:s.progress.newGamePlus,pool:[]}}),
+  weaves:s=>({...s,history:s.history.map(h=>({...h,kept:[]})),kept:[],keepMode:false,course:1,courseReached:Math.max(0,...s.finished.map(id=>['w01','w02','w03','c01','c02','w04'].indexOf(id)+1))})};
 // Where a save leaves the player, in this build's terms: the board, what is finished, how far the campaign is open,
 // and for Bending the stage on the saved board.
 function where(id,s){
   if(id==='bending'){const r=s.named;return{board:r.board,done:r.done,open:r.open};}
   const finished=s.progress?.completed??s.done??s.finished??s.completed;
-  return{at:s.at??null,board:s.store?.at??s.board??null,finished:[...(finished||[])].sort(),reached:s.reached??s.progress?.available??null,order:s.order??null};
+  return{at:s.at??null,board:s.store?.at??s.board??null,finished:[...(finished||[])].sort(),reached:s.reached??s.progress?.available??null,order:s.order??null,
+    // Weaves' course and Tangles' More boards (game-riffs 9ad63d8).
+    ...(id==='weaves'?{courseReached:s.courseReached}:{}),...(id==='tangles'?{more:[...(s.more||[])].sort()}:{})};
 }
 async function opened(t,game,localStorage){
   const ctx=await h.context(await getBrowser(),{width:390,height:844},{seed:{localStorage}});t.after(()=>ctx.close());
@@ -76,6 +84,32 @@ for(const game of h.games.filter(g=>MIDWAY.saves[g.id]))test(`${game.id}: a midw
   if(game.id!=='bending')assert.ok(got.finished.length>=Math.min(where(game.id,saved.state).finished.length,want.finished.length),'finished boards kept');
   // Bending's save is on a stage the thirty keep: the planet placed there in 0.5.8 is still on it.
   else{const r=saved.state.record;assert.deepEqual(library.state.named.stages[got.board].planets,r.stages[r.board].planets,'the stage keeps its planets');}
+  await home(library.page,game);
+});
+
+// Upgrade cases from the shipped 0.5.9 build, for every game whose campaign or save shape changes in 0.5.10 (game-riffs
+// 9ad63d8): Tilt, Tilt 3D, Cast, Cube Maze, Folding, Spiral Galaxies, Horologist, Shoo and Tangles play twenty-five
+// boards, Bending's campaign loses five stages to New Game+, and Weaves becomes a sixteen-board course with optional
+// cloths. Each case started 0.5.9 from the game's own save (`seed`): part way through (`mid`), on a board the new
+// campaign drops (`drop`), with 0.5.9's campaign finished and the player on a board the new campaign drops (`fin`),
+// and for Weaves on a large optional cloth with a move made (`opt`). One move, then Home: `save` is the library save,
+// `native` every key the 0.5.9 game itself held then. Opened from the library save, from the game's own keys, or from
+// both (as on a phone that played 0.5.9), the game opens in the same place, as this build's game reads its own save.
+const CASES=JSON.parse(fs.readFileSync(path.join(__dirname,'upgrade-fixtures','saves-d3d9b9e-cases.json'),'utf8')).cases;
+for(const c of CASES)test(`${c.game}: a 0.5.9 save (${c.case}) opens where the game opens its own`,async t=>{
+  const game=h.games.find(g=>g.id===c.game);
+  assert.equal(c.save.source.slice(0,7),'d3d9b9e');
+  const library=await opened(t,game,{[KEY]:JSON.stringify({[c.game]:c.save})});
+  const own=await opened(t,game,c.native);
+  const both=await opened(t,game,{...c.native,[KEY]:JSON.stringify({[c.game]:c.save})});
+  const got=where(c.game,library.state),want=where(c.game,own.state);
+  assert.deepEqual(got,want,c.game+' '+c.case+' opens where the game opens its own 0.5.9 save');
+  assert.deepEqual(where(c.game,both.state),want,c.game+' '+c.case+' with both saves on the device');
+  // Nothing finished is lost: every board the 0.5.9 save had finished stays finished (Bending keeps a stage that left
+  // the campaign under its name).
+  const done=w=>w.finished||w.done,before=done(where(c.game,c.save.state));
+  assert.ok(before.length>0||c.case==='mid');
+  for(const id of before)assert.ok(done(got).includes(id),`${c.game} ${c.case}: ${id} stays finished`);
   await home(library.page,game);
 });
 

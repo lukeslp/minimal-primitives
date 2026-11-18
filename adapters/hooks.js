@@ -40,13 +40,18 @@
       for(const node of [document.documentElement,document.body])themeObserver.observe(node, {attributes:true,attributeFilter:['class','data-theme','style','data-sphere-theme']});
       matchMedia('(prefers-color-scheme: dark)').addEventListener('change',position);
     } else restart.after(home);
-    const settings = document.querySelector('#settings .sheet-body, #settings .sheet-in, #settings, #help-panel-settings, #modal-overlay .modal-content');
+    // The sheet's own scrolling body first: a selector list would give the first match in page order, which is the
+    // dialog itself, and a button appended after the sheet's footer is cut off once the phone's text is large.
+    const settings = ['#settings .sheet-body', '#settings .sheet-in', '#help-panel-settings', '#modal-overlay .modal-content', '#settings'].map(s => document.querySelector(s)).find(Boolean);
     if (settings && window.MinimalAdapter) {
       const scores = document.createElement('button'); scores.type='button'; scores.textContent='Collection scores';
-      scores.className=settings.id==='help-panel-settings'?'help-pack is-text':'text-action'; scores.dataset.minimalCollection='scores'; scores.addEventListener('click',()=>bridge.emit('scores'));settings.append(scores);
+      scores.className=settings.id==='help-panel-settings'?'help-pack is-text':'text-action'; scores.dataset.minimalCollection='scores'; scores.addEventListener('click',()=>bridge.emit('scores'));
+      // Slant and Bridges find their own "Scores for this puzzle" row as the sheet body's last .row: it stays last.
+      const own=settings.lastElementChild;if(own&&own.matches('.row')&&own.querySelector('button')?.textContent==='Scores for this puzzle')own.before(scores);else settings.append(scores);
       // Games whose stylesheet has no .text-action rule would show the browser's gray button. :where() adds no
       // specificity, so a game's own rule still wins.
-      if(scores.className==='text-action'){const look=document.createElement('style');look.textContent=':where(button.text-action[data-minimal-collection]){min-height:44px;padding:8px 12px;border:1px solid currentColor;border-radius:0;background:none;color:inherit;font:inherit;cursor:pointer}';document.head.append(look);}
+      // max-width and wrapping keep the label inside the sheet at any text size.
+      if(scores.className==='text-action'){const look=document.createElement('style');look.textContent=':where(button.text-action[data-minimal-collection]){min-height:44px;max-width:100%;padding:8px 12px;border:1px solid currentColor;border-radius:0;background:none;color:inherit;font:inherit;white-space:normal;overflow-wrap:anywhere;cursor:pointer}';document.head.append(look);}
     }
   }
   const ready = () => { collectionControls(); bridge.emit('ready', { resumable: !!window.MinimalAdapter }); };

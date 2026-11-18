@@ -1,7 +1,6 @@
 # Third-party notices
 
-The games and the collection are by Luke Steuber, under the MIT license in
-`LICENSE`. The material below comes from elsewhere and keeps its own license.
+The games and the collection are under the MIT license in `LICENSE`. The material below comes from elsewhere and keeps its own license.
 Every build carries the same list as `NOTICES.txt` (written by `tools/build.py`),
 and each license file named here ships beside its material.
 
@@ -38,7 +37,8 @@ F-Droid build (`--variant fdroid`) carries none of them.
 
 Since 0.5.9 neither this repository nor any build carries the screenshot of
 Microsoft Minesweeper that Sphere's Help once showed, or the Stratosphere
-photograph, whose source was never confirmed (`tools/assets_recipe.py`).
+photograph, whose source was never confirmed. The importer leaves both out
+(`tools/assets_recipe.py`).
 
 ## Shared
 

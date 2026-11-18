@@ -1,22 +1,33 @@
 /* Bridges-only pointer adapter, shared by the main board and Help. */
-(function(){'use strict';function bind(o){const root=o.root;let drag=null;
+(function(){'use strict';
+// Between touching islands the gap left outside both islands (and their 3px margins) can be ~2px on a phone, so the
+// middle of such a short bridge, 8px either way along it, is the bridge's even where it meets an island's rim: a tap
+// there places the bridge, and the rest of each island still takes its own taps (see band).
+const MID=8;
+function routes(r,p,x,y){const hits=[];Bridges.topology(p).edges.forEach(({a,b},edge)=>{const A=p.islands[a],B=p.islands[b],ax=r.left+(A.x+.5)*r.width/p.w,ay=r.top+(A.y+.5)*r.height/p.h,bx=r.left+(B.x+.5)*r.width/p.w,by=r.top+(B.y+.5)*r.height/p.h,dx=bx-ax,dy=by-ay,t=((x-ax)*dx+(y-ay)*dy)/(dx*dx+dy*dy);if(t<=0||t>=1)return;const d=Math.hypot(x-ax-t*dx,y-ay-t*dy);if(d<=22)hits.push({a,b,edge,d,t,len:Math.hypot(dx,dy)});});hits.sort((a,b)=>a.d-b.d);return hits;}
+// The short bridge whose middle band holds this point, if any: one whose gap outside both islands' margins is under
+// 2*MID, with the point within MID of its middle along it. Where two such bands meet (the middle of a square of four
+// islands) and neither line is clearly nearer, none.
+function band(root,hits){const nodes=root.querySelectorAll('.island'),in_=hits.filter(h=>{const wa=nodes[h.a]?.getBoundingClientRect().width||0,wb=nodes[h.b]?.getBoundingClientRect().width||0;return h.len-(wa+wb)/2-6<2*MID&&Math.abs(h.t-.5)*h.len<=MID;});return in_.length&&(!in_[1]||in_[1].d-in_[0].d>=8)?in_[0]:null;}
+function bind(o){const root=o.root;let drag=null;
 function island(e){const r=root.getBoundingClientRect(),p=o.puzzle(),x=(e.clientX-r.left)/r.width*p.w,y=(e.clientY-r.top)/r.height*p.h;let best=-1,d=.49;for(let i=0;i<p.islands.length;i++){const a=p.islands[i],dist=Math.hypot(x-a.x-.5,y-a.y-.5);if(dist<d){best=i;d=dist;}}return best;}
 // Resolve the corridor itself in screen pixels. Never guess at crossings.
-function corridor(e){const r=root.getBoundingClientRect(),p=o.puzzle(),hits=[];if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return null;
-for(const n of root.querySelectorAll('.island')){const b=n.getBoundingClientRect();if(Math.hypot(e.clientX-b.x-b.width/2,e.clientY-b.y-b.height/2)<b.width/2+3)return null;}
-for(const {a,b} of Bridges.topology(p).edges){const A=p.islands[a],B=p.islands[b],ax=r.left+(A.x+.5)*r.width/p.w,ay=r.top+(A.y+.5)*r.height/p.h,bx=r.left+(B.x+.5)*r.width/p.w,by=r.top+(B.y+.5)*r.height/p.h,dx=bx-ax,dy=by-ay,t=((e.clientX-ax)*dx+(e.clientY-ay)*dy)/(dx*dx+dy*dy);if(t<=0||t>=1)continue;const d=Math.hypot(e.clientX-ax-t*dx,e.clientY-ay-t*dy);if(d<=22)hits.push({a,b,d});}
-hits.sort((a,b)=>a.d-b.d);return hits.length&&(!hits[1]||hits[1].d-hits[0].d>=8)?hits[0]:null;}
-function move(e){if(!drag||drag.id!==e.pointerId)return;if(drag.edge){const edge=corridor(e);drag.valid=!!edge&&edge.a===drag.edge.a&&edge.b===drag.edge.b&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<=12;o.preview(drag.valid?edge.a:null,drag.valid?edge.b:null);return;}const i=island(e);if(i!==drag.start)drag.moved=true;drag.target=i;o.preview(drag.start,i);}
+function corridor(e){const r=root.getBoundingClientRect(),p=o.puzzle();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return null;
+const hits=routes(r,p,e.clientX,e.clientY),mid=band(root,hits);let over=false;
+root.querySelectorAll('.island').forEach((n,i)=>{const b=n.getBoundingClientRect();if(Math.hypot(e.clientX-b.x-b.width/2,e.clientY-b.y-b.height/2)<b.width/2+3){if(mid&&(i===mid.a||i===mid.b))over=true;else over=null;}});
+if(over===null)return null;if(mid&&over)return{a:mid.a,b:mid.b,d:mid.d,over:true};
+return hits.length&&(!hits[1]||hits[1].d-hits[0].d>=8)?hits[0]:null;}
+function move(e){if(!drag||drag.id!==e.pointerId)return;if(drag.edge&&drag.fallback>=0&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>12){drag.edge=null;drag.start=drag.target=drag.fallback;o.preview(null,null);o.focus(drag.start);}if(drag.edge){const edge=corridor(e);drag.valid=!!edge&&edge.a===drag.edge.a&&edge.b===drag.edge.b&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<=12;o.preview(drag.valid?edge.a:null,drag.valid?edge.b:null);return;}const i=island(e);if(i!==drag.start)drag.moved=true;drag.target=i;o.preview(drag.start,i);}
 // A mouse can lose capture a moment before its pointerup: when a move with no button held lands first, the browser lets go early. That is a release; capture lost with a button still down is a cancel.
 const released=e=>e.type==='pointerup'||(e.type==='lostpointercapture'&&!e.buttons);
 function end(e){if(!drag||(e.pointerId!=null&&e.pointerId!==drag.id))return;const d=drag;if(e.type==='pointerup')move(e);drag=null;o.preview(null,null);if(!released(e))o.restore(d.snapshot);else if(d.edge){if(d.valid){if(o.route)o.route(d.edge.a,d.edge.b);else o.pair(d.edge.a,d.edge.b,d.snapshot);}else o.restore(d.snapshot);}else if(d.moved){if(d.target>=0&&d.target!==d.start)o.pair(d.start,d.target,d.snapshot);else o.restore(d.snapshot);}else o.tap(d.start,d.snapshot);try{root.releasePointerCapture(d.id);}catch(_){} }
 function cancel(){const active=!!drag;end({type:'pointercancel'});return active;}
-root.addEventListener('pointerdown',e=>{if(drag){if(e.pointerId!==drag.id)cancel();return;}if(!e.isPrimary||e.button!==0||o.mode()==='pan'||e.target.closest('.route-control,.circuit-route,.circuit-picker'))return;const edge=corridor(e),i=edge?edge.a:island(e);if(i<0)return;e.preventDefault();const snapshot=o.snapshot();drag={id:e.pointerId,start:i,target:i,moved:false,snapshot,edge,valid:true,x:e.clientX,y:e.clientY};o.start();o.focus(i);if(edge)o.preview(edge.a,edge.b);try{root.setPointerCapture(e.pointerId);}catch(_){} });
+root.addEventListener('pointerdown',e=>{if(drag){if(e.pointerId!==drag.id)cancel();return;}if(!e.isPrimary||e.button!==0||o.mode()==='pan'||e.target.closest('.route-control,.circuit-route,.circuit-picker'))return;const edge=corridor(e),i=edge?edge.a:island(e);if(i<0)return;e.preventDefault();const snapshot=o.snapshot();drag={id:e.pointerId,start:i,target:i,moved:false,snapshot,edge,valid:true,x:e.clientX,y:e.clientY,fallback:edge&&edge.over?island(e):-1};o.start();o.focus(i);if(edge)o.preview(edge.a,edge.b);try{root.setPointerCapture(e.pointerId);}catch(_){} });
 root.addEventListener('pointermove',move);for(const type of['pointerup','pointercancel','lostpointercapture'])root.addEventListener(type,end);for(const type of['pointerup','pointercancel'])document.addEventListener(type,end);window.addEventListener('blur',cancel);document.addEventListener('visibilitychange',()=>{if(document.hidden)cancel();});root.addEventListener('contextmenu',e=>e.preventDefault());return{cancel};}
 // Lock an existing route without letting the release also change its count.
 function bindLocks(o){const root=o.root;let hold=null,suppressUntil=0;
-function edgeAt(event){const control=event.target.closest('[data-edge]');if(control)return Number(control.dataset.edge);const picker=event.target.closest('.circuit-picker');if(picker)return Number(picker.dataset.edge);if(event.target.closest('.island'))return -1;
- const r=root.getBoundingClientRect(),p=o.puzzle(),hits=[];if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)return -1;
+function edgeAt(event){const control=event.target.closest('[data-edge]');if(control)return Number(control.dataset.edge);const picker=event.target.closest('.circuit-picker');if(picker)return Number(picker.dataset.edge);const r=root.getBoundingClientRect(),p=o.puzzle(),hits=[];if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)return -1;
+ if(event.target.closest('.island')){const mid=band(root,routes(r,p,event.clientX,event.clientY));return mid?mid.edge:-1;}
  Bridges.topology(p).edges.forEach(({a,b},edge)=>{const A=p.islands[a],B=p.islands[b],ax=r.left+(A.x+.5)*r.width/p.w,ay=r.top+(A.y+.5)*r.height/p.h,bx=r.left+(B.x+.5)*r.width/p.w,by=r.top+(B.y+.5)*r.height/p.h,dx=bx-ax,dy=by-ay,t=((event.clientX-ax)*dx+(event.clientY-ay)*dy)/(dx*dx+dy*dy);if(t<=0||t>=1)return;const d=Math.hypot(event.clientX-ax-t*dx,event.clientY-ay-t*dy);if(d<=22)hits.push({edge,d});});hits.sort((a,b)=>a.d-b.d);return hits.length&&(!hits[1]||hits[1].d-hits[0].d>=8)?hits[0].edge:-1;}
 function cancel(){if(hold)clearTimeout(hold.timer);hold=null;}
 function toggle(edge){o.cancel();o.toggle(edge);}

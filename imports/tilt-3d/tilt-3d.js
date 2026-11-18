@@ -37,6 +37,8 @@ let boardId = BOARDS[0].id, history = [], done = [], reached = 0, corrupt = fals
 const indexOf = id => BOARDS.findIndex(b => b.id === id), known = id => ALL.some(b => b.id === id);
 // Before November 16, 2026 the campaign was all fifty, l01 to l50 in turn, and reached counted in that order.
 const OLD_ORDER = ALL.map(b => b.id).sort();
+// From November 16 to 17, 2026 the campaign was these thirty, and reached (order 2) counted in their order.
+const ORDER_2 = ['l01', 'l02', 'l03', 'l04', 'l05', 'l06', 'l07', 'l08', 'l09', 'l10', 'l11', 'l12', 'l23', 'l15', 'l26', 'l25', 'l37', 'l18', 'l33', 'l30', 'l47', 'l45', 'l38', 'l46', 'l42', 'l40', 'l31', 'l50', 'l39', 'l41'];
 function obstacle(P, s, d) { const [dr, dc] = E.DIRS[d], r = s.row + dr, c = s.col + dc; return r < 0 || c < 0 || r >= P.size || c >= P.size ? 'rim' : 'block'; }
 // The rules state after a list of tips, and how the last one ended: against the rim or a block, or on a landing.
 function replay(b, moves) {
@@ -60,21 +62,26 @@ function readSave() {
     prefs = { theme: ['system', 'light', 'dark'].includes(s.theme) ? s.theme : 'dark', motion: s.motion, looked: s.looked === true, hintCount: Number.isInteger(hc) ? Math.max(0, Math.min(2, hc)) : 0, hintBoard: typeof s.hintBoard === 'string' ? s.hintBoard : null };
     // Saves are checked against all fifty boards: a finished mark on a board left out of the campaign stays.
     done = [...new Set(v.done.filter(known))];
-    // A save without order 2 counts reached in the fifty-board order: every campaign board it had open stays open.
+    // Order 3 counts reached in this campaign; order 2 in the thirty above; none in the fifty-board order. Every
+    // campaign board a save had open stays open.
     const was = Math.min(ALL.length - 1, Math.max(0, Number.isInteger(v.reached) ? v.reached : 0));
-    const opened = v.order === 2 ? was : Math.max(...OLD_ORDER.slice(0, was + 1).map(indexOf));
+    const opened = v.order === 3 ? was : Math.max(-1, ...(v.order === 2 ? ORDER_2 : OLD_ORDER).slice(0, was + 1).map(indexOf));
     reached = Math.min(BOARDS.length - 1, Math.max(0, opened, ...done.map(id => indexOf(id) + 1)));
     played = Array.isArray(v.pool) ? [...new Set(v.pool.filter(id => POOL.some(b => b.id === id)))] : [];
     const b = ALL.find(b => b.id === v.board);
-    // A player last on a board left out of the campaign goes on from the first campaign board not finished; with the
-    // campaign finished, that board is one of the pool and stays, moves and all.
+    // A player last on a board left out of the campaign goes on from the open campaign board nearest it in the
+    // campaign it was saved under (the first not finished, for a board left out before that); with the campaign
+    // finished, that board is one of the pool and stays, moves and all.
     if (b && (indexOf(b.id) >= 0 ? indexOf(b.id) <= reached : campaignDone())) { boardId = b.id; try { replay(b, v.moves); history = v.moves.slice(); } catch (_) { history = []; } }
-    else if (b && indexOf(b.id) < 0) boardId = (BOARDS.find(x => !done.includes(x.id)) || BOARDS[0]).id;
+    else if (b && indexOf(b.id) < 0) {
+      const at = ORDER_2.indexOf(b.id), far = x => Math.abs(ORDER_2.indexOf(x.id) - at);
+      boardId = (at < 0 ? BOARDS.find(x => !done.includes(x.id)) || BOARDS[0] : BOARDS.slice(0, reached + 1).reduce((best, x) => far(x) < far(best) || (far(x) === far(best) && ORDER_2.indexOf(x.id) > ORDER_2.indexOf(best.id)) ? x : best)).id;
+    }
   } catch (_) { corrupt = true; }
 }
 function save() {
   if (corrupt) return;
-  try { localStorage.setItem(KEY, JSON.stringify({ version: 1, order: 2, board: boardId, moves: history, done, reached, pool: played, settings: prefs })); } catch (_) {}
+  try { localStorage.setItem(KEY, JSON.stringify({ version: 1, order: 3, board: boardId, moves: history, done, reached, pool: played, settings: prefs })); } catch (_) {}
 }
 const reduced = () => prefs.motion === 'reduce' || matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -704,7 +711,10 @@ function settleWash() { for (let k = 0; k < 3; k++) wash.levels[k] = 0.35; wash.
 
 // ---------- Moves ----------
 function busy() { return !!anim || queue.length > 0; }
-function enqueue(item) { if (queue.length < 4) queue.push(item); drain(); }
+// A tip that arrives while another is still rolling or settling finishes that one at once (the marble is put where it
+// stops, the stack level) and plays from there, so input never waits on the animation; only the last tip of a quick
+// run is seen in full. The light of a solving move is never cut short: tips after a solve do nothing anyway.
+function enqueue(item) { if (queue.length < 4) queue.push(item); if (anim && !solvedNow) fastForward(); drain(); }
 function drain() { while (!anim && queue.length) run(queue.shift()); updateUI(); }
 function run(item) {
   if (item.kind !== 'tip' || solvedNow) return;
@@ -736,7 +746,7 @@ function restart() {
 function go(id) {
   const i = indexOf(id); if (i < 0 ? !(campaignDone() && POOL.some(b => b.id === id)) : i > reached) return false;
   queue = []; anim = null; clearHint(); hideWay(); lookHintDue = null; endLookHint(); finale = false;
-  drawn = null; if (i < 0) played = (played.length + 1 >= POOL.length ? [] : played.filter(x => x !== id)).concat(id);
+  drawn = null; if (i < 0) { const served = played.filter(x => x !== id).concat(id); played = served.length >= POOL.length ? [] : served; }
   boardId = id; history = []; undoStack = []; resetLook(true); buildBoard(); syncAll(); save(); arrival(); say('');
   return true;
 }

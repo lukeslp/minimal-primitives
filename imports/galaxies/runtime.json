@@ -6,6 +6,7 @@
     "boundaries/engine.js",
     "boundaries/index.html",
     "boundaries/style.css",
+    "campaign.js",
     "engine.js",
     "favicon.svg",
     "fonts/IBMPlexMono-500.woff2",

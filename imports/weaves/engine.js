@@ -88,8 +88,33 @@
     }
     return known;
   }
-  // One crossing to change: forced ones first, then ones inside a loose run.
+  // Ordered proof from fixed knots only. Choose the first difference from the
+  // player's cloth: all earlier premises then already match what is visible.
+  // Player notes never become assumptions of a hint.
+  function explanation(board, grid) {
+    const known = pins(board);
+    for (let pass = 0; pass < board.rows * board.cols; pass++) {
+      let changed = false;
+      for (let r = 0; r < board.rows; r++) for (let c = 0; c < board.cols; c++) for (const [dr, dc, axis] of [[0, 1, 'row'], [1, 0, 'column']]) {
+        if (r + 2 * dr >= board.rows || c + 2 * dc >= board.cols) continue;
+        const cells = [0, 1, 2].map(k => [r + k * dr, c + k * dc]);
+        for (let i = 0; i < 3; i++) {
+          const [rr, cc] = cells[i]; if (known.has(key(rr, cc))) continue;
+          const pair = cells.filter((_, j) => j !== i), [a, b] = pair.map(([ar, ac]) => known.get(key(ar, ac)));
+          if (a === undefined || a !== b) continue;
+          const to = -a;
+          if (grid[rr][cc] !== to) return { r: rr, c: cc, to, pair, axis, between: i === 1 };
+          known.set(key(rr, cc), to); changed = true;
+        }
+      }
+      if (!changed) break;
+    }
+    return null;
+  }
+  // One crossing to change, with the visible pair that forces it when possible.
   function hint(board, grid) {
+    const reason = explanation(board, grid);
+    if (reason) return reason;
     const { count, solution } = solve(board, 2);
     if (count !== 1) return null;
     const p = pins(board), forced = propagate(board), inRun = new Set();
@@ -110,5 +135,5 @@
     for (let r = 0; r < board.rows; r++) for (let c = 0; c < board.cols; c++) if (!p.has(key(r, c)) && solution[r][c] === -1) n++;
     return n;
   }
-  return { start, flip, loose, solved, solve, propagate, hint, par };
+  return { start, flip, loose, solved, solve, propagate, explanation, hint, par };
 });

@@ -1,7 +1,7 @@
-import {judge, nearestDot, placed, spots, FULL, PLANET, WELL} from './well.mjs?v=0f8ac9d7';
-import {boards as campaign, pool} from './boards.mjs?v=4cee060e';
-import {fresh as freshCampaign, draw as fromPool, fingerprint, pack, restore, unlock} from './campaign.mjs?v=30f86605';
-import {createView, createSky, trayPoint, NEXT, RIPPLE} from './dark-view.mjs?v=0f8ac9d7';
+import {judge, nearestDot, pin, placed, spots, FULL, PLANET, WELL} from './well.mjs?v=ceff1282';
+import {boards as campaign, pool} from './boards.mjs?v=067f676d';
+import {fresh as freshCampaign, draw as fromPool, fingerprint, pack, restore, unlock} from './campaign.mjs?v=47087c77';
+import {createView, createSky, trayPoint, NEXT, RIPPLE} from './dark-view.mjs?v=c3a289ef';
 
 // The campaign's stages, then New Game+'s boards: a record has one entry for each.
 const boards = [...campaign, ...pool];
@@ -174,7 +174,7 @@ function draw(now = performance.now()) {
     return age >= 0 && age < 1 ? age : null;
   });
   view.draw({ board, planets: stage().planets, bodies, shown, won: won(now), hints: stage().hints, held, mode, lens, clues, slots: slots(), waves,
-    sky: stars ? record.board : null, weave, hole, selected, time: moving() ? now : null });
+    sky: stars ? record.board : null, weave, hole, selected, time: moving() ? now : null, reason: hinted && hinted.board === record.board ? hinted.reason : null });
   night(now);
 }
 // The page's sky: every stage has its own, and it twinkles only while things may move.
@@ -367,10 +367,13 @@ function hint() {
   const planet = wrong(selected) ? selected : astray >= 0 ? astray : selected !== null && planets[selected] === null ? selected : planets.lastIndexOf(null);
   stage().hints = Math.max(stage().hints, at + 1);
   selected = planet;
-  hinted = { board: record.board, planet, dot: answer[at], planets: [...planets], selected };
+  // The reason shown with it: the beam that needs a planet there to reach its light.
+  const reason = pin(boards[record.board], at, result.lit);
+  hinted = { board: record.board, planet, dot: answer[at], planets: [...planets], selected, reason };
   save();
   draw();
-  $('status').replaceChildren(document.createTextNode(`Planet ${planet + 1} goes on ${where(answer[at])}. Press Hint again to ${planets[planet] === null ? 'place' : 'move'} it.`));
+  const why = reason ? ` Beam ${reason.probe + 1} bends around it into its light.` : '';
+  $('status').replaceChildren(document.createTextNode(`Planet ${planet + 1} goes on ${where(answer[at])}.${why} Press Hint again to ${planets[planet] === null ? 'place' : 'move'} it.`));
 }
 // Next: the following stage; after the last, the first stage not yet finished.
 // When every stage is finished it starts New Game+, and on a New Game+ board
@@ -551,6 +554,7 @@ window.__rimlight = {
   get ending() { return ending(); },
   get hints() { return stage().hints; },
   get hinted() { return hinted && { planet: hinted.planet, dot: hinted.dot }; },
+  get reason() { return hinted?.reason ? hinted.reason.probe : null; },
   get gliding() { return gliding; },
   get won() { return won(performance.now()); },
   get size() { return size(); },

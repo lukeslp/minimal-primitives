@@ -276,6 +276,31 @@ class LibraryIndexTests(unittest.TestCase):
         self.assertEqual({p.stem for p in (ROOT / 'web/assets').glob('*.png')},
                          {g['id'] for g in self.sources if g.get('group') == 'accessible'})
 
+    def test_finished_tiles_need_every_campaign_id_of_the_bundled_game(self):
+        # A set is [storage key, field, the campaign's ids in play order], from the index (written from game-riffs by
+        # luke-portfolio minimal/campaigns.cjs). Each id and the key are in the bundled game; a game that plays a
+        # chosen part of its boards lists exactly these in its campaign.js. Weaves trails the index and has no set.
+        for tile in self.tiles:
+            campaign = tile.get('set')
+            if not campaign:
+                continue
+            key, field, ids = campaign
+            self.assertIn(field, ('completed', 'finished', 'done', 'solved'), tile['name'])
+            self.assertEqual(len(ids), len(set(ids)), tile['name'] + ' lists each board once')
+            source = '\n'.join(p.read_text() for p in (ROOT / 'imports' / tile['game']).glob('*.js'))
+            for word in [key] + ids:
+                self.assertRegex(source, r'[\'"]%s[\'"]' % re.escape(word), tile['name'])
+            order = ROOT / 'imports' / tile['game'] / 'campaign.js'
+            if order.exists():
+                self.assertEqual(re.findall(r"'([\w-]+)'", re.findall(r"\[((?:\s*'[\w-]+'\s*,?)+)\s*\]", order.read_text())[-1]), ids, tile['name'])
+        sets = {t['name']: t['set'] for t in self.tiles if t.get('set')}
+        self.assertEqual({name: len(s[2]) for name, s in sets.items()}, {'Slant': 54, 'Notan': 53, 'Bridges': 50, 'Akari': 50,
+                         'Spiral Galaxies': 25, 'Cast': 25, 'Folding': 25, 'Towers': 42, 'Weaves': 16, 'Tilt': 25, 'Horologist': 25, 'Tents': 38,
+                         'Shoo': 25, 'Balance': 39})
+        # Weaves (game-riffs 29b29ad) counts the sixteen boards of its course (course-data.js `order`), in course order.
+        course = json.loads(re.search(r'"order":\s*(\[[^\]]*\])', (ROOT / 'imports/weaves/course-data.js').read_text()).group(1))
+        self.assertEqual(sets['Weaves'], ['weave-minimal.v1', 'finished', course])
+
     def test_finished_tiles_show_a_bundled_solved_picture(self):
         # A finished game's tile shows that game's own solved board, bundled with the app: the nine the index names,
         # and Notan, whose record the package can read and the web page cannot (APP_LIFE in tools/import-index.py).
@@ -284,11 +309,14 @@ class LibraryIndexTests(unittest.TestCase):
         for name, tile in solved.items():
             self.assertTrue(tile['set'], name + ' can be finished')
             self.assertTrue(0.5 <= tile['solved']['fill'] <= 0.8, name)
-        self.assertEqual({t['name'] for t in self.tiles if t.get('set') and not t.get('solved')}, {'Akari', 'Tilt', 'Horologist'},
+        self.assertEqual({t['name'] for t in self.tiles if t.get('set') and not t.get('solved')}, {'Akari', 'Tilt', 'Horologist', 'Weaves'},
                          'the games that finish without color keep the one-color mark')
-        # Notan's whole set is every board its pinned source lists (the ramp and New Game+), kept under ink.v1.
-        boards = sum(len(re.findall(r"\{ id: '[\w-]+'", (ROOT / 'imports/notan' / name).read_text())) for name in ('levels.js', 'plus-levels.js'))
-        self.assertEqual(solved['Notan']['set'], ['ink', boards])
+        # Notan's campaign is its ramp, every board its pinned levels.js lists, kept under ink.v1 as a map of board to
+        # best time; its New Game+ boards (plus-levels.js) never finish the tile.
+        ramp = re.findall(r"\{ id: '([\w-]+)'", (ROOT / 'imports/notan/levels.js').read_text())
+        plus = re.findall(r"\{ id: '([\w-]+)'", (ROOT / 'imports/notan/plus-levels.js').read_text())
+        self.assertEqual(solved['Notan']['set'], ['ink.v1', 'solved', ramp])
+        self.assertTrue(plus and not set(plus) & set(ramp))
         self.assertIn("const KEY = 'ink.v1';", (ROOT / 'imports/notan/notan.js').read_text())
         self.assertIn("'All ' + all + ' boards solved.'", (ROOT / 'imports/notan/notan.js').read_text())
         # The build names each picture for a tile on black and one on white, and the shell reads them only from the package.
@@ -639,6 +667,10 @@ class PackageOffersOnlyWhatWorksTests(unittest.TestCase):
         self.assertIn("if (window.MinimalLibrary && typeof window.MinimalLibrary.leave === 'function') return window.MinimalLibrary.leave(opened);", shell)
         for gone in ['LIBRARY_SCRIPT', 'HOME_PENDING_SCRIPT', 'data-back']:
             self.assertNotIn(gone, shell)
+        # Text follows the system font size, at launch and when it changes; page pinch zoom stays off for the boards.
+        self.assertNotIn('textZoom = 100', shell)
+        self.assertEqual(shell.count('textZoom = systemTextZoom('), 2)
+        self.assertIn('setSupportZoom(false)', shell)
         self.assertIn('window.MinimalLibrary = { leave };', (ROOT / 'web/collection.js').read_text())
 
     def test_the_water_wheel_has_no_door(self):

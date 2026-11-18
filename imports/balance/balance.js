@@ -128,7 +128,9 @@
     // squares: it holds three alike in a row, or it cannot balance (full with unequal counts, or holding
     // more than half of one shade before it is full). One mark per line, whichever rule it breaks.
     const uneven = puzzle.runsOnly ? [] : [...v.uneven, ...v.crowded].filter(u => !runLines.has(u.kind + u.index));
-    const broken = [...new Set([...runLines, ...uneven.map(u => u.kind + u.index)])].map(k => ({ kind: k.startsWith('row') ? 'row' : 'column', index: Number(k.replace(/^\D+/, '')) }));
+    // A tried-shade Hint marks the line its chain would break the same way, at its end.
+    const ahead = S.hint && S.hint.lines ? S.hint.lines.map(u => u.kind + u.index) : [];
+    const broken = [...new Set([...runLines, ...uneven.map(u => u.kind + u.index), ...ahead])].map(k => ({ kind: k.startsWith('row') ? 'row' : 'column', index: Number(k.replace(/^\D+/, '')) }));
     const unevenRows = new Set(uneven.filter(u => u.kind === 'row').map(u => u.index));
     const unevenCols = new Set(uneven.filter(u => u.kind === 'column').map(u => u.index));
     const evidence = new Set(S.hint ? S.hint.support : []);
@@ -152,11 +154,11 @@
       cell.setAttribute('aria-selected', String(i === S.focus));
       cell.setAttribute('aria-label', 'Row ' + (r + 1) + ', column ' + (c + 1) + ': ' + E.NAME[value] + (given ? ', fixed' : '') +
         (runH.has(i) || runV.has(i) ? ', three alike in a row' : '') + (unevenRows.has(r) ? ', row uneven' : '') + (unevenCols.has(c) ? ', column uneven' : '') +
-        (i === target ? ', hint' : ''));
+        (evidence.has(i) ? ', dashed' : '') + (i === target ? ', hint' : ''));
     });
     marks.replaceChildren(...broken.map(u => {
       const mark = document.createElement('i');
-      mark.className = 'end-' + u.kind;
+      mark.className = 'end-' + u.kind + (ahead.includes(u.kind + u.index) ? ' ahead' : '');
       mark.style[u.kind === 'row' ? 'top' : 'left'] = 'calc(var(--cell) * ' + (u.index + 0.5) + ' - 5px)';
       return mark;
     }));
