@@ -105,8 +105,9 @@ test('Cast, Shoo · Minimal, Tilt · 3D, Cube Maze, Tangles and Weaves are score
   assert.equal((await validateProof({identity:identity('tangles',p,'time-v1'),proof:{board:p.id,moves},elapsedMs:5000})).valid,false);count++;
  }
  // Weaves: the hits from the unwoven start to the one answer are the board's par; every hit is replayed.
- const W=require('../imports/weaves/engine.js'),weaves=require('../imports/weaves/boards.js');
- assert.equal(weaves.length,50);
+ // Since game-riffs 9ad63d8 the course adds ten boards of its own, c01 to c10 (course-data.js).
+ const W=require('../imports/weaves/engine.js'),weaves=[...require('../imports/weaves/boards.js'),...require('../imports/weaves/course-data.js').extra];
+ assert.equal(weaves.length,60);assert.deepEqual(weaves.slice(50).map(p=>p.id),['c01','c02','c03','c04','c05','c06','c07','c08','c09','c10']);
  for(const p of weaves){
   const start=W.start(p),answer=W.solve(p,1).solution,moves=[];
   for(let r=0;r<p.rows;r++)for(let c=0;c<p.cols;c++)if(start[r][c]!==answer[r][c])moves.push([r,c]);
@@ -121,7 +122,7 @@ test('Cast, Shoo · Minimal, Tilt · 3D, Cube Maze, Tangles and Weaves are score
   assert.equal((await check({board:p.id,moves:[]})).valid,false);
   assert.equal((await check({board:p.id,moves,hits:1})).value,moves.length,'a count sent beside the moves is ignored');
   assert.equal((await validateProof({identity:identity('weaves',p,'time-v1'),proof:{board:p.id,moves},elapsedMs:5000})).valid,false);
-  // Weaves has no free play: a board that is not one of the fifty has no lane, whatever its layout hash says.
+  // Weaves has no free play: a board that is not one of the sixty has no lane, whatever its layout hash says.
   for(const puzzleId of ['generated','w51'])assert.equal((await validateProof({identity:{...id,puzzleId},proof:{board:puzzleId,moves,generated:{seed:1,difficulty:'Easy'}},elapsedMs:5000})).valid,false,puzzleId);
   assert.equal((await validateProof({identity:{...id,mode:'free'},proof:{board:p.id,moves},elapsedMs:5000})).valid,false,'no free-play mode');
   count++;

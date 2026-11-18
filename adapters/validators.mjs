@@ -134,7 +134,8 @@ function tanglesValue(E,p,proof){
   return closed()?hits:null;
 }
 // Weaves: every hit flips one free crossing, and flipping one back counts too; the cloth must hold at the end.
-// The fifty fixed boards are the only ones: the game makes no boards of its own, so any other id finds no board.
+// The sixty fixed boards (fifty and the course's ten) are the only ones: the game makes no boards of its own, so any
+// other id finds no board.
 function weavesValue(E,p,proof){
   const moves=proof.moves;
   if(!bounded(moves,4096)||!moves.length)return null;
@@ -180,7 +181,9 @@ export async function validateProof(request){
     }else{
       E=load(i.game,'engine.js');
       // Tangles' fifty boards are its first twelve (boards.js) and the campaign's thirty-eight (campaign.js).
-      const L=i.game==='tangles'?[...load('tangles','boards.js'),...load('tangles','campaign.js')]:load(i.game,BOARDS[i.game]||'levels.js');
+      // Weaves' boards are its fifty (boards.js) and, since game-riffs 9ad63d8, the ten course boards c01 to c10
+      // (course-data.js); every one keeps its id.
+      const L=i.game==='tangles'?[...load('tangles','boards.js'),...load('tangles','campaign.js')]:i.game==='weaves'?[...load('weaves','boards.js'),...load('weaves','course-data.js').extra]:load(i.game,BOARDS[i.game]||'levels.js');
       if(i.game==='notan'){
         const lists=i.mode==='plus'?load('notan','plus-levels.js'):L;
         const entry=lists.find(p=>p.id===i.puzzleId);

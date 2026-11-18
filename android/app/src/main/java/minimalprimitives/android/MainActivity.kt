@@ -40,6 +40,7 @@ import android.window.OnBackInvokedCallback
 import android.window.OnBackInvokedDispatcher
 import androidx.webkit.WebViewAssetLoader
 import java.io.ByteArrayInputStream
+import kotlin.math.roundToInt
 
 class MainActivity : Activity() {
     private lateinit var container: FrameLayout
@@ -133,10 +134,14 @@ class MainActivity : Activity() {
             mediaPlaybackRequiresUserGesture = true
             setSupportMultipleWindows(false)
             javaScriptCanOpenWindowsAutomatically = false
+            // Page pinch zoom stays off: boards use two-finger pinch and drag
+            // themselves (Notan's zoom, the 3D games' orbit), and WebView
+            // zoom would take those gestures.
             setSupportZoom(false)
             builtInZoomControls = false
             displayZoomControls = false
-            textZoom = 100
+            // Text follows the system font size.
+            textZoom = systemTextZoom(resources.configuration)
             setGeolocationEnabled(false)
             safeBrowsingEnabled = false
         }
@@ -205,8 +210,14 @@ class MainActivity : Activity() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        // fontScale is a handled config change, so the activity is not
+        // recreated when the system font size changes: apply it here.
+        webView.settings.textZoom = systemTextZoom(newConfig)
         keepScreenImmersive()
     }
+
+    private fun systemTextZoom(config: Configuration): Int =
+        (config.fontScale * 100).roundToInt()
 
     override fun onSaveInstanceState(outState: Bundle) {
         if (!rendererGone) webView.saveState(outState)

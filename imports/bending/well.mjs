@@ -139,12 +139,36 @@ const lightCache = new WeakMap();
 const solution = board => {
   if (!lightCache.has(board)) {
     const paths = board.probes.map(probe => trace(probe, places(board, board.answer)));
-    lightCache.set(board, { exits: paths.map(path => path.exit), headings: paths.map(path => path.touched ? path.heading : null) });
+    lightCache.set(board, { paths, exits: paths.map(path => path.exit), headings: paths.map(path => path.touched ? path.heading : null) });
   }
   return lightCache.get(board);
 };
 export const lights = board => solution(board).exits;
 export const leaving = board => solution(board).headings;
+
+// The beams that need the planet on the answer's dot `at` to reach their
+// lights: `alone` are bent by that planet and no other, `shared` by it and
+// another. A Hint shows one of them as its reason.
+export function pins(board, at) {
+  const bit = 1 << at;
+  const alone = [];
+  const shared = [];
+  solution(board).paths.forEach((path, i) => {
+    if (path.touched === bit) alone.push(i);
+    else if (path.touched & bit) shared.push(i);
+  });
+  return { alone, shared };
+}
+// The beam that pins that planet: one it bends alone if there is one, else one
+// it helps bend; among those, one not yet lit (`lit` is the board as it is).
+// Its path is the way it goes when every planet is on the answer. Null if none.
+export function pin(board, at, lit = []) {
+  const { alone, shared } = pins(board, at);
+  const list = alone.length ? alone : shared;
+  if (!list.length) return null;
+  const probe = list.find(i => !lit[i]) ?? list[0];
+  return { probe, points: solution(board).paths[probe].points };
+}
 
 // The corner a bent probe's path rounds: where the line it enters on meets the
 // line it leaves on. Null when the two do not meet inside the well.

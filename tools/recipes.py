@@ -13,6 +13,16 @@ SCRIPTS.update({ident: config['script'] for ident, config in CONFIGS.items()})
 FIELDS = {'akari': ['w','h','cells'], 'galaxies': ['w','h','centres'], 'bridges': ['w','h','islands'], 'slant': ['w','h','clues'], 'fold': ['w','h','pairs'], 'horologist': ['W','H','drive','clocks','pillars','tray'], 'tilt': ['levels'], 'bending': ['size','answer','lights','planets','beams','receivers']}
 
 
+# Fold's own reading of a fold.progress.v4 record (as 0.5.9 and earlier snapshots carry it) into v5, the order of the
+# twenty-five-board campaign (fold.js, game-riffs 9ad63d8); a v5 record is checked and read as the game reads it.
+FOLD_PROGRESS = ("function __minimalFoldProgress(p,s){const v5=progress5Valid(p);if(!v5&&!progressValid(p))throw Error('Invalid Folding progress.');"
+    "if(!v5){if(p.version===1)p={...p,version:2,available:originalCount,newGamePlus:ALL.slice(0,originalCount).every(q=>p.completed.includes(q.id))};"
+    "const old=Math.max(p.available,ALL.findIndex(q=>q.id===s.at)+1);p={version:3,completed:p.completed.slice(),available:Math.max(1,L.filter(q=>ALL.indexOf(q)<old).length),newGamePlus:p.newGamePlus,pool:[]};}"
+    "else{p={...p,completed:p.completed.slice(),pool:p.pool.slice()};const index=L.findIndex(q=>q.id===s.at);p.available=Math.max(p.available,index+1);}"
+    "for(const id of p.completed)if(!inPool(id))p.available=Math.max(p.available,Math.min(L.length,L.findIndex(q=>q.id===id)+2));"
+    "if(L.every(q=>p.completed.includes(q.id)))p.newGamePlus=true;return p;}")
+
+
 def hook(text, anchor, replacement, path):
     if text.count(anchor) != 1:
         raise ValueError(f'Adapter anchor drift in {path}: {anchor[:90]!r}, count={text.count(anchor)}')
@@ -41,12 +51,20 @@ def inject(game, path, text):
         if ident=='bridges': snapshot=snapshot[:-2]+",circuitMode,circuitOpen:$('#board .circuit-picker:not([hidden])')?.dataset.edge??null})"
         restore = "mainPainter.cancel();" if ident!='fold' else 'gesture=null;cancelAnimation();'
         if ident=='akari' and not alternate: restore += "__minimalAkariPractice=Object.fromEntries(['practice','lesson','practiceMode'].filter(k=>k in d).map(k=>[k,d[k]]));"
-        restore += "store=d.store;progress=d.progress;Object.assign(prefs,d.prefs);write(K.settings,prefs);generated=d.generated;"
+        # Fold's progress moved to fold.progress.v5 in game-riffs 9ad63d8 (available counts in the twenty-five-board
+        # campaign, New Game+ deals the other twenty-five from `pool`); an older snapshot's progress is read the way the
+        # game reads fold.progress.v4, and a board that left the campaign gives way to the nearest open one.
+        restore += "store=d.store;progress=" + ("__minimalFoldProgress(d.progress,d.store);" if ident=='fold' else "d.progress;") + "Object.assign(prefs,d.prefs);write(K.settings,prefs);generated=d.generated;"
         if ident=='bridges': restore += "circuitMode=!!d.circuitMode;document.documentElement.classList.toggle('circuit-study',circuitMode);__minimalCircuitHelp();"
         if ident=='slant': restore += "Object.assign(free,d.free);freePuzzle=d.freePuzzle;lockTool=d.lockTool;$('#free-size').value=String(free.size);"
-        restore += "switchBoard(d.at,true);Object.assign(S,d.state);if(!('finale' in d.state))delete S.finale;"
+        # Since game-riffs 9ad63d8 Fold and Spiral Galaxies play twenty-five of their fifty boards: a player on a board
+        # the campaign left out goes on from the board the game itself picks (that board's saved marks or folds come
+        # back from the store), until New Game+ is open, when it stays. Any other save opens as it was.
+        moved = {'fold': "inPool(d.at)&&!progress.newGamePlus?nearestOpen(d.at):d.at",
+                 'galaxies': "ids.has(d.at)&&!cids.has(d.at)&&!finished()&&C.some(p=>!progress.completed.includes(p.id))?C.filter(p=>!progress.completed.includes(p.id)).reduce((a,p)=>Math.abs(L.indexOf(p)-L.findIndex(q=>q.id===d.at))<Math.abs(L.indexOf(a)-L.findIndex(q=>q.id===d.at))?p:a).id:d.at"}.get(ident)
+        if moved: restore += "const __at=" + moved + ";if(__at!==d.at)store.at=__at;switchBoard(__at,true);if(__at===d.at){Object.assign(S,d.state);if(!('finale' in d.state))delete S.finale;" + ("S.state=replay(puzzle,S.path);" if ident=='fold' else '') + "}" + ("S.busy=false;" if ident=='fold' else '')
+        else: restore += "switchBoard(d.at,true);Object.assign(S,d.state);if(!('finale' in d.state))delete S.finale;"
         if ident!='fold': restore += "mode=d.mode;"
-        if ident=='fold': restore += 'S.state=replay(puzzle,S.path);S.busy=false;'
         if ident in {'galaxies','bridges','slant'} or alternate: restore += 'lesson=d.lesson??0;resetPractice();Object.assign(P,d.practice);practiceDraw();'
         if ident=='slant' or alternate: restore += 'practiceMode=d.practiceMode;practiceFeedback();'
         restore += "applyPrefs();render();say(d.text||'');for(const id of d.dialogs||[])document.getElementById(id)?.showModal();save();"
@@ -68,7 +86,7 @@ def inject(game, path, text):
         if ident=='bridges':text=hook(text,'function undo(s,p,painter,main){','function undo(s,p,painter,main){if(main)window.MinimalAdapter?.undo();',path)
         elif ident=='fold':text=hook(text,'function undo(shown=true){','function undo(shown=true){window.MinimalAdapter?.undo();',path)
         else:text=hook(text,'function undo(){','function undo(){window.MinimalAdapter?.undo();',path)
-        addon=f"\n{"let __minimalAkariPractice;" if ident=="akari" and not alternate else ""}\nconst __minimal=MinimalBridge.install({{rulesVersion:'{rules}',scoringPolicy:'{policy}',describe(){{{desc}}},snapshot:()=>{snapshot},restore(d){{{restore}}},settle:{settle},undoDepth:()=>S.undo.length,proof:()=>{proof}}});\nconst __minimalSave=save;save=function(){{const v=__minimalSave.apply(this,arguments);__minimal.changed();return v;}};\n"
+        addon=f"\n{"let __minimalAkariPractice;" if ident=="akari" and not alternate else ""}{FOLD_PROGRESS if ident=="fold" else ""}\nconst __minimal=MinimalBridge.install({{rulesVersion:'{rules}',scoringPolicy:'{policy}',describe(){{{desc}}},snapshot:()=>{snapshot},restore(d){{{restore}}},settle:{settle},undoDepth:()=>S.undo.length,proof:()=>{proof}}});\nconst __minimalSave=save;save=function(){{const v=__minimalSave.apply(this,arguments);__minimal.changed();return v;}};\n"
     else:
         addon=(ROOT/'adapters/private'/f'{ident}.js').read_text().replace('__RULES__',rules).replace('__POLICY__',policy)
         for anchor, replacement in CONFIGS.get(ident, {}).get('hooks', []):

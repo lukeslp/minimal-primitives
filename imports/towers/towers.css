@@ -51,7 +51,16 @@ button:focus-visible,select:focus-visible,summary:focus-visible{outline:2px soli
 .clue.evidence circle{display:inline;stroke-dasharray:none;stroke-width:2;animation:pulse 650ms 2}
 .focus-ring{display:none;fill:none;stroke:var(--ink);stroke-width:3.5;stroke-linejoin:round}
 .focus-ring.on-given{stroke:var(--bg);stroke-width:3}
-.board:has(.cell:focus-visible) .focus-ring{display:inline}
+.board:has(.cell:focus-visible) .focus-ring,.board.picking .focus-ring{display:inline}
+/* The strip of heights for the square in hand: the empty square, then 1 … N. */
+.picker{position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:1;display:flex;gap:2px;padding:2px;border:1px solid var(--line);background:var(--bg);touch-action:manipulation}
+.picker[hidden]{display:none}
+.picker button{display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;background:none;color:var(--ink);font:500 18px/1 var(--mono);font-variant-numeric:tabular-nums}
+.picker button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linejoin:round}
+.picker button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.picker button:focus-visible{outline-offset:-4px}
+.picker button[aria-pressed=true]:focus-visible{outline-color:var(--bg)}
+@media(forced-colors:active){.picker{border-color:CanvasText}.picker button[aria-pressed=true]{background:Highlight;color:HighlightText;forced-color-adjust:none}}
 /* At the solve the edge numbers and the ground lines let go; the skyline stands alone. */
 .clues,.ground path{transition:opacity .6s}
 /* The numbers stay, quieter, and can be tapped: light falls from that point along its line. The towers

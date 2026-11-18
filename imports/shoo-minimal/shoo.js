@@ -1,13 +1,13 @@
 /* Shoo (Minimal): the page. Bees flee from the cell you tap. The rule is in
-   engine.js, the boards in boards.js, the thirty of the campaign and their
+   engine.js, the boards in boards.js, the twenty-five of the campaign and their
    order in campaign.js, the finish's palettes in payoff.js. The
    board, the bees and their motion, the hive and the finish are ported from
    shoo/shoo.js; the camera and look-and-hold are left out, and every tap
    leaves a brief ring on the cell it landed on. */
 (function () {
   'use strict';
-  // The campaign (campaign.js) is thirty of the eighty boards in boards.js, in its own order. Once every
-  // one is done the game is finished, and New Game+ deals the other fifty (the pool) at random.
+  // The campaign (campaign.js) is twenty-five of the eighty boards in boards.js, in its own order. Once every
+  // one is done the game is finished, and New Game+ deals the other fifty-five (the pool) at random.
   const E = ShooEngine, all = ShooBoards, boards = ShooCampaign.map(id => all.find(b => b.id === id)), P = ShooPayoff;
   const $ = s => document.querySelector(s), NS = 'http://www.w3.org/2000/svg';
   // Version 2 of the board and progress saves holds bees; version 1 held the
@@ -45,7 +45,7 @@
   const store = read(K.current, v => isObject(v) && v.version === 2 && known.has(v.at) && isObject(v.boards) && Object.keys(v.boards).every(id => known.has(id) && boardValid(id, v.boards[id])), { version: 2, at: boards[0].id, boards: {} });
   // Every campaign board done: the game is finished and New Game+ is open (as in Slant).
   const unlocked = () => boards.every(b => progress.completed.includes(b.id));
-  // The pool boards New Game+ has dealt this round, in order; none comes again until all fifty have.
+  // The pool boards New Game+ has dealt this round, in order; none comes again until all fifty-five have.
   store.pool = Array.isArray(store.pool) ? [...new Set(store.pool.filter(id => poolIds.has(id)))] : [];
   // A player last on a board outside the campaign stays there once the game is finished (a New Game+
   // board); before that, they go on from the first campaign board not yet done.
@@ -586,7 +586,7 @@
   };
   const undo = () => enqueue({ type: 'undo' }, true), restart = () => enqueue({ type: 'restart' }, true), askHint = () => enqueue({ type: 'hint' });
   const go = (id, opts = {}) => ids.has(id) || (unlocked() && poolIds.has(id)) ? enqueue({ type: 'go', id, ...opts }, true).then(() => true) : Promise.resolve(false);
-  // New Game+: a pool board at random, one not yet dealt this round (a new round starts once all fifty
+  // New Game+: a pool board at random, one not yet dealt this round (a new round starts once all fifty-five
   // have been, and never with the board just played). A board already solved before starts fresh.
   function newGame(opts = {}) {
     if (!unlocked()) return Promise.resolve(false);

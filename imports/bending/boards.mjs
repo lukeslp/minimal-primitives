@@ -25,14 +25,9 @@ export const boards = [
   { size: 5, answer: [3, 58], probes: [{ at: 290, aim: 450 }, { at: 20, aim: 190 }, { at: 110, aim: 310 }, { at: 180, aim: 400 }, { at: 230, aim: 400 }] },
   { size: 5, answer: [26, 74], probes: [{ at: 270, aim: 500 }, { at: 100, aim: 290 }, { at: 130, aim: 290 }, { at: 170, aim: 350 }, { at: 210, aim: 380 }] },
   { size: 5, answer: [33, 47, 72], probes: [{ at: 280, aim: 490 }, { at: 320, aim: 500 }, { at: 0, aim: 230 }, { at: 90, aim: 310 }, { at: 170, aim: 320 }, { at: 220, aim: 450 }] },
-  { size: 5, answer: [17, 21, 23], probes: [{ at: 280, aim: 420 }, { at: 330, aim: 490 }, { at: 0, aim: 180 }, { at: 50, aim: 230 }, { at: 130, aim: 290 }, { at: 170, aim: 370 }, { at: 200, aim: 430 }] },
-  { size: 5, answer: [34, 65, 70], probes: [{ at: 270, aim: 400 }, { at: 320, aim: 550 }, { at: 50, aim: 180 }, { at: 80, aim: 260 }, { at: 120, aim: 320 }, { at: 180, aim: 390 }, { at: 220, aim: 370 }] },
   { size: 5, answer: [2, 45, 49], probes: [{ at: 330, aim: 490 }, { at: 10, aim: 160 }, { at: 100, aim: 290 }, { at: 140, aim: 340 }, { at: 200, aim: 350 }, { at: 230, aim: 430 }] },
-  { size: 5, answer: [21, 33, 66], probes: [{ at: 300, aim: 480 }, { at: 70, aim: 200 }, { at: 130, aim: 360 }, { at: 160, aim: 350 }, { at: 200, aim: 330 }, { at: 230, aim: 380 }, { at: 260, aim: 460 }] },
   { size: 5, answer: [11, 31, 51], probes: [{ at: 310, aim: 460 }, { at: 340, aim: 560 }, { at: 60, aim: 220 }, { at: 90, aim: 260 }, { at: 140, aim: 310 }, { at: 190, aim: 390 }] },
-  { size: 5, answer: [7, 35, 48], probes: [{ at: 280, aim: 430 }, { at: 320, aim: 460 }, { at: 0, aim: 210 }, { at: 80, aim: 250 }, { at: 140, aim: 280 }, { at: 170, aim: 360 }, { at: 240, aim: 400 }] },
   { size: 5, answer: [5, 42, 67], probes: [{ at: 330, aim: 530 }, { at: 60, aim: 190 }, { at: 100, aim: 300 }, { at: 130, aim: 310 }, { at: 160, aim: 310 }, { at: 240, aim: 400 }] },
-  { size: 5, answer: [23, 26, 59], probes: [{ at: 270, aim: 440 }, { at: 300, aim: 490 }, { at: 350, aim: 530 }, { at: 40, aim: 180 }, { at: 150, aim: 320 }, { at: 230, aim: 410 }] },
   { size: 5, answer: [19, 32, 36], probes: [{ at: 270, aim: 410 }, { at: 330, aim: 530 }, { at: 0, aim: 210 }, { at: 70, aim: 250 }, { at: 150, aim: 330 }, { at: 210, aim: 410 }] }
 ];
 // New Game+: served at random once every stage is solved.
@@ -54,5 +49,10 @@ export const pool = [
   { size: 5, answer: [16, 32, 48], probes: [{ at: 280, aim: 460 }, { at: 340, aim: 530 }, { at: 10, aim: 170 }, { at: 50, aim: 240 }, { at: 150, aim: 300 }, { at: 250, aim: 440 }] },
   { size: 5, answer: [4, 26, 61], probes: [{ at: 310, aim: 480 }, { at: 20, aim: 160 }, { at: 50, aim: 270 }, { at: 130, aim: 320 }, { at: 170, aim: 340 }, { at: 220, aim: 380 }] },
   { size: 5, answer: [10, 24, 47], probes: [{ at: 340, aim: 490 }, { at: 40, aim: 240 }, { at: 110, aim: 240 }, { at: 180, aim: 400 }, { at: 220, aim: 420 }, { at: 260, aim: 430 }] },
-  { size: 5, answer: [1, 24, 71], probes: [{ at: 270, aim: 480 }, { at: 340, aim: 490 }, { at: 60, aim: 220 }, { at: 90, aim: 280 }, { at: 170, aim: 380 }, { at: 210, aim: 370 }] }
+  { size: 5, answer: [1, 24, 71], probes: [{ at: 270, aim: 480 }, { at: 340, aim: 490 }, { at: 60, aim: 220 }, { at: 90, aim: 280 }, { at: 170, aim: 380 }, { at: 210, aim: 370 }] },
+  { size: 5, answer: [23, 26, 59], probes: [{ at: 270, aim: 440 }, { at: 300, aim: 490 }, { at: 350, aim: 530 }, { at: 40, aim: 180 }, { at: 150, aim: 320 }, { at: 230, aim: 410 }] },
+  { size: 5, answer: [21, 33, 66], probes: [{ at: 300, aim: 480 }, { at: 70, aim: 200 }, { at: 130, aim: 360 }, { at: 160, aim: 350 }, { at: 200, aim: 330 }, { at: 230, aim: 380 }, { at: 260, aim: 460 }] },
+  { size: 5, answer: [34, 65, 70], probes: [{ at: 270, aim: 400 }, { at: 320, aim: 550 }, { at: 50, aim: 180 }, { at: 80, aim: 260 }, { at: 120, aim: 320 }, { at: 180, aim: 390 }, { at: 220, aim: 370 }] },
+  { size: 5, answer: [7, 35, 48], probes: [{ at: 280, aim: 430 }, { at: 320, aim: 460 }, { at: 0, aim: 210 }, { at: 80, aim: 250 }, { at: 140, aim: 280 }, { at: 170, aim: 360 }, { at: 240, aim: 400 }] },
+  { size: 5, answer: [17, 21, 23], probes: [{ at: 280, aim: 420 }, { at: 330, aim: 490 }, { at: 0, aim: 180 }, { at: 50, aim: 230 }, { at: 130, aim: 290 }, { at: 170, aim: 370 }, { at: 200, aim: 430 }] }
 ];

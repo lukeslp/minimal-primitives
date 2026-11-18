@@ -5,7 +5,7 @@
       "id": "hexsweeper",
       "title": "Hexsweeper",
       "repository": "lukeslp/hexsweeper-private-history",
-      "commit": "b8ad354298fd07398f383e25f240db8e9346c86f",
+      "commit": "80d30e175d5274b281ecccbefca430497578c79a",
       "entry": "hexsweeper/sphere/index.html",
       "modes": [
         {
@@ -40,8 +40,8 @@
         {
           "path": "hexsweeper/bounded.html",
           "source": "bounded.html",
-          "sha256": "7f6983bb7c1a356cccbec8dea1909e24c910c0acca7d30698115a3d2a851be25",
-          "bytes": 131555
+          "sha256": "a873e10e4cff2de70265462ed4e797873beb4d34a56a3eb67d8cd00d623bcba2",
+          "bytes": 135595
         },
         {
           "path": "hexsweeper/bridge-client.js",
@@ -94,14 +94,14 @@
         {
           "path": "hexsweeper/infinite.html",
           "source": "infinite.html",
-          "sha256": "57c0eb11c079af4b497f6d19cc3e3ed4390062d6bdcb8c61f74186d95494f7e5",
-          "bytes": 550498
+          "sha256": "f7525ccd3e632c615b23ffabae191d90b2adebecebac478ddacdd25f0bb06dc5",
+          "bytes": 553342
         },
         {
           "path": "hexsweeper/skin-chrome.css",
           "source": "skin-chrome.css",
-          "sha256": "1ffde142ec678c1a3dabcb6b618e58bd9320ac4c09d3049aa750d9c8075f2afe",
-          "bytes": 9925
+          "sha256": "1f2f9c30f81a43c50b5c79a4071401f2e2f00607078afbd169ad9b1aa4c9094f",
+          "bytes": 10147
         },
         {
           "path": "hexsweeper/sphere/assets/reflections/SOURCES.md",
@@ -286,8 +286,8 @@
         {
           "path": "hexsweeper/sphere/sphere.js",
           "source": "sphere/sphere.js",
-          "sha256": "ba14b912ea47ff8e9e667acfa38a05253d17599825bb45be2010fa1d7dcb0bbf",
-          "bytes": 240327
+          "sha256": "f371eae3f339bb866582e1ecae353e102eb4e899efeb7a970801b55d5132559b",
+          "bytes": 241134
         }
       ]
     },
@@ -295,7 +295,7 @@
       "id": "notan",
       "title": "Notan",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "notan/index.html",
       "runtime": {
         "id": "notan",
@@ -443,7 +443,7 @@
       "id": "akari",
       "title": "Akari",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "akari/index.html",
       "runtime": {
         "id": "akari",
@@ -703,7 +703,7 @@
       "id": "galaxies",
       "title": "Spiral Galaxies",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "galaxies/index.html",
       "runtime": {
         "id": "galaxies",
@@ -713,6 +713,7 @@
           "boundaries/engine.js",
           "boundaries/index.html",
           "boundaries/style.css",
+          "campaign.js",
           "engine.js",
           "favicon.svg",
           "fonts/IBMPlexMono-500.woff2",
@@ -770,6 +771,12 @@
           "bytes": 5511
         },
         {
+          "path": "galaxies/campaign.js",
+          "source": "galaxies/campaign.js",
+          "sha256": "b8d8306adc16722341e5fd0b52266b27951046b3cd7366dde59d358b35a82228",
+          "bytes": 1645
+        },
+        {
           "path": "galaxies/controls.css",
           "source": "galaxies/controls.css",
           "sha256": "d431df292c102cf2e9c14cbcc4de80441e19aa35d77080519c311e53dc893793",
@@ -820,14 +827,14 @@
         {
           "path": "galaxies/galaxies.js",
           "source": "galaxies/galaxies.js",
-          "sha256": "c70d9ae79a4c3139bd60d0909a1df60124b8b6669de340f7d93eeb072600a9bb",
-          "bytes": 40640
+          "sha256": "003a889eff41be9083e2c4a7ffd06dda641ac702230ebf21fb63fba7d76ca43d",
+          "bytes": 42079
         },
         {
           "path": "galaxies/index.html",
           "source": "galaxies/index.html",
-          "sha256": "60a06c548ebd35879b4041709d8202afb7b5c23c51a20a08f57344949d5e74ee",
-          "bytes": 8303
+          "sha256": "f7a1ce197aff962d6790ed4279e734c4f73a3402b163c3ac5f2974eab2418383",
+          "bytes": 8351
         },
         {
           "path": "galaxies/levels.js",
@@ -850,8 +857,8 @@
         {
           "path": "galaxies/runtime.json",
           "source": "galaxies/runtime.json",
-          "sha256": "8828bf74c2c1c21b12d1a6cfa4ef00abed26c0b762d156b5a212df305c2d63b4",
-          "bytes": 669
+          "sha256": "89fc35a3a77f486f9f566e619102ea208bf050af4f3de9f31bcb8c7f70be85cb",
+          "bytes": 688
         },
         {
           "path": "galaxies/sky.js",
@@ -865,7 +872,7 @@
       "id": "bridges",
       "title": "Bridges",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "bridges/index.html",
       "runtime": {
         "id": "bridges",
@@ -968,7 +975,7 @@
         {
           "path": "bridges/index.html",
           "source": "bridges/index.html",
-          "sha256": "1de9bb7a3e3019b0e7831bda408c7b13ab74dab8ebecfabf6a20d601ee3896e8",
+          "sha256": "7c648e25c3ce6527683c5ea192e14e62ca2a18fa7b1bfded3e1f8399b32b5367",
           "bytes": 8304
         },
         {
@@ -986,8 +993,8 @@
         {
           "path": "bridges/paint-input.js",
           "source": "bridges/paint-input.js",
-          "sha256": "20e64f32b77a5d4be620ed0070316728b35c22fae72e46cc40c3a40a140418c7",
-          "bytes": 6379
+          "sha256": "9de3b3d10300062a15b892e0132a9822f7f8b4e9ecac251e1a351aec278b349e",
+          "bytes": 7874
         },
         {
           "path": "bridges/runtime.json",
@@ -1013,7 +1020,7 @@
       "id": "slant",
       "title": "Slant",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "slant/index.html",
       "runtime": {
         "id": "slant",
@@ -1161,12 +1168,12 @@
       "id": "fold",
       "title": "Fold",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "fold/index.html",
       "runtime": {
         "id": "fold",
         "entry": "index.html",
-        "stageCount": 50,
+        "stageCount": 25,
         "files": [
           "engine.js",
           "favicon.svg",
@@ -1177,6 +1184,7 @@
           "fonts/OFL.txt",
           "index.html",
           "levels.js",
+          "campaign.js",
           "og.png",
           "controls.css",
           "controls.js",
@@ -1197,6 +1205,12 @@
           "source": "fold/bridge-client.js",
           "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
           "bytes": 5511
+        },
+        {
+          "path": "fold/campaign.js",
+          "source": "fold/campaign.js",
+          "sha256": "2f0f37bb3947cb3e40d0d1a9a21f6f0d0f7beac28f46376709bc79e56ec21a66",
+          "bytes": 1387
         },
         {
           "path": "fold/controls.css",
@@ -1231,8 +1245,8 @@
         {
           "path": "fold/fold.js",
           "source": "fold/fold.js",
-          "sha256": "8345e6c0c68119f8b2b691547f4fd3c27f489cec580ecc058990f6f5b6a720f8",
-          "bytes": 50870
+          "sha256": "81f3051252cc5f84540bcf9ff5081ec942fc33798797c4968919dab91c61fc41",
+          "bytes": 54916
         },
         {
           "path": "fold/fonts/IBMPlexMono-500.woff2",
@@ -1255,8 +1269,8 @@
         {
           "path": "fold/index.html",
           "source": "fold/index.html",
-          "sha256": "1bdf9b6f0f4ec280ca5c1dd42358a63a41931d4d7b31c19738817df4ba0ae33a",
-          "bytes": 7202
+          "sha256": "bd9241b560dbe2999b8fae3187ffe358f05ea3d5fa253c319f89eb65471de85f",
+          "bytes": 7407
         },
         {
           "path": "fold/levels.js",
@@ -1273,8 +1287,8 @@
         {
           "path": "fold/runtime.json",
           "source": "fold/runtime.json",
-          "sha256": "c1560b39e4b210d5a3ab37ea29940f41a2eae0224df1366b1262b63f54f1865e",
-          "bytes": 531
+          "sha256": "71c492c7674a3e8c0b2e1b00bb3bb20a2a96cca115a87765d2783f521291b3f6",
+          "bytes": 550
         }
       ]
     },
@@ -1282,7 +1296,7 @@
       "id": "bending",
       "title": "Bending",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "bending/index.html",
       "runtime": {
         "id": "rimlight",
@@ -1312,7 +1326,7 @@
           "access.js",
           "bridge-client.js"
         ],
-        "stageCount": 30,
+        "stageCount": 25,
         "poolCount": 18,
         "classicStageCount": 12
       },
@@ -1327,7 +1341,7 @@
         {
           "path": "bending/boards.mjs",
           "source": "rimlight/boards.mjs",
-          "sha256": "4cee060e3d4cee9a9984bbe0a5566e2fbb1c876d462fcde0e66f3cf778fb1295",
+          "sha256": "067f676d36a922522eb7b14aac382e73f779c1a63343e381f0ef335c040e8694",
           "bytes": 8725
         },
         {
@@ -1339,8 +1353,8 @@
         {
           "path": "bending/campaign.mjs",
           "source": "rimlight/campaign.mjs",
-          "sha256": "30f8660506472f78c57a0460d7b68396fdefeed6981a909fdc269835f31bcc3f",
-          "bytes": 12099
+          "sha256": "47087c776450a7a37eff6b0d59390ca709551a6442d9d2257f08ffd44bf2c5ca",
+          "bytes": 13488
         },
         {
           "path": "bending/classic.html",
@@ -1363,8 +1377,8 @@
         {
           "path": "bending/dark-view.mjs",
           "source": "rimlight/dark-view.mjs",
-          "sha256": "22e68cfdd76842837be729c604904a5152fac98af159671bf46602dc38b5cec6",
-          "bytes": 26344
+          "sha256": "265f8eaf62b37a2dfd742d5cb903b58dee6ac58bfb448ef709a62c60ea528d08",
+          "bytes": 27274
         },
         {
           "path": "bending/dark.css",
@@ -1375,8 +1389,8 @@
         {
           "path": "bending/dark.mjs",
           "source": "rimlight/dark.mjs",
-          "sha256": "9c73ead089ae2918839f3ab99fde98c997086dfd07225b6a4e7884f240ba8fa7",
-          "bytes": 27322
+          "sha256": "ffd946bf869fec8be700e8b424cd9368fb98fc7dc9b950698aa6682c4f91e362",
+          "bytes": 27720
         },
         {
           "path": "bending/engine.mjs",
@@ -1405,7 +1419,7 @@
         {
           "path": "bending/index.html",
           "source": "rimlight/index.html",
-          "sha256": "aaa2d0277057bb47b0442f827a3efeb874f75e58cc8a560391c60575f7951855",
+          "sha256": "4d62d80fc3615f0995d9b3f07c55eb9ef4daca60940a223747b537add7880f57",
           "bytes": 7770
         },
         {
@@ -1435,7 +1449,7 @@
         {
           "path": "bending/runtime.json",
           "source": "rimlight/runtime.json",
-          "sha256": "2efe79690ea0f8f1a67bde348f83d5c47b85f16f00672f335bf56087ca8263a0",
+          "sha256": "6000e465e85c76d5e28df87a6a8ed6b4658d0df5a995e20c805f300eb49ea07a",
           "bytes": 585
         },
         {
@@ -1453,8 +1467,8 @@
         {
           "path": "bending/well.mjs",
           "source": "rimlight/well.mjs",
-          "sha256": "772402c729f4832f555ab9fa1765aa44b143107e16b6f14fe06e27e7308fbc96",
-          "bytes": 7546
+          "sha256": "f241438ef11aff363cca5d4605efdab1eb9c7fc16d85a2fec4a349ae5db35642",
+          "bytes": 8556
         }
       ]
     },
@@ -1462,7 +1476,7 @@
       "id": "tilt",
       "title": "Tilt",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "tilt/index.html",
       "runtime": {
         "id": "tilt-levels",
@@ -1503,8 +1517,8 @@
         {
           "path": "tilt/campaign.js",
           "source": "tilt-levels/campaign.js",
-          "sha256": "f25736f9c056a0fb5a3c30845a135fe9c8c8997be20b96a1f3ac8b9162307bf3",
-          "bytes": 1514
+          "sha256": "a625ce3e805f6bd3b987e3b26ed853575caadc88c78786b76e6bd52f2519c4cf",
+          "bytes": 1480
         },
         {
           "path": "tilt/controls.css",
@@ -1551,7 +1565,7 @@
         {
           "path": "tilt/index.html",
           "source": "tilt-levels/index.html",
-          "sha256": "2e7fcf5f478ea76b1b609de608305d4d19d424b229bc235314560be733296a56",
+          "sha256": "e18481b26af4cb826517ee872b246002eb8a25a3cf7de1acccafd011c3f9f8d1",
           "bytes": 5441
         },
         {
@@ -1587,8 +1601,8 @@
         {
           "path": "tilt/tilt-levels.js",
           "source": "tilt-levels/tilt-levels.js",
-          "sha256": "57f947a78d60fd0c06c35a9896c9b9314eb738d01500e64ab3b2a5e50f333e69",
-          "bytes": 24697
+          "sha256": "55e4c190f964defe0e2fd134bed617e786d0ff3018728f0ec4cd9f35471fe7c7",
+          "bytes": 25907
         }
       ]
     },
@@ -1596,13 +1610,14 @@
       "id": "horologist",
       "title": "Horologist",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "horologist/index.html",
       "runtime": {
         "id": "horologist",
         "entry": "index.html",
         "files": [
           "boards.js",
+          "campaign.js",
           "engine.js",
           "favicon.svg",
           "fonts/IBMPlexMono-500.woff2",
@@ -1636,6 +1651,12 @@
           "source": "horologist/bridge-client.js",
           "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
           "bytes": 5511
+        },
+        {
+          "path": "horologist/campaign.js",
+          "source": "horologist/campaign.js",
+          "sha256": "f33ee93a3a9e42e6f7934662b56cc25007a9d0bea3f8346561eee6e75fd5ee82",
+          "bytes": 1351
         },
         {
           "path": "horologist/controls.css",
@@ -1682,8 +1703,8 @@
         {
           "path": "horologist/index.html",
           "source": "horologist/index.html",
-          "sha256": "b4318117ecd801bc77ba1b93fda87342f25885d790846a63f667a9b41d3823d7",
-          "bytes": 4133
+          "sha256": "4ca083e2195e9da20dd865b0d5405720e4e1b50080c8d6d1e3f9d7b6358dda91",
+          "bytes": 4181
         },
         {
           "path": "horologist/plate.css",
@@ -1694,14 +1715,14 @@
         {
           "path": "horologist/plate.js",
           "source": "horologist/plate.js",
-          "sha256": "12ed4c2590866e3ea4daf73c15bc08825c2e9379dbabb05a033ae2bdc69ff183",
-          "bytes": 37955
+          "sha256": "383c71af118dc22058d1109a80c01ef748776b1b3c7d1932a92e54a585f43b49",
+          "bytes": 39933
         },
         {
           "path": "horologist/runtime.json",
           "source": "horologist/runtime.json",
-          "sha256": "dfbaa3065f1b71a4ae0f9d0169d6ba4f782f6a0e68b712c81ba8685c1d688974",
-          "bytes": 505
+          "sha256": "4507a1dd79216db215b31b895c9ea476af69f4c0f693d7781bb62b729dbf4f99",
+          "bytes": 524
         }
       ]
     },
@@ -1709,7 +1730,7 @@
       "id": "towers",
       "title": "Towers",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "towers/index.html",
       "runtime": {
         "id": "towers",
@@ -1790,8 +1811,8 @@
         {
           "path": "towers/index.html",
           "source": "towers/index.html",
-          "sha256": "fabd309a6c0216a3dca7993f0be8a87185f287b492426a630191ad1ed8b32b77",
-          "bytes": 6871
+          "sha256": "145ed76851879d8862721e62889f0b28f9d7b4ec7acf08afff2aaa8e57965ee2",
+          "bytes": 7071
         },
         {
           "path": "towers/levels.js",
@@ -1814,14 +1835,14 @@
         {
           "path": "towers/towers.css",
           "source": "towers/towers.css",
-          "sha256": "3f934938bc236fa658f2685bb118a0547aba487666a94984020f1d1708eb3087",
-          "bytes": 12222
+          "sha256": "b20f0791e0c3957d8aeb8097d42c671f0308e77627635f21b4423c69295f4544",
+          "bytes": 13206
         },
         {
           "path": "towers/towers.js",
           "source": "towers/towers.js",
-          "sha256": "495c20bf6879de0a2550714d05103d7619cc52e56b0a5ee997ca252470345e92",
-          "bytes": 34923
+          "sha256": "23fbc46f855e32eed21b780a5881fb779adcd0ce43609513c1075aec1ba8d47b",
+          "bytes": 40475
         }
       ]
     },
@@ -1829,7 +1850,7 @@
       "id": "tents",
       "title": "Tents",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "tents/index.html",
       "runtime": {
         "id": "tents",
@@ -1949,7 +1970,7 @@
       "id": "constellations",
       "title": "Constellations",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "constellations/index.html",
       "runtime": {
         "id": "constellations",
@@ -2097,7 +2118,7 @@
       "id": "shoo-minimal",
       "title": "Shoo \u00b7 Minimal",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "shoo-minimal/index.html",
       "runtime": {
         "id": "shoo-minimal",
@@ -2144,8 +2165,8 @@
         {
           "path": "shoo-minimal/campaign.js",
           "source": "shoo-minimal/campaign.js",
-          "sha256": "8ef28a426c0ce3a9db8cb9b979af7d746408f6bfb2a97178f37f174632e0ee3d",
-          "bytes": 1358
+          "sha256": "cc0c2bdbbef581bf192d3cb61c6680a8f0ce9bab27ea480deb2d0faa8b66bc20",
+          "bytes": 1498
         },
         {
           "path": "shoo-minimal/controls.css",
@@ -2192,7 +2213,7 @@
         {
           "path": "shoo-minimal/index.html",
           "source": "shoo-minimal/index.html",
-          "sha256": "5e430450399fab628cd2905c840cda2c2024a10bdc0ab455ef6f0335855b80ba",
+          "sha256": "cfcde121d248bb79347a43b0091ea2beaadcbbe957ec9ccb171525c071e617d2",
           "bytes": 6116
         },
         {
@@ -2222,8 +2243,8 @@
         {
           "path": "shoo-minimal/shoo.js",
           "source": "shoo-minimal/shoo.js",
-          "sha256": "82ea836bb7aa6ec8c9e1091014d36b3cf147350079cebd23e781d54115477fbe",
-          "bytes": 52825
+          "sha256": "c43c10f777b780afa9134ad544f9f9be325270313dd5f1267dc88d3c8eb3bf61",
+          "bytes": 52850
         }
       ]
     },
@@ -2231,7 +2252,7 @@
       "id": "balance",
       "title": "Balance",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "balance/index.html",
       "runtime": {
         "id": "balance",
@@ -2270,8 +2291,8 @@
         {
           "path": "balance/balance.js",
           "source": "balance/balance.js",
-          "sha256": "80dbb49643326f75dfe4df9ad5a29615ba8310a4aef36f9916b7c27e467d97b0",
-          "bytes": 19444
+          "sha256": "f982fd3c29aeb1c8af51755d1e31e09bc4ae473052f56607444941bd148dfcd1",
+          "bytes": 19723
         },
         {
           "path": "balance/bridge-client.js",
@@ -2294,8 +2315,8 @@
         {
           "path": "balance/engine.js",
           "source": "balance/engine.js",
-          "sha256": "be2ab4bbe303df5348cf97f559e75258ebb487728c33e779103b8deef0e4fef8",
-          "bytes": 11587
+          "sha256": "ceb668605fa43bef094253b0680bb6a77536f64aac630da9a5d994ef619373c9",
+          "bytes": 15880
         },
         {
           "path": "balance/favicon.svg",
@@ -2324,7 +2345,7 @@
         {
           "path": "balance/index.html",
           "source": "balance/index.html",
-          "sha256": "3797360ef0e363f6581ec81b067d676cd33c14cb32dff7b8a779bc35d0cd0f90",
+          "sha256": "5fd5d280aa4178d4e10afac08780cfd9ad6f3483674cb5f44938f348caf61cfe",
           "bytes": 5941
         },
         {
@@ -2351,7 +2372,7 @@
       "id": "cast",
       "title": "Cast",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "cast/index.html",
       "runtime": {
         "id": "cast-3d",
@@ -2367,6 +2388,7 @@
           "engine.js",
           "favicon.svg",
           "freeplay.js",
+          "reason.js",
           "fonts/IBMPlexMono-500.woff2",
           "fonts/IBMPlexSans-400.woff2",
           "fonts/OFL.txt",
@@ -2407,20 +2429,20 @@
         {
           "path": "cast/campaign.js",
           "source": "cast-3d/campaign.js",
-          "sha256": "632b3b9d2c8d214dedc30f5ea5241a43024179e3822bb70ffaa71d689b39e79a",
-          "bytes": 1632
+          "sha256": "b8db064416eac233bd960be9c71f3d2557c256234c55822d763dc0c788be7acb",
+          "bytes": 1758
         },
         {
           "path": "cast/cast-3d.css",
           "source": "cast-3d/cast-3d.css",
-          "sha256": "f03c6441c1744ed67ea0125ce791fdbacd22d093e532769cc9648a3e0e86259c",
-          "bytes": 6503
+          "sha256": "13c4cb22034859e09f9cfc63aac8b2d8344b8aca03a5c72282f0d89b94034f5c",
+          "bytes": 6579
         },
         {
           "path": "cast/cast-3d.js",
           "source": "cast-3d/cast-3d.js",
-          "sha256": "6c4ba258c4c702a3e0d33bbf6c372a81359c03b7def25c13f8e87d7232c163af",
-          "bytes": 89398
+          "sha256": "49f9e9651ec6e86747ecee77947e76f83d1de354ca9fd4892f25a2f7c1a38025",
+          "bytes": 92083
         },
         {
           "path": "cast/controls.css",
@@ -2473,14 +2495,20 @@
         {
           "path": "cast/index.html",
           "source": "cast-3d/index.html",
-          "sha256": "3bc8ac4b5050ddf58e87c9465c3df3d305ec72ed2216ea0d0c8964b17a28db46",
-          "bytes": 4443
+          "sha256": "a9f576a8ad365166a82ac054246b8abc258a6ea63b656c21bc7ee9562a49c8a8",
+          "bytes": 4489
+        },
+        {
+          "path": "cast/reason.js",
+          "source": "cast-3d/reason.js",
+          "sha256": "2173768c1f0f8f8d89a813364d3841f5a5611fa533c4e6b0d432b8c351e88bb7",
+          "bytes": 6766
         },
         {
           "path": "cast/runtime.json",
           "source": "cast-3d/runtime.json",
-          "sha256": "fbb37fdf0507f822d04cde6912191bd5de3adddd9ea111a3e621ec40b9c1dce8",
-          "bytes": 501
+          "sha256": "a9d5efab301239ed45e19b23d00f8299052f2cd76810e67afacfccfc95cd1b84",
+          "bytes": 518
         },
         {
           "path": "cast/vendor/LICENSE-THREE.txt",
@@ -2506,7 +2534,7 @@
       "id": "tilt-3d",
       "title": "Tilt \u00b7 3D",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "tilt-3d/index.html",
       "runtime": {
         "id": "tilt-3d",
@@ -2550,8 +2578,8 @@
         {
           "path": "tilt-3d/campaign.js",
           "source": "tilt-3d/campaign.js",
-          "sha256": "f25736f9c056a0fb5a3c30845a135fe9c8c8997be20b96a1f3ac8b9162307bf3",
-          "bytes": 1514
+          "sha256": "a625ce3e805f6bd3b987e3b26ed853575caadc88c78786b76e6bd52f2519c4cf",
+          "bytes": 1480
         },
         {
           "path": "tilt-3d/controls.css",
@@ -2598,7 +2626,7 @@
         {
           "path": "tilt-3d/index.html",
           "source": "tilt-3d/index.html",
-          "sha256": "e89c83f2ab44d9504cbb7a04c0aa3128552896a27de9aad66558acd7d976a2ee",
+          "sha256": "7d0183ddba7f33ab5dc76d7e19bac7e8b9182590382d0d9c80b5938a08dd27b7",
           "bytes": 5494
         },
         {
@@ -2628,8 +2656,8 @@
         {
           "path": "tilt-3d/tilt-3d.js",
           "source": "tilt-3d/tilt-3d.js",
-          "sha256": "6e675b2ed24f7f6d325f1a2724a9645b3199964065dbe6c752b1781d466c86a3",
-          "bytes": 98814
+          "sha256": "79f879598785748e1cfd80d8962b8fe73f98d7822207f8762c5fb98573777a41",
+          "bytes": 100007
         },
         {
           "path": "tilt-3d/tilt-input.js",
@@ -2661,7 +2689,7 @@
       "id": "delve",
       "title": "Delve",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "delve/index.html",
       "runtime": {
         "id": "delve-preview",
@@ -2788,13 +2816,14 @@
       "id": "cube-maze",
       "title": "Cube Maze",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "cube-maze/index.html",
       "runtime": {
         "id": "cube-maze",
         "entry": "index.html",
         "files": [
           "boards.js",
+          "campaign.js",
           "controls.css",
           "controls.js",
           "cube-maze.css",
@@ -2834,6 +2863,12 @@
           "bytes": 5511
         },
         {
+          "path": "cube-maze/campaign.js",
+          "source": "cube-maze/campaign.js",
+          "sha256": "f02c33504e16197e363e1e3f93855a7651bd5742198b2e3bd547cc041a70e433",
+          "bytes": 1421
+        },
+        {
           "path": "cube-maze/controls.css",
           "source": "cube-maze/controls.css",
           "sha256": "d431df292c102cf2e9c14cbcc4de80441e19aa35d77080519c311e53dc893793",
@@ -2848,14 +2883,14 @@
         {
           "path": "cube-maze/cube-maze.css",
           "source": "cube-maze/cube-maze.css",
-          "sha256": "a67bb9c2a503076b156a0ba1988fb1862145af913a79707e356a734fcd70b495",
-          "bytes": 6972
+          "sha256": "792bd0b1d298cc23aad3ce24072f5d8f808db56b961ea9e1f3a076abee73b0bf",
+          "bytes": 7167
         },
         {
           "path": "cube-maze/cube-maze.js",
           "source": "cube-maze/cube-maze.js",
-          "sha256": "eaf2ebdc23b7a3358e626394f5c399c8e975bbc95e8c3c64ce67388fe67ce111",
-          "bytes": 109481
+          "sha256": "a3fde91fd2b24095543e99405f0c1e512fddacdc2f082c8fea8eacc8b9018cf6",
+          "bytes": 112230
         },
         {
           "path": "cube-maze/engine.js",
@@ -2896,14 +2931,14 @@
         {
           "path": "cube-maze/index.html",
           "source": "cube-maze/index.html",
-          "sha256": "df3f9f5ea050703d535b9e0fdd75e11d88110f99fe7304cd09de947d5a5c2e88",
-          "bytes": 4749
+          "sha256": "77a41b93d8293ce934bdc8ae37b265a0307dd3c4258cf0c567c4046b67097719",
+          "bytes": 5099
         },
         {
           "path": "cube-maze/runtime.json",
           "source": "cube-maze/runtime.json",
-          "sha256": "2d52955ab733bd3c8222722490446978686aabe8d183141a56ac7adf0b9fdfa9",
-          "bytes": 462
+          "sha256": "a0ab11cd8210a8b76d54e73aa2bc3609bd3c3033eba2dc54a455210c80b46c8f",
+          "bytes": 481
         },
         {
           "path": "cube-maze/vendor/LICENSE-THREE.txt",
@@ -2929,7 +2964,7 @@
       "id": "tangles",
       "title": "Tangles",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "tangles/index.html",
       "runtime": {
         "id": "loop",
@@ -2937,6 +2972,7 @@
         "files": [
           "boards.js",
           "campaign.js",
+          "course.js",
           "controls.css",
           "controls.js",
           "engine.js",
@@ -2999,6 +3035,12 @@
           "bytes": 21558
         },
         {
+          "path": "tangles/course.js",
+          "source": "loop/course.js",
+          "sha256": "d3d8ea491466849ae16deb162652415daa19f237937b062e92a655efeaeec19b",
+          "bytes": 542
+        },
+        {
           "path": "tangles/engine.js",
           "source": "loop/engine.js",
           "sha256": "6fe7f410938317dd4991014325c6cca082e27f096a7a69a998307501423c8a99",
@@ -3013,8 +3055,8 @@
         {
           "path": "tangles/experiments-list.js",
           "source": "loop/experiments-list.js",
-          "sha256": "f3a75c94b458232ed55196b3bf58cc93223e2ba97558dc99dbe334f402cf7785",
-          "bytes": 10259
+          "sha256": "ff356295aa719908ed8c997d4a6f733a7a9fcb5a8e751fc8295dffe1b7585f0c",
+          "bytes": 10344
         },
         {
           "path": "tangles/experiments.css",
@@ -3061,26 +3103,26 @@
         {
           "path": "tangles/index.html",
           "source": "loop/index.html",
-          "sha256": "5173fad804544e4f5dde157edb4b0e46934057c1aecd2d31a6666859cd6485eb",
-          "bytes": 5443
+          "sha256": "26792ae0135f003f15c065a4abde9345ae09000cd6cc2045b5569bacb6d877c5",
+          "bytes": 5639
         },
         {
           "path": "tangles/loop.css",
           "source": "loop/loop.css",
-          "sha256": "05cd09a80102e27abf65ddad2f0966e98e6c1192c122f18aa9e0f781a95164d8",
-          "bytes": 9421
+          "sha256": "4f9c8e0f5dbb7a24dc3089e3dfe50e35697eaf85773150575f57fc08a47a23f4",
+          "bytes": 9889
         },
         {
           "path": "tangles/loop.js",
           "source": "loop/loop.js",
-          "sha256": "054e9db2a8038530911a429798a6c270e8967317b2ab8f69da8426a29b788779",
-          "bytes": 90545
+          "sha256": "6972670e0b3d7a9d292da9447fdb484b8b371a63eae41ab9e07be9dbafd6c6cd",
+          "bytes": 96222
         },
         {
           "path": "tangles/runtime.json",
           "source": "loop/runtime.json",
-          "sha256": "8eaa3bef11bd74f9f4803876ffa09789720a29c308f0e3b7ef3c3b7b40ded53f",
-          "bytes": 750
+          "sha256": "8720e3303f0b7c7b63efc9294159c111251b271e3ce67a8e8b87ac04520e5058",
+          "bytes": 767
         },
         {
           "path": "tangles/samples.js",
@@ -3112,7 +3154,7 @@
       "id": "weaves",
       "title": "Weaves",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "weaves/index.html",
       "runtime": {
         "id": "weave-minimal",
@@ -3130,7 +3172,9 @@
           "weave.css",
           "weave.js",
           "access.js",
-          "bridge-client.js"
+          "bridge-client.js",
+          "course-data.js",
+          "course.js"
         ]
       },
       "variants": [],
@@ -3162,14 +3206,26 @@
         {
           "path": "weaves/controls.js",
           "source": "weave-minimal/controls.js",
-          "sha256": "c4f2b9b5d669984026f0cfe54a80a99ef40c329b8ce4ccf90fee6f633ee7739a",
-          "bytes": 21455
+          "sha256": "294a9a73fdb2f06a85759feb51b6effefaf47ae7fc6495f964abdbe24b43c33f",
+          "bytes": 21476
+        },
+        {
+          "path": "weaves/course-data.js",
+          "source": "weave-minimal/course-data.js",
+          "sha256": "6fdb11e836c4151f0a4367cebaa236ecd1eba0da97f794535b6723df30f5bf62",
+          "bytes": 5645
+        },
+        {
+          "path": "weaves/course.js",
+          "source": "weave-minimal/course.js",
+          "sha256": "f175725cc16f1ecbfddd07c36c0ce58f794e76a810e11498d68a564623d69db2",
+          "bytes": 1487
         },
         {
           "path": "weaves/engine.js",
           "source": "weave-minimal/engine.js",
-          "sha256": "68e2a9f6f968da15985a6c41a139c7b50a4b564c3aa9614bbf7f66b6a65f8a33",
-          "bytes": 5199
+          "sha256": "4591ee2776d6eafc3b619f4cfa8f6a33b0e7f066bd049b1785adc735a24ba659",
+          "bytes": 6476
         },
         {
           "path": "weaves/favicon.svg",
@@ -3198,26 +3254,26 @@
         {
           "path": "weaves/index.html",
           "source": "weave-minimal/index.html",
-          "sha256": "ede2a7912f34a49d7d42a51893866f2f544857566dd1308ec9e5151be6aa2f10",
-          "bytes": 3894
+          "sha256": "42c598a20f2ae44a9a97c6826b4c681f05854251f9d50c42635b341c872119d0",
+          "bytes": 4814
         },
         {
           "path": "weaves/runtime.json",
           "source": "weave-minimal/runtime.json",
-          "sha256": "c43fed0f2afa397813cbbf35f985734e52eeae766da9e2cd5c060a2f32450985",
-          "bytes": 345
+          "sha256": "78aabd64389a92566aaf7a2d2f00a9b13fe7a712a8acd42dbcc919b92b37d4ae",
+          "bytes": 384
         },
         {
           "path": "weaves/weave.css",
           "source": "weave-minimal/weave.css",
-          "sha256": "4b0972c66e5ea2a32276e5e25a189de1213defca91d96fd3256dec4f9a9ca3a0",
-          "bytes": 7601
+          "sha256": "ac9695f9234162f57c95c0b96a0d05c879f8200c25df2dc56f18b2099ecd9748",
+          "bytes": 8135
         },
         {
           "path": "weaves/weave.js",
           "source": "weave-minimal/weave.js",
-          "sha256": "ef874de4b46d19a133ad469023b1fa72148147b6850bf9445eb8a3037acb8e5a",
-          "bytes": 55959
+          "sha256": "291a4704fbbca3a20bd98ae158143c447f4c2be02ab7527e5e07ee5a93996f37",
+          "bytes": 59403
         }
       ]
     },
@@ -3225,7 +3281,7 @@
       "id": "glance",
       "title": "Glance",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "glance/index.html",
       "runtime": {
         "id": "glance",
@@ -3403,7 +3459,7 @@
       "id": "glyph",
       "title": "Glyph",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "glyph/index.html",
       "runtime": {
         "id": "glyph",
@@ -3556,7 +3612,7 @@
       "id": "pursuit",
       "title": "Pursuit",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "pursuit/index.html",
       "runtime": {
         "id": "pursuit",
@@ -3702,7 +3758,7 @@
       "id": "shoo",
       "title": "Shoo",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "shoo/index.html",
       "runtime": {
         "id": "shoo",
@@ -3848,7 +3904,7 @@
       "id": "nod",
       "title": "Nod",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "nod/index.html",
       "runtime": {
         "id": "nod",
@@ -3994,13 +4050,14 @@
       "id": "noon",
       "title": "Noon",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "noon/index.html",
       "runtime": {
         "id": "noon",
         "entry": "index.html",
         "files": [
           "boards.js",
+          "campaign.js",
           "engine.js",
           "favicon.svg",
           "fonts/IBMPlexMono-500.woff2",
@@ -4034,6 +4091,12 @@
           "source": "noon/bridge-client.js",
           "sha256": "443402b94535a6b6971c6d302bd70bcfff073152c4616f0939290d3158374a6c",
           "bytes": 5511
+        },
+        {
+          "path": "noon/campaign.js",
+          "source": "noon/campaign.js",
+          "sha256": "aae58227571370ee88c91a81b7187782fb1fdc1c47cecfd0145946a174c5d9ba",
+          "bytes": 1316
         },
         {
           "path": "noon/controls.css",
@@ -4080,8 +4143,8 @@
         {
           "path": "noon/index.html",
           "source": "noon/index.html",
-          "sha256": "03d7fb3685b2a7c27ceac6285354e7761ab34aaa03b7d28f820e4c8ecf4b469f",
-          "bytes": 5255
+          "sha256": "b994b597251e40f069c23f811b17c7e975dbe16597cec3897a897f548f527c00",
+          "bytes": 5303
         },
         {
           "path": "noon/noon.css",
@@ -4092,14 +4155,14 @@
         {
           "path": "noon/noon.js",
           "source": "noon/noon.js",
-          "sha256": "98dccd445d072d4c25baa8660669f09fc52c77a3a20b6b6b2d81133ab6fcfd29",
-          "bytes": 50423
+          "sha256": "f88fb59745df08fde5114bec562599c7a41af1e57f59de3e64b5d5e53e2ef105",
+          "bytes": 53951
         },
         {
           "path": "noon/runtime.json",
           "source": "noon/runtime.json",
-          "sha256": "ddec8452b868f1fc41f4d5b139fa3f4f025c225c52f533420549ad57f105a9ea",
-          "bytes": 334
+          "sha256": "fc09974654a074ed5d43a28082a0afb4d91e5fbe5bafca0282645ec7da32e3ae",
+          "bytes": 353
         }
       ],
       "group": "accessible",
@@ -4109,7 +4172,7 @@
       "id": "sweep",
       "title": "Sweep",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "sweep/index.html",
       "runtime": {
         "id": "sweep",
@@ -4245,7 +4308,7 @@
       "id": "ticker",
       "title": "Ticker",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "entry": "ticker/index.html",
       "runtime": {
         "id": "ticker",
@@ -4369,7 +4432,7 @@
       "id": "mediapipe",
       "title": "MediaPipe Face Landmarker (Apache-2.0)",
       "repository": "lukeslp/game-riffs",
-      "commit": "d3d9b9e0a55296be16ad315688b1994a2e1b07eb",
+      "commit": "29b29addbfd2fe32adf59f7a64c3eaf6635f1ff4",
       "files": [
         {
           "path": "glance/vendor/LICENSE-MEDIAPIPE.txt",

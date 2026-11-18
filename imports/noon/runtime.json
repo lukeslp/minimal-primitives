@@ -3,6 +3,7 @@
   "entry": "index.html",
   "files": [
     "boards.js",
+    "campaign.js",
     "engine.js",
     "favicon.svg",
     "fonts/IBMPlexMono-500.woff2",

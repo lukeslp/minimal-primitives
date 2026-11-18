@@ -1090,7 +1090,25 @@
           localStorage.getItem("hexsweeper-sphere-size-v1");
         if (val && SIZE_ORDER.includes(val)) return val;
       } catch (_) {}
-      return opts.difficulty || "medium";
+      return opts.difficulty || defaultSize();
+    }
+
+    /*
+     * First visit, no saved size: a phone starts on Small. Medium's 1,002
+     * faces leave about 26 px between front faces at 390 px wide and make one
+     * long sitting; Small's 362 give about 43 px. "Phone" is the touch-only
+     * test the help sheet uses (sphere/index.html TOUCH_ONLY) on a screen
+     * whose short side is phone-sized, so tablets and desktops keep Medium.
+     * A saved size always wins, and nothing here writes one.
+     */
+    function defaultSize() {
+      const touchOnly = "(hover: none) and (pointer: coarse)";
+      const phone =
+        typeof global.matchMedia === "function" &&
+        global.matchMedia(
+          `${touchOnly} and (max-width: 600px), ${touchOnly} and (max-height: 600px)`
+        ).matches;
+      return phone ? "easy" : "medium";
     }
 
     function readStoredInvert() {

@@ -212,6 +212,9 @@ canvas { display: block; cursor: crosshair; max-width: 100%; }
   backdrop-filter: blur(8px);
 }
 .modal-overlay.open { opacity: 1; pointer-events: auto; }
+/* A closed menu is invisible, so nothing inside it may take a click or tap
+   meant for the board beneath (.stat-item and the close button opt back in). */
+.modal-overlay:not(.open) * { pointer-events: none !important; }
 .modal-content {
   background: color-mix(in srgb, var(--bg-color, #e0e5ec) 92%, transparent);
   color: var(--text-main, #4a5568);
@@ -557,6 +560,13 @@ body[data-control-frame] .access-action {min-height:44px;padding:8px;border:0;ba
 </div>
 
 <div class="hud-actions" role="toolbar" aria-label="Game controls">
+  <!-- Shown only after a mine hit: takes back the dig that lost (Sphere's banner Undo). -->
+  <button type="button" id="undo-btn" class="hud-btn" aria-label="Undo last move" title="Undo" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M9 14 4 9l5-5"></path>
+      <path d="M4 9h9.5a6.5 6.5 0 1 1 0 13H11"></path>
+    </svg>
+  </button>
   <button type="button" id="reset-btn" class="hud-btn" aria-label="Reset" title="Reset">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <polyline points="23 4 23 10 17 10"></polyline>
@@ -627,8 +637,10 @@ body[data-control-frame] .access-action {min-height:44px;padding:8px;border:0;ba
  * Inputs: Hexsweeper.boot({ canvasId, theme, hooks, difficulty, showStats, endless,
  *   tooltips }). tooltips: false keeps title= off the stats (infinite.html).
  * Outputs: API (setZoom, adjustZoom, setFlagMode, setCamera, restart, setFinish,
- *   exportEndlessState, applyEndlessState, …) on window.Hexsweeper.
+ *   exportEndlessState, applyEndlessState, undo, canUndo, …) on window.Hexsweeper.
  * Notes: Endless Escape may set finishKey — reveal that safe hex to win.
+ *   undo() takes back the last dig or chord (one step, flags kept);
+ *   hooks.onUndo(api) lets the skin clear its end-of-run state.
  *   hooks.onReset / skin startFreshRun: chrome must be live before framing zoom.
  *   Boot skips onReset once; index.html restores autosave or calls startFreshRun.
  *   hooks.cameraLock (bool|fn): Fire-style tilt while the board fits the
@@ -838,6 +850,16 @@ body[data-control-frame] .access-action {min-height:44px;padding:8px;border:0;ba
       floodPending: 0,
       _growAfterFlood: false,
     };
+
+    /*
+     * One-level undo, the same pattern as sphere/sphere.js. Only `revealed`
+     * changes when a dig goes wrong, so a snapshot is the set of open cells
+     * (a flood still rolling out counts as open) plus the clock. It is taken
+     * before every dig and chord; skins offer it after a loss, because a
+     * detonation is the one move players want back. Flags are left as the
+     * player has them now.
+     */
+    let undoSnapshot = null;
 
     if (!Number.isFinite(opts.initialZoom) && opts.zoomStorageKey !== false) {
       try {
@@ -1075,6 +1097,18 @@ body[data-control-frame] .access-action {min-height:44px;padding:8px;border:0;ba
        */
       setFinish(q, r) {
         return setFinishCell(q, r);
+      },
+      /** True when the last dig or chord can be taken back. */
+      canUndo() {
+        return !!undoSnapshot;
+      },
+      /**
+       * Take back the last dig or chord (one step). After a mine hit this
+       * reopens the board as it stood before the detonation.
+       * @returns {boolean} false when there is nothing to undo
+       */
+      undo() {
+        return restoreUndo();
       },
       /** Debug / skin helper: dig a cell by axial key or Cell. */
       dig(target) {
@@ -1400,6 +1434,7 @@ body[data-control-frame] .access-action {min-height:44px;padding:8px;border:0;ba
     }
 
     function resetGame(options = {}) {
+      undoSnapshot = null;
       state.map.clear();
       state.camX = 0;
       state.camY = 0;
@@ -2073,8 +2108,54 @@ body[data-control-frame] .access-action {min-height:44px;padding:8px;border:0;ba
       applyViewZoom(state.viewZoom * factor, anchor);
     }
 
+    function captureUndo() {
+      // The first dig places the mines around itself, so it can never lose.
+      if (state.isFirstClick) {
+        undoSnapshot = null;
+        return;
+      }
+      const open = new Set();
+      state.map.forEach((c) => {
+        if (c.revealed || c._pendingReveal) open.add(`${c.q},${c.r}`);
+      });
+      undoSnapshot = { open, timeElapsed: state.timeElapsed };
+    }
+
+    function restoreUndo() {
+      if (!undoSnapshot) return false;
+      const snap = undoSnapshot;
+      undoSnapshot = null;
+      let cleared = 0;
+      state.map.forEach((c) => {
+        const open = snap.open.has(`${c.q},${c.r}`);
+        // Cells that stay open keep their finished animation; the ones taken
+        // back reset so a re-dig animates again instead of popping in.
+        if (open && (!c.revealed || c._pendingReveal)) c.animReveal = 1;
+        if (!open) c.animReveal = 0;
+        c.revealed = open;
+        c._pendingReveal = false;
+        c.revealDue = 0;
+        if (open && !c.isMine) cleared++;
+      });
+      state.floodPending = 0;
+      state._growAfterFlood = false;
+      state.clearedSafe = cleared;
+      state.isGameOver = false;
+      state.win = null;
+      state.detonator = null;
+      state.endReason = null;
+      state.timeElapsed = snap.timeElapsed;
+      stopTimer();
+      if (!state.isFirstClick) startTimer(state.timeElapsed);
+      syncCursor();
+      updateUI();
+      if (typeof state.hooks.onUndo === "function") state.hooks.onUndo(api);
+      return true;
+    }
+
     function reveal(cell) {
       if (!cell || cell._riftTorn || cell._pendingReveal) return;
+      captureUndo();
       if (state.isFirstClick) {
         startTimer();
         placeMines(cell.q, cell.r);
@@ -2230,6 +2311,7 @@ body[data-control-frame] .access-action {min-height:44px;padding:8px;border:0;ba
       const neighbors = getNeighbors(cell.q, cell.r);
       const flagged = neighbors.filter((n) => n.flagged).length;
       if (flagged === cell.neighborMines) {
+        captureUndo();
         let hitMine = false;
         for (const n of neighbors) {
           if (!n.revealed && !n.flagged && !n._riftTorn) {
@@ -2399,6 +2481,7 @@ body[data-control-frame] .access-action {min-height:44px;padding:8px;border:0;ba
     function applyRunState(data) {
       if (!data || data.v !== 1 || typeof data.endless !== "boolean") return false;
       if (!!data.endless !== !!state.endless) return false;
+      undoSnapshot = null;
       stopTimer();
       if (data.difficulty && state.config[data.difficulty]) {
         state.currentDifficulty = data.difficulty;
@@ -2921,8 +3004,12 @@ function readClassicRun() {
 // the Play again disc.
 const classicEndNote = document.getElementById("end-note");
 const classicAgain = document.getElementById("again-btn");
+const classicUndo = document.getElementById("undo-btn");
 
 function showClassicEnd(win, api) {
+  // A loss can be taken back one step, as on Sphere: a forced guess on M or L
+  // should not cost the whole board.
+  classicUndo.hidden = win || !api.canUndo();
   const seconds = api.state.timeElapsed | 0;
   classicEndNote.textContent = win ? "Board cleared" : "Mine hit";
   const spoken = document.createElement("span");
@@ -2937,6 +3024,7 @@ function showClassicEnd(win, api) {
 function hideClassicEnd() {
   classicEndNote.textContent = "";
   classicAgain.hidden = true;
+  classicUndo.hidden = true;
 }
 
 function drawClassicEnd(ctx, api) {
@@ -2980,6 +3068,10 @@ classicGame = Hexsweeper.boot({
       showClassicEnd(win, api);
     },
     onReset: hideClassicEnd,
+    onUndo() {
+      hideClassicEnd();
+      scheduleClassicSave();
+    },
     afterFrame: drawClassicEnd,
     onClearPersist() {
       clearClassicRun();
@@ -2995,6 +3087,17 @@ classicAgain.addEventListener("click", () => {
   document.getElementById("reset-btn").click();
   document.getElementById("gameCanvas").focus({ preventScroll: true });
   hideClassicEnd();
+});
+
+// Undo hides itself too, so the board takes focus; the end line says what happened.
+classicUndo.addEventListener("click", () => {
+  if (!classicGame.undo()) return;
+  document.getElementById("gameCanvas").focus({ preventScroll: true });
+  classicEndNote.textContent = "";
+  const spoken = document.createElement("span");
+  spoken.className = "sr-only";
+  spoken.textContent = "Move undone";
+  classicEndNote.append(spoken);
 });
 
 if (classicParams.get("resume") === "1") {

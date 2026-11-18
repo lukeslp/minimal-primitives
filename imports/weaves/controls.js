@@ -1,7 +1,7 @@
 /* Shared Minimal control presentation. Luke Steuber. */
 (function () {
   'use strict';
-  const config = {"id":"weave","bar":".toolbar","undo":"undo-btn","hint":"hint-btn","settings":"settings-btn","help":"help-btn","restart":"restart-btn","completion":["next-btn"],"required":["undo-btn","hint-btn"],"keys":["arrows","select"]};
+  const config = {"id":"weave","bar":".toolbar","undo":"undo-btn","hint":"hint-btn","settings":"settings-btn","help":"help-btn","restart":"restart-btn","completion":["next-btn"],"required":["undo-btn","hint-btn"],"tools":["keep-btn"],"keys":["arrows","select"]};
   // Native payloads have their own release/acceptance contract.
   if (window.HEXSWEEPER_SPHERE_APP) return;
   // Where this file was loaded from; an inlined copy (a one-page build) has no

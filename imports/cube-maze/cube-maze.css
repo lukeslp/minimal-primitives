@@ -28,6 +28,8 @@ button,button *,header,.toolbar{-webkit-user-select:none;user-select:none;-webki
 .sheet-x{width:44px;height:44px;min-width:44px;min-height:44px;padding:10px}
 .sheet-body{padding:20px 24px;overflow:auto;min-height:0;overscroll-behavior:contain;touch-action:pan-y}.sheet-body p{margin:0 0 16px;max-width:60ch}.sheet-body p:last-child{margin:0}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;border-bottom:1px solid var(--line)}.row select{max-width:65%;min-height:44px;background:var(--bg);border:0;padding:4px 8px}.row button{min-height:44px;background:none;border:0;padding:8px}.row button:not(:disabled){text-decoration:underline;text-underline-offset:4px}
+/* As in Slant and Shoo: the line under New Game+ saying how to unlock it. */
+.quiet{color:var(--sub);font:13px/1.4 var(--mono);overflow-wrap:anywhere;margin:8px 0 0}.quiet[hidden]{display:none}
 .sheet-foot{padding:12px 24px;border-top:1px solid var(--line);flex:none;color:var(--sub);font-size:14px}.sheet-foot a{color:inherit}
 @media(max-width:480px){.sheet-head{padding:8px 12px}.sheet-body{padding:16px}}
 /* Held sideways, the controls stand in a column on the right; the readout and the next arrow centre on the play area.

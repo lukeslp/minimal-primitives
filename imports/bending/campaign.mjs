@@ -1,5 +1,5 @@
 // Campaign records, kept by board rather than by place. Luke Steuber.
-import {placed, spots} from './well.mjs?v=0f8ac9d7';
+import {placed, spots} from './well.mjs?v=ceff1282';
 
 // A board's name: an FNV-1a hash of its lattice, answer and probes. Progress is
 // saved under these names, so a board keeps its record wherever it moves in the
@@ -28,9 +28,10 @@ const object = value => value !== null && typeof value === 'object' && !Array.is
 // The record the page plays with: one entry per board, the campaign's stages
 // first and New Game+'s after them. `board` is the place of the board on screen,
 // `available` how many stages are open, `done` every stage ever solved, and
-// `bag` the New Game+ boards still to come this round.
+// `bag` the New Game+ boards still to come this round. `past` keeps the names of boards solved while they were
+// campaign stages that no longer are (five left on November 17, 2026), so their record is never lost.
 export const fresh = (boards, pool = []) => ({v: 3, board: 0, stages: every(boards, pool).map(blank), available: 1,
-  done: every(boards, pool).map(() => false), bag: [], motion: true, sound: false});
+  done: every(boards, pool).map(() => false), bag: [], past: [], motion: true, sound: false});
 
 // Solving a stage opens the next for good. New Game+ boards open nothing.
 export function unlock(record, index, boards) {
@@ -69,7 +70,8 @@ export function pack(record, boards, pool = []) {
     if (index >= boards.length && index !== record.board) return;
     if (entry.solved || entry.hints || entry.planets.some(dot => dot !== null)) stages[ids[index]] = {planets: [...entry.planets], hints: entry.hints, solved: entry.solved};
   });
-  return {v: 3, board: ids[record.board], stages, done: ids.filter((_, index) => index < boards.length && record.done[index]),
+  const past = (record.past || []).filter(id => !ids.slice(0, boards.length).includes(id));
+  return {v: 3, board: ids[record.board], stages, done: [...ids.filter((_, index) => index < boards.length && record.done[index]), ...past],
     open: ids.slice(0, record.available), pool: record.bag.filter(id => ids.indexOf(id) >= boards.length), motion: record.motion, sound: record.sound};
 }
 
@@ -86,14 +88,28 @@ function read(save, boards, pool) {
     const entry = stage(saved, list[at.get(id)]);
     if (entry) record.stages[at.get(id)] = entry;
   }
-  if (Array.isArray(save.done)) for (const id of save.done) if (known(id, true)) record.done[at.get(id)] = true;
+  if (Array.isArray(save.done)) for (const id of save.done) {
+    if (known(id, true)) record.done[at.get(id)] = true;
+    else if (typeof id === 'string' && /^[0-9a-f]{8}$/.test(id) && !record.past.includes(id)) record.past.push(id);
+  }
   const open = Array.isArray(save.open) ? save.open : [];
   for (const id of open) if (known(id, true)) record.available = Math.max(record.available, at.get(id) + 1);
   if (Array.isArray(save.pool)) record.bag = [...new Set(save.pool.filter(id => known(id) && at.get(id) >= boards.length))];
   if (typeof save.motion === 'boolean') record.motion = save.motion;
   if (typeof save.sound === 'boolean') record.sound = save.sound;
-  // The saved board; if it has gone, the nearest open stage before it that is still here.
+  // The saved board; if it has gone, the nearest open stage before it that is still here. A board that is now a
+  // New Game+ board stays only once the campaign is finished; before that, the open stage nearest it in the order
+  // it was saved in (the later of two) takes its place.
   let where = known(save.board) ? at.get(save.board) : -1;
+  const finishedAll = boards.every((_, index) => record.done[index] || record.stages[index].solved);
+  if (where >= boards.length && !finishedAll) {
+    const from = open.indexOf(save.board), here = open.map((id, index) => [id, index]).filter(([id]) => known(id, true));
+    where = -1;
+    if (from >= 0 && here.length) {
+      const [id] = here.reduce((best, item) => Math.abs(item[1] - from) < Math.abs(best[1] - from) || (Math.abs(item[1] - from) === Math.abs(best[1] - from) && item[1] > best[1]) ? item : best);
+      where = at.get(id);
+    }
+  }
   if (where < 0) {
     const from = open.indexOf(save.board);
     const before = from < 0 ? open : open.slice(0, from + 1);
@@ -121,6 +137,8 @@ export function migrate(save, boards, pool = []) {
     if (entry) record.stages[where[place]] = entry;
   });
   where.forEach((index, place) => { if (index >= 0 && done[place] === true) record.done[index] = true; });
+  // A solved board that has left the campaign keeps its record by name.
+  V2.forEach((id, place) => { if (where[place] < 0 && (done[place] === true || stages[place]?.solved === true) && !record.past.includes(id)) record.past.push(id); });
   // v1 saves had every one of their 24 stages open.
   const reach = save.v === 1 ? 24 : Number.isInteger(save.available) ? Math.min(V2.length, Math.max(1, save.available)) : 1;
   for (let place = 0; place < reach; place++) if (where[place] >= 0) record.available = Math.max(record.available, where[place] + 1);

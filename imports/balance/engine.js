@@ -128,19 +128,89 @@
     return { count: total, unique: total === 1, solution: total === 1 ? keep[0] : null };
   }
 
+  // Every line a state breaks: three alike in a row, or more than half of one shade.
+  function breaches(n, s) {
+    const out = [];
+    for (const line of lines(n)) {
+      const c = line.cells;
+      for (let k = 2; k < n; k++) {
+        const v = s[c[k]];
+        if (v && s[c[k - 1]] === v && s[c[k - 2]] === v) out.push({ kind: line.kind, index: line.index, why: 'run', shade: v, cells: [c[k - 2], c[k - 1], c[k]] });
+      }
+      const count = tally(line, s);
+      for (const v of [BLACK, WHITE]) if (count[v] > n / 2) out.push({ kind: line.kind, index: line.index, why: 'share', shade: v, cells: c.filter(i => s[i] === v) });
+    }
+    return out;
+  }
+  // Every square the direct rules fill on this state, each once, with the fewest squares that force it.
+  function direct(n, s) {
+    const out = new Map(), add = (i, m) => { if (!out.has(i) || m.support.length < out.get(i).support.length) out.set(i, m); };
+    for (const line of lines(n)) {
+      const c = line.cells;
+      for (let k = 0; k + 2 < n; k++) {
+        const a = s[c[k]], b = s[c[k + 1]], d = s[c[k + 2]];
+        if (a && a === b && !d) add(c[k + 2], { value: other(a), support: [c[k], c[k + 1]] });
+        if (b && b === d && !a) add(c[k], { value: other(b), support: [c[k + 1], c[k + 2]] });
+        if (a && a === d && !b) add(c[k + 1], { value: other(a), support: [c[k], c[k + 2]] });
+      }
+      const count = tally(line, s);
+      for (const v of [BLACK, WHITE]) if (count[v] === n / 2 && count[0]) for (const i of c) if (!s[i]) add(i, { value: other(v), support: c.filter(j => s[j] === v) });
+    }
+    return out;
+  }
+  // Why `shade` at square i fails by direct rules alone. Put it there and fill, round by round, every
+  // square the direct rules force, until a line breaks; the first round that breaks one is the shortest
+  // way there. Of the lines that break, keep the one reached by the fewest squares. `chain` holds the
+  // empty squares its steps fill, `marks` the squares already on the board they rest on, `line` the line.
+  function trace(n, state, i, shade) {
+    const s = state.slice(), from = new Map([[i, []]]);
+    s[i] = shade;
+    for (let round = 0; round <= s.length; round++) {
+      const found = breaches(n, s);
+      if (found.length) {
+        let best = null;
+        for (const f of found) {
+          const chain = [], marks = [], seen = new Set(), todo = f.cells.slice();
+          while (todo.length) {
+            const k = todo.pop();
+            if (seen.has(k)) continue;
+            seen.add(k);
+            if (k === i) continue;
+            if (from.has(k)) { chain.push(k); todo.push(...from.get(k)); } else marks.push(k);
+          }
+          if (!best || chain.length + marks.length < best.chain.length + best.marks.length) best = { line: f, chain, marks };
+        }
+        best.chain.sort((a, b) => a - b);
+        best.marks.sort((a, b) => a - b);
+        return best;
+      }
+      const step = direct(n, s);
+      if (!step.size) return null;
+      for (const [k, m] of step) { s[k] = m.value; from.set(k, m.support); }
+    }
+    return null;
+  }
+
   const cap = t => t[0].toUpperCase() + t.slice(1);
   function sentence(m) {
     const need = NAME[m.value], seen = NAME[other(m.value)];
     if (m.rule === 'pair') return 'Two ' + seen + ' squares sit together, so the next one is ' + need + '.';
     if (m.rule === 'gap') return 'A ' + seen + ' square on each side, so the middle is ' + need + '.';
     if (m.rule === 'share') return 'This ' + m.kind + ' has all its ' + seen + ', so the rest are ' + need + '.';
-    if (m.rule === 'trial') return cap(seen) + ' here soon breaks a rule, so it is ' + need + '.';
+    if (m.rule === 'trial' && m.breaks) {
+      const f = m.breaks, where = f.kind + ' ' + (f.index + 1);
+      const what = f.why === 'run' ? 'three ' + NAME[f.shade] + ' in a row' : 'too many ' + NAME[f.shade] + ' squares';
+      const lead = m.chain.length ? cap(seen) + ' here soon breaks a rule: it forces the dashed squares, and ' : cap(seen) + ' here soon breaks a rule: ';
+      return lead + where + ' gets ' + what + ', so it is ' + need + '.';
+    }
     return cap(seen) + ' here leaves no way to finish, so it is ' + need + '.';
   }
 
   // The next deduction from the marks on the board. `depth` limits how far it may look:
   // 1 direct rules, 2 trying a shade and following direct rules, 3 trying a shade with a full search.
-  function next(p, s, depth) {
+  // `first` takes the first square a tried shade settles, in board order, rather than the one with the
+  // shortest reason; grading uses it, so a board's measured difficulty does not move with Hint's choice.
+  function next(p, s, depth, first) {
     if (!stateValid(p, s)) return null;
     depth = depth || 3;
     const n = p.n, v = inspect(p, s);
@@ -160,17 +230,23 @@
       return deep ? count(n, t, 1) === 0 : !settle(n, t);
     };
     for (const deep of depth >= 3 ? [false, true] : [false]) {
-      let dead = null;
+      // A tried shade that fails by direct rules: of all the squares where one does, take the one whose
+      // reason is shortest, so the squares Hint marks stay few enough to follow.
+      let dead = null, best = null;
       for (let i = 0; i < s.length; i++) {
         if (s[i]) continue;
         const noBlack = fails(i, BLACK, deep), noWhite = fails(i, WHITE, deep);
         if (noBlack && noWhite) { dead = dead === null ? i : dead; continue; }
         if (noBlack || noWhite) {
           const m = { i, value: noBlack ? WHITE : BLACK, rule: deep ? 'search' : 'trial', support: [] };
-          m.text = sentence(m);
-          return m;
+          if (deep) { m.text = sentence(m); return m; }
+          const t = trace(n, s, i, other(m.value));
+          if (t) Object.assign(m, { support: [...t.chain, ...t.marks], chain: t.chain, marks: t.marks, breaks: t.line, lines: [{ kind: t.line.kind, index: t.line.index }] });
+          if (!best || (t && (!best.breaks || m.support.length < best.support.length))) best = m;
+          if (first) break;
         }
       }
+      if (best) { best.text = sentence(best); return best; }
       if (dead !== null) return { fault: 'stuck', i: dead, support: [dead], text: 'Neither shade fits here. An earlier mark is wrong.' };
     }
     return null;
@@ -206,7 +282,7 @@
   function grade(p, depth) {
     const s = start(p), used = { pair: 0, gap: 0, share: 0, trial: 0, search: 0 };
     for (;;) {
-      const m = next(p, s, depth || 3);
+      const m = next(p, s, depth || 3, true);
       if (!m || m.fault) break;
       s[m.i] = m.value;
       used[m.rule]++;

@@ -1,4 +1,4 @@
-import {FULL, WELL, PLANET, corner, leaving, lights, onRim, rad, spacing, spots} from './well.mjs?v=0f8ac9d7';
+import {FULL, WELL, PLANET, corner, leaving, lights, onRim, rad, spacing, spots} from './well.mjs?v=ceff1282';
 import {CELL, star, twinkle} from './sky.mjs?v=0f8ac9d7';
 
 const TAU = Math.PI * 2;
@@ -261,7 +261,7 @@ export function createView(canvas) {
   // lights round from the top, the paths firm up and the working marks go.
   // `slots` is where each planet waits in the tray (null once it is in the well),
   // and `waves` how far along each planet's ripple is, 0 to 1, or null.
-  function draw({ board, planets, bodies, shown, won = 0, hints, held, mode, lens = true, clues = true, sky = null, weave = true, hole = false, selected = null, time = null, slots = planets.map((_, i) => i), waves = planets.map(() => null) }) {
+  function draw({ board, planets, bodies, shown, won = 0, hints, held, mode, lens = true, clues = true, sky = null, weave = true, hole = false, selected = null, time = null, slots = planets.map((_, i) => i), waves = planets.map(() => null), reason = null }) {
     const size = board.size ?? FULL;
     const dots = spots(board);
     const css = getComputedStyle(document.documentElement);
@@ -392,6 +392,19 @@ export function createView(canvas) {
         g.globalAlpha = 1;
       });
     }
+    // A hint's reason: the beam that pins its planet, dashed in the hint's ink
+    // along the way it goes with every planet on the answer, around the marked
+    // dot and into its light. It is still; it goes with the hint.
+    if (reason && !won) {
+      g.strokeStyle = ink;
+      g.lineWidth = 1.5 / s;
+      g.setLineDash([5 / s, 4 / s]);
+      g.beginPath();
+      reason.points.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y));
+      g.stroke();
+      g.setLineDash([]);
+      g.lineWidth = 1 / s;
+    }
     g.restore();
     g.strokeStyle = ink;
     circle(300, 300, WELL.rim);
@@ -433,6 +446,16 @@ export function createView(canvas) {
       g.fillStyle = shown.lit[i] ? paper : ink;
       numeral(i + 1, p);
     });
+    // The light that beam goes to, and the arrow it starts from, get a second ring.
+    if (reason && !won) {
+      g.strokeStyle = ink;
+      g.lineWidth = 1.5 / s;
+      const light = onRim(lights(board)[reason.probe]);
+      circle(light.x, light.y, 18);
+      const start = onRim(rad(board.probes[reason.probe].at));
+      circle(start.x, start.y, 12);
+      g.lineWidth = 1 / s;
+    }
     // A hint is four ticks about a dot, so it is never taken for a planet's ring.
     g.strokeStyle = ink;
     g.lineWidth = 1.5 / s;

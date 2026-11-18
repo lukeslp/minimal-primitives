@@ -12,6 +12,7 @@
     "engine.js",
     "favicon.svg",
     "freeplay.js",
+    "reason.js",
     "fonts/IBMPlexMono-500.woff2",
     "fonts/IBMPlexSans-400.woff2",
     "fonts/OFL.txt",

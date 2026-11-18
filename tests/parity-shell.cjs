@@ -292,24 +292,28 @@ test('a scripted open (the app shells, the capture tools) ends the opening and g
 });
 // Signs of life: a tile takes its color when every board of its game is finished (the game's own record, read from its
 // namespace), and a still library gets a passing shine after ten seconds, then every twenty.
-const LIFE=JSON.parse(fs.readFileSync(path.join(h.ROOT,'index.json'))),done=n=>JSON.stringify({completed:Array.from({length:n},(_,i)=>'b'+i)});
+// A set is [storage key, field, the campaign's ids]; done(name,n) is a record with that game's first n campaign ids finished.
+const LIFE=JSON.parse(fs.readFileSync(path.join(h.ROOT,'index.json'))),ids=name=>LIFE.tiles.find(x=>x.name===name).set[2],done=(name,n)=>JSON.stringify({version:1,completed:ids(name).slice(0,n)});
 const seen={[OPENING_KEY]:'1'};
 // What a tile shows: its picture's file, whether it arrived, the tile's dress, and the corner check and words that say "finished" without color.
 const tileState=(page,cls)=>page.locator('#tiles .tile.'+cls).evaluate(e=>{const img=e.querySelector('.art img'),art=getComputedStyle(e.querySelector('.art')),check=getComputedStyle(e,'::after');
   return{won:e.classList.contains('won'),pictured:e.classList.contains('pictured'),solved:e.classList.contains('solved'),src:img.getAttribute('src').split('?')[0].split('/').pop(),wide:img.naturalWidth,fill:e.style.getPropertyValue('--fill'),
     ground:art.backgroundColor,blend:getComputedStyle(img).mixBlendMode,filter:getComputedStyle(img).filter,fade:getComputedStyle(img).animationName,
     check:check.content!=='none'&&check.width==='18px'&&check.backgroundColor!==getComputedStyle(e).backgroundColor,words:e.querySelector('.more .line .done')?.textContent||''};});
-const NOTAN=[...require(path.join(h.ROOT,'imports/notan/levels.js')),...require(path.join(h.ROOT,'imports/notan/plus-levels.js'))].map(b=>b.id),ink=n=>JSON.stringify({solved:Object.fromEntries(NOTAN.slice(0,n).map(id=>[id,30])),boards:{[NOTAN[0]]:{cells:[]}}});
+const RAMP=require(path.join(h.ROOT,'imports/notan/levels.js')).map(b=>b.id),PLUS=require(path.join(h.ROOT,'imports/notan/plus-levels.js')).map(b=>b.id);
+const ink=list=>JSON.stringify({solved:Object.fromEntries(list.map(id=>[id,30])),boards:{[RAMP[0]]:{cells:[]}}}),NOTAN=RAMP;
 const file=art=>art.file.split('/').pop();
 test('a finished game shows its solved board in color, or one color where it has no picture; an unfinished tile reads no picture',async t=>{
   const sets=Object.fromEntries(LIFE.tiles.filter(x=>x.set).map(x=>[x.name,x]));
-  assert.deepEqual([sets.Slant.set,sets.Notan.set,sets.Cast.set,sets.Tilt.set,sets.Horologist.set],[['slant',54],['ink',73],['cast-3d',30],['tilt-levels-grok',30],['horologist-plate',50]],"the index's own table, with Notan's from the package");
-  assert.equal(NOTAN.length,sets.Notan.set[1],"Notan's whole set is every board in its pinned source");
+  assert.deepEqual([sets.Slant.set,sets.Notan.set,sets.Cast.set,sets.Tilt.set,sets.Horologist.set].map(([key,field,list])=>[key,field,list.length]),
+    [['slant.progress.v1','completed',54],['ink.v1','solved',53],['cast-3d.v1','finished',25],['tilt-levels-grok.v1','done',25],['horologist-plate.v1','solved',25]],"the index's own table, with Notan's from the package");
+  assert.deepEqual(sets.Notan.set[2],RAMP,"Notan's campaign is its ramp; New Game+ is not part of it");
   assert.deepEqual(LIFE.tiles.filter(x=>x.solved).map(x=>x.name),['Slant','Notan','Bridges','Spiral Galaxies','Cast','Folding','Towers','Tents','Shoo','Balance']);
   const ctx=await h.context(await getBrowser(),{width:390,height:844},{seed:{localStorage:{...seen,
-    'lukesteuber.minimal.slant:slant.progress.v1':done(54),'lukesteuber.minimal.notan:ink.v1':ink(73),'lukesteuber.minimal.akari:akari.progress.v1':done(50),
-    'lukesteuber.minimal.bridges:bridges.progress.v1':done(49),'lukesteuber.minimal.tilt:tilt-levels-grok.v1':JSON.stringify({done:Array.from({length:29},(_,i)=>i)}),
-    'lukesteuber.minimal.cast:cast-3d.v1':JSON.stringify({finished:Array.from({length:50},(_,i)=>i)}),'lukesteuber.minimal.towers:slant.progress.v1':done(99)}}});t.after(()=>ctx.close());
+    'lukesteuber.minimal.slant:slant.progress.v1':done('Slant',54),'lukesteuber.minimal.notan:ink.v1':ink(RAMP.concat(PLUS)),'lukesteuber.minimal.akari:akari.progress.v1':done('Akari',50),
+    'lukesteuber.minimal.bridges:bridges.progress.v1':done('Bridges',49),'lukesteuber.minimal.tilt:tilt-levels-grok.v1':JSON.stringify({done:ids('Tilt').slice(0,-1)}),
+    // Cast: every campaign board, and boards the campaign has dropped, which neither help nor hurt.
+    'lukesteuber.minimal.cast:cast-3d.v1':JSON.stringify({finished:['c14','c15'].concat(ids('Cast'))}),'lukesteuber.minimal.towers:slant.progress.v1':done('Slant',54)}}});t.after(()=>ctx.close());
   const fetched=[];ctx.on('request',r=>{if(/-solved[^/]*\.webp/.test(r.url()))fetched.push(new URL(r.url()).pathname.split('/').pop());});
   // Cast's picture cannot be had here: the tile keeps the one-color mark and its own drawing.
   await ctx.route(/cast-3d-solved/,route=>route.fulfill({status:404,body:'Missing'}));
@@ -330,10 +334,31 @@ test('a finished game shows its solved board in color, or one color where it has
   assert.equal(await page.locator('#tiles .tile.glint').count(),0);
   await page.screenshot({path:path.join(h.EVIDENCE,'finished-tiles-dark.png')});assert.deepEqual(ctx.parity.errors,[]);
 });
+// Old saves and partial records: a count of finished boards is not enough. Tilt's and Cast's former campaigns were
+// l01–l30 and c01–c30 (16 and 19 of the current twenty-five, since game-riffs 9ad63d8); a repeat, a recovery copy of a record, or Notan's New Game+
+// never stands in for a missing campaign board.
+test('a tile is finished only when every current campaign id is in its game\'s own record',async t=>{
+  const pad=n=>String(n).padStart(2,'0'),old=letter=>Array.from({length:30},(_,i)=>letter+pad(i+1));
+  assert.deepEqual([old('l').filter(id=>ids('Tilt').includes(id)).length,old('c').filter(id=>ids('Cast').includes(id)).length],[16,19]);
+  const ctx=await h.context(await getBrowser(),{width:390,height:844},{seed:{localStorage:{...seen,
+    'lukesteuber.minimal.tilt:tilt-levels-grok.v1':JSON.stringify({done:old('l')}),
+    'lukesteuber.minimal.cast:cast-3d.v1':JSON.stringify({finished:old('c')}),
+    'lukesteuber.minimal.horologist:horologist-plate.v1':JSON.stringify({solved:ids('Horologist').slice(0,-1).concat(ids('Horologist')[0])}),
+    'lukesteuber.minimal.slant:slant.progress.v1.recovery.1':done('Slant',54),
+    'lukesteuber.minimal.notan:ink.v1':ink(RAMP.slice(1).concat(PLUS)),
+    'lukesteuber.minimal.tents:tents.progress.v1':JSON.stringify({version:1,completed:ids('Tents').length})}}});t.after(()=>ctx.close());
+  const page=await library(ctx);await page.waitForTimeout(300);
+  assert.deepEqual(await page.locator('#tiles .tile.won').evaluateAll(n=>n.map(e=>e.dataset.game)),[],'no old, short, repeated or misplaced record finishes a tile');
+  // The same Tilt record with every current campaign board finished.
+  await page.evaluate(list=>localStorage.setItem('lukesteuber.minimal.tilt:tilt-levels-grok.v1',JSON.stringify({done:['l13'].concat(list)})),ids('Tilt'));
+  await page.reload();await page.locator('#tiles .tile.tilt.won').waitFor();
+  assert.deepEqual(await page.locator('#tiles .tile.won').evaluateAll(n=>n.map(e=>e.dataset.game)),['tilt']);
+  assert.deepEqual(ctx.parity.errors,[]);
+});
 test('a solved picture follows the tile\'s ground, fades in, and holds still under reduced motion',async t=>{
   const sets=Object.fromEntries(LIFE.tiles.filter(x=>x.solved).map(x=>[x.name,x]));
   const ctx=await h.context(await getBrowser(),{width:390,height:844},{scheme:'dark',motion:'no-preference',seed:{localStorage:{...seen,[THEME_KEY]:JSON.stringify({theme:'light'}),
-    'lukesteuber.minimal.notan:ink.v1':ink(73),'lukesteuber.minimal.slant:slant.progress.v1':done(53)}}});t.after(()=>ctx.close());
+    'lukesteuber.minimal.notan:ink.v1':ink(RAMP),'lukesteuber.minimal.slant:slant.progress.v1':done('Slant',53)}}});t.after(()=>ctx.close());
   const page=await library(ctx);await page.locator('#tiles .tile.notan.solved').waitFor();
   const light=await tileState(page,'notan');
   assert.deepEqual([light.src,light.fade,light.wide,light.check],[file(sets.Notan.solved.light),'solved-in',1200,true],'on white, the picture made for white, fading in');
@@ -353,7 +378,7 @@ test('a solved picture follows the tile\'s ground, fades in, and holds still und
   assert.deepEqual(ctx.parity.errors,[]);
 });
 test('the phone\'s reduced motion keeps the solved picture and drops its fade',async t=>{
-  const ctx=await h.context(await getBrowser(),{width:1280,height:900},{scheme:'light',motion:'reduce',seed:{localStorage:{...seen,'lukesteuber.minimal.slant:slant.progress.v1':done(54)}}});t.after(()=>ctx.close());
+  const ctx=await h.context(await getBrowser(),{width:1280,height:900},{scheme:'light',motion:'reduce',seed:{localStorage:{...seen,'lukesteuber.minimal.slant:slant.progress.v1':done('Slant',54)}}});t.after(()=>ctx.close());
   const page=await library(ctx);await page.locator('#tiles .tile.slant.solved').waitFor();
   const slant=await tileState(page,'slant');assert.deepEqual([slant.fade,slant.wide,slant.check,slant.words],['none',1200,true,' All boards finished.']);
   await page.screenshot({path:path.join(h.EVIDENCE,'finished-tiles-light-desktop.png')});assert.deepEqual(ctx.parity.errors,[]);
@@ -361,7 +386,7 @@ test('the phone\'s reduced motion keeps the solved picture and drops its fade',a
 test("the library's own Reduced motion keeps the solved picture and drops its fade, where the phone asks for nothing",async t=>{
   // The index's stylesheet stills everything under html[data-motion="reduce"] (one rule, after the picture's own),
   // which library-theme.js sets before the first paint. The phone's setting is left at normal motion here.
-  const ctx=await h.context(await getBrowser(),{width:390,height:844},{scheme:'dark',motion:'no-preference',seed:{localStorage:{...seen,[THEME_KEY]:JSON.stringify({motion:'reduce'}),'lukesteuber.minimal.slant:slant.progress.v1':done(54)}}});t.after(()=>ctx.close());
+  const ctx=await h.context(await getBrowser(),{width:390,height:844},{scheme:'dark',motion:'no-preference',seed:{localStorage:{...seen,[THEME_KEY]:JSON.stringify({motion:'reduce'}),'lukesteuber.minimal.slant:slant.progress.v1':done('Slant',54)}}});t.after(()=>ctx.close());
   const page=await library(ctx);await page.locator('#tiles .tile.slant.solved').waitFor();
   assert.deepEqual(await page.evaluate(()=>[matchMedia('(prefers-reduced-motion: reduce)').matches,document.documentElement.getAttribute('data-motion')]),[false,'reduce']);
   const slant=await tileState(page,'slant');assert.deepEqual([slant.fade,slant.solved,slant.wide,slant.check],['none',true,1200,true]);

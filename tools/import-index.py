@@ -35,7 +35,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PIN = 'dfb83d1'
+PIN = '9110a8e'
 PAGE = 'minimal/index.html'
 
 # Where each index link leads inside the package: (game id, Hexsweeper mode). A tile's own
@@ -85,13 +85,33 @@ NOT_BUNDLED = {
 }
 # Finished-tile facts the index's own tables cannot hold. The web page cannot read a record kept on another site,
 # so its `sets` and `solved` tables leave Notan (playnotan.com) out; the package reads every bundled game's own
-# record. By tile class: where the game keeps its record and how many boards make its whole set, and the solved
-# pictures the index's art folder carries for the app (on black, on white, the share of the tile's side filled).
-# Notan keeps a map of board to best time under ink.v1; its set is the ramp and New Game+ together, the boards
-# its own "All 73 boards solved." counts (tests/test_build.py counts them in the pinned source).
+# record. By tile class: where the game keeps its record (storage key, field) and the solved pictures the index's art
+# folder carries for the app (on black, on white, the share of the tile's side filled). Notan keeps a map of board to
+# best time under ink.v1 (`solved`). Its main campaign is the ramp in levels.js, read from the bundled source at
+# import; its New Game+ boards (plus-levels.js) never finish the tile.
 APP_LIFE = {
-    'notan': {'set': ['ink', 73], 'solved': ['notan-solved-7725aca98610.webp', 'notan-solved-light-535dc40e3591.webp', 0.68]},
+    'notan': {'set': ['ink.v1', 'solved', 'levels.js'], 'solved': ['notan-solved-7725aca98610.webp', 'notan-solved-light-535dc40e3591.webp', 0.68]},
 }
+# A finished tile needs every id of the game's current main campaign, from the index's `sets` table (written from
+# game-riffs by minimal/campaigns.cjs). The package plays the games pinned in sources.json, which can trail the
+# index: each set's storage key and ids must be in the bundled game, or the import stops. A game listed here is
+# known to trail: its tile is imported without a set (it never shows as finished) until its game is re-pinned.
+STALE_SETS = {}  # Weaves left it in 0.5.10, when its game moved to game-riffs 29b29ad and its sixteen-board course.
+
+
+def unbundled(game, campaign):
+    """The storage key and campaign ids of a set that the bundled game's own scripts never name."""
+    text = '\n'.join(p.read_text() for p in sorted((ROOT / 'imports' / game).glob('*.js')))
+    key, _field, ids = campaign
+    quoted = lambda word: re.search(r'[\'"]%s[\'"]' % re.escape(word), text)
+    missing = [w for w in [key] + ids if not quoted(w)]
+    # A game that plays a chosen part of its boards lists it in campaign.js, in play order: that list must be the set.
+    order = ROOT / 'imports' / game / 'campaign.js'
+    if not missing and order.exists():
+        lists = re.findall(r"\[((?:\s*'[\w-]+'\s*,?)+)\s*\]", order.read_text())
+        if not lists or re.findall(r"'([\w-]+)'", lists[-1]) != ids:
+            missing = ['the campaign in campaign.js (a different list or order)']
+    return missing
 
 
 def git(repo, *args):
@@ -124,6 +144,8 @@ def parse(html):
     # The title with its Settings gear, and the Settings sheet (Display, Access, About), as the page has them.
     header = re.search(r'<header class="top">.*?</header>', html, re.S).group(0)
     settings = re.search(r'<dialog id="settings".*?</dialog>', html, re.S).group(0)
+    # A sentence marked data-web-only is about the web page alone (games on other sites); every bundled game shares one store.
+    settings = re.sub(r'<span data-web-only>.*?</span>', '', settings, flags=re.S)
     # Signs of life: the colors a finished tile and the idle shine take, and, by tile class, where each game keeps
     # its record and how many boards make its whole set. Read from the page's own script.
     def literal(name):
@@ -133,7 +155,9 @@ def parse(html):
     for name, extra in APP_LIFE.items():
         if name in life['sets'] or name in life['solved']:
             sys.exit(f'The index now has its own finished-tile entry for {name!r}: take it out of APP_LIFE in tools/import-index.py.')
-        life['sets'][name], life['solved'][name] = extra['set'], extra['solved']
+        key, field, source = extra['set']
+        ids = re.findall(r"\{ id: '([\w-]+)'", (ROOT / 'imports' / name / source).read_text())
+        life['sets'][name], life['solved'][name] = [key, field, ids], extra['solved']
     return style, tiles, lines, opening, header, settings, life
 
 
@@ -186,6 +210,18 @@ def main():
         drawing = next((lines[c] for c in tile['classes'] if c in lines), None)
         tile['lines'] = f'art/{drawing}-lines.svg' if drawing else None
         tile['set'] = next((life['sets'][c] for c in tile['classes'] if c in life['sets']), None)
+        if tile['set']:
+            if not (isinstance(tile['set'], list) and len(tile['set']) == 3 and all(isinstance(i, str) for i in tile['set'][2]) and tile['set'][2]):
+                sys.exit(f'{tile["name"]!r}: the index set {tile["set"]!r} is not [key, field, campaign ids]; re-import from an index with minimal/campaigns.json.')
+            missing = unbundled(tile['game'], tile['set'])
+            if missing and tile['game'] in STALE_SETS:
+                tile['setLeftOff'] = STALE_SETS[tile['game']]
+                tile['set'] = None
+            elif missing:
+                sys.exit(f'{tile["name"]!r}: the bundled game (imports/{tile["game"]}) has no {", ".join(missing[:6])}'
+                         f'{" and more" if len(missing) > 6 else ""}. Re-pin the game, or list it in STALE_SETS with the reason.')
+            elif tile['game'] in STALE_SETS:
+                sys.exit(f'{tile["name"]!r} now matches its bundled game: take it out of STALE_SETS.')
         def carry(source):
             data = git(args.index, 'show', f'{sha}:minimal/{source}')
             name = Path(source).name

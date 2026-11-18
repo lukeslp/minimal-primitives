@@ -139,23 +139,21 @@
   // the app (tiles.json `solved`, the index's own captures), read from the package and never from the network.
   let life = {onDark: [], onLight: []}, shineTimer = null;
   const lifeTiles = () => [...$('tiles').querySelectorAll('.tile')];
-  // Most games keep a list of finished boards. Notan keeps a map of board to best time, which the index cannot
-  // read on the web (Notan lives on another site) and the package can.
-  const tally = list => Array.isArray(list) ? list.length
-    : list && typeof list === 'object' ? Object.values(list).filter(time => typeof time === 'number').length : 0;
-  const finishedCount = value => !value || typeof value !== 'object' ? 0
-    : Math.max(...['completed', 'solved', 'finished', 'done'].map(k => tally(value[k])));
-  function beaten(game, [name, total]) {
-    const prefix = 'lukesteuber.minimal.' + game + ':';
+  // A tile is finished when every id of its game's current main campaign is in that game's own record: the index's
+  // set is [storage key, field, campaign ids], read from the games (luke-portfolio minimal/campaigns.cjs). Most games
+  // keep a list of finished ids; Notan keeps a map of board to best time. Boards outside the campaign (optional, New
+  // Game+, boards a campaign has dropped) and repeats never make up for a missing one.
+  const finishedIds = (value, field) => {
+    const list = value && typeof value === 'object' ? value[field] : null;
+    return Array.isArray(list) ? list.filter(id => typeof id === 'string')
+      : list && typeof list === 'object' ? Object.keys(list).filter(id => typeof list[id] === 'number') : [];
+  };
+  function beaten(game, [key, field, ids]) {
     try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const full = localStorage.key(i);
-        if (!full.startsWith(prefix)) continue;
-        const key = full.slice(prefix.length);
-        if ((key === name + '.v1' || key.startsWith(name + '.progress.')) && finishedCount(JSON.parse(localStorage.getItem(full))) >= total) return true;
-      }
-    } catch (_) {}
-    return false;
+      const raw = localStorage.getItem('lukesteuber.minimal.' + game + ':' + key); if (raw === null) return false;
+      const done = new Set(finishedIds(JSON.parse(raw), field));
+      return ids.length > 0 && ids.every(id => done.has(id));
+    } catch (_) { return false; }
   }
   function dressTiles() {
     const cols = getComputedStyle($('tiles')).gridTemplateColumns.split(' ').length || 1;

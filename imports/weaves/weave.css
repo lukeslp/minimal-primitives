@@ -20,6 +20,13 @@
 /* The end of the campaign: one line just above Next, which becomes Replay once every board is finished. */
 .end-line{margin:0;font:500 13px/1.4 var(--mono);letter-spacing:.02em;color:var(--text);text-align:center;pointer-events:none}
 .end-line[hidden]{display:none}
+.kept-mark{fill:none;stroke-width:2;vector-effect:non-scaling-stroke;pointer-events:none}
+.kept-mark.on-weft{stroke:#141414}.kept-mark.on-warp{stroke:#f2f2f2}
+.hint-pair,.reason-halo{fill:none;stroke:var(--ink);stroke-width:2;vector-effect:non-scaling-stroke;pointer-events:none}
+.reason-halo{stroke:var(--bg);stroke-width:5}
+#keep-btn[aria-pressed=true]{outline:1px solid currentColor;outline-offset:-5px}
+#more-cloths{margin-top:24px}#more-cloths summary{cursor:pointer;min-height:44px;padding:10px 0}
+#more-catalog{margin-top:8px}
 body[data-control-frame] .end-line{position:fixed!important;top:auto!important;right:auto!important;left:var(--control-next-left,50%)!important;bottom:calc(var(--control-next-bottom,max(64px,calc(env(safe-area-inset-bottom) + 64px))) + 72px)!important;transform:translateX(-50%)!important;width:max-content;max-width:calc(100vw - 32px);white-space:normal!important;z-index:50}
 @media(max-height:520px) and (min-width:560px){body[data-control-frame] .end-line{bottom:calc(var(--control-next-bottom,max(12px,env(safe-area-inset-bottom))) + 72px)!important}}
 #end-line{position:fixed;left:50%;bottom:max(72px,calc(env(safe-area-inset-bottom) + 72px));transform:translateX(-50%);white-space:nowrap}

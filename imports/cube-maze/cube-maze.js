@@ -2,7 +2,11 @@
    Tip the cube or turn a slice, and the marble falls along gravity until a closed end stops it. */
 import * as THREE from './vendor/three.module.min.js';
 
-const E = window.CubeMazeEngine, BOARDS = window.CubeMazeBoards, FT = window.CubeMazeFeet, KEY = 'cube-maze.v1';
+const E = window.CubeMazeEngine, ALL = window.CubeMazeBoards, FT = window.CubeMazeFeet, KEY = 'cube-maze.v1';
+// The campaign (campaign.js) plays twenty-five of the fifty boards in boards.js, in its own order. Once every one is
+// solved the game is finished, and New Game+ deals the other twenty-five (the pool) at random, each once before any
+// comes back; a pool board is never campaign progress.
+const BOARDS = window.CubeMazeCampaign.map(id => ALL.find(b => b.id === id)), POOL = ALL.filter(b => !BOARDS.includes(b));
 const $ = s => document.querySelector(s);
 const V3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const VEC = E.VEC.map(v => V3(...v)), AXES = E.AXES, UP = V3(0, 1, 0), DOWN = V3(0, -1, 0);
@@ -23,7 +27,7 @@ const LAMBDA = 1.3, FLOW = 9, SOLVED_GLOW = 0.85, WASH_PEAK = 2.2, GRAVITY = 36;
 THREE.ColorManagement.enabled = false;
 
 // ---------- Saves ----------
-let prefs = { motion: 'system', looked: false, hintCount: 0, hintBoard: null }, boardId = BOARDS[0].id, history = [], completed = [], corrupt = false;
+let prefs = { motion: 'system', looked: false, hintCount: 0, hintBoard: null }, boardId = BOARDS[0].id, history = [], completed = [], played = [], corrupt = false;
 function replay(b, moves) {
   let s = E.normalize(b), q = startOrient(s.g);
   for (const m of moves) {
@@ -42,14 +46,23 @@ function readSave() {
     if (!v || v.version !== 1 || typeof v.board !== 'string' || !Array.isArray(v.moves) || v.moves.length > 5000 || !Array.isArray(v.completed) || !v.settings || !['system', 'reduce'].includes(v.settings.motion)) throw Error('Unreadable');
     const hc = v.settings.hintCount;
     prefs = { motion: v.settings.motion, looked: v.settings.looked === true, hintCount: Number.isInteger(hc) ? Math.max(0, Math.min(2, hc)) : 0, hintBoard: typeof v.settings.hintBoard === 'string' ? v.settings.hintBoard : null };
-    completed = v.completed.filter(id => BOARDS.some(b => b.id === id));
-    const b = BOARDS.find(b => b.id === v.board);
+    // Saves are read against all fifty boards: a board solved before it left the campaign keeps its mark.
+    completed = [...new Set(v.completed.filter(id => ALL.some(b => b.id === id)))];
+    played = Array.isArray(v.pool) ? [...new Set(v.pool.filter(id => POOL.some(b => b.id === id)))] : [];
+    let b = ALL.find(b => b.id === v.board);
+    // A player last on a board that left the campaign goes on from the campaign board nearest it in the old order
+    // of fifty (the later of two), with a fresh cube; once the campaign is finished it is a New Game+ board and stays.
+    if (b && POOL.includes(b) && !campaignDone()) {
+      const at = ALL.indexOf(b), far = c => Math.abs(ALL.indexOf(c) - at);
+      b = BOARDS.reduce((best, c) => far(c) < far(best) || (far(c) === far(best) && ALL.indexOf(c) > ALL.indexOf(best)) ? c : best);
+      v.moves = [];
+    }
     if (b) { boardId = b.id; try { replay(b, v.moves); history = v.moves.map(m => m.slice()); } catch (_) { history = []; } }
   } catch (_) { corrupt = true; }
 }
 function save() {
   if (corrupt) return;
-  try { localStorage.setItem(KEY, JSON.stringify({ version: 1, board: boardId, moves: history, completed, settings: prefs })); } catch (_) {}
+  try { localStorage.setItem(KEY, JSON.stringify({ version: 1, board: boardId, moves: history, completed, settings: prefs, pool: played })); } catch (_) {}
 }
 const reduced = () => prefs.motion === 'reduce' || matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -338,7 +351,7 @@ const tmpQ = new THREE.Quaternion();
 
 function buildBoard() {
   for (const c of cells) { cubeRoot.remove(c.group); pivot.remove(c.group); c.tube.material.dispose(); c.faces.material.dispose(); for (const s of c.sleeves) s.material.dispose(); }
-  board = BOARDS.find(b => b.id === boardId); n = board.n; info = E.setup(n); cells = []; centers = []; FEET = FT.size(n); FOOT = FEET.height;
+  board = ALL.find(b => b.id === boardId); n = board.n; info = E.setup(n); cells = []; centers = []; FEET = FT.size(n); FOOT = FEET.height;
   ({ rt: RT, bend: RBEND, rs: RS } = TUBES[n]); const P = parts(); spoutRings.children.forEach((r, i) => setGeom(r, P.rings[i]));
   for (let c = 0; c < info.count; c++) {
     const center = V3(...info.pos(c)).multiplyScalar(0.5), group = new THREE.Group(); group.position.copy(center); centers.push(center);
@@ -673,7 +686,8 @@ function run(item) {
 function startMove(move, from, lean) {
   const before = state, q0 = orient.clone(), r = E.apply(state, move);
   state = r.state; history.push(move.slice());
-  if (state.out && !completed.includes(boardId)) completed.push(boardId);
+  // Only campaign boards count as solved; a New Game+ board is played for itself.
+  if (state.out && !inPool() && !completed.includes(boardId)) completed.push(boardId);
   if (state.out) { lookHintDue = null; endLookHint(); }
   clearHint(); save(); updateUI(); announceMove(move, r.trace); if (history.length === 3) lookHintDue = boardId;
   const phases = [lean && move[0] === 'tip' ? leanPhase(move[1], q0) : null, move[0] === 'tip' ? rollPhase(move[1], q0) : turnPhase(move, from, r)];
@@ -694,14 +708,34 @@ function faceMove(key, reverse) {
 function undo() { enqueue({ kind: 'undo' }); }
 function restart() { queue = []; fastForward(); drag = null; history = []; lookHintDue = null; endLookHint(); clearHint(); clearSel(); syncAll(); save(); arrival(); announce('Restarted.'); }
 function go(id) {
-  if (!BOARDS.some(b => b.id === id)) throw Error('Unknown board');
+  if (!ALL.some(b => b.id === id)) throw Error('Unknown board');
+  // A New Game+ board opens only once the campaign is finished.
+  if (!BOARDS.some(b => b.id === id) && !campaignDone()) return false;
+  drawn = null;
+  // A round ends once every pool board has been dealt; opening the board in hand again deals nothing new.
+  if (POOL.some(b => b.id === id)) { const dealt = played.filter(x => x !== id).concat(id); played = dealt.length >= POOL.length ? [] : dealt; }
   queue = []; anim = null; drag = null; gesture = null; lookHintDue = null; endLookHint(); clearHint(); clearSel(); endLayer(); boardId = id; history = []; resetLook(true); buildBoard(); syncAll(); save(); arrival();
   // The status line belongs to the board on screen: a new board replaces the last one's result.
-  announce('Board ' + (BOARDS.findIndex(b => b.id === boardId) + 1) + ' of ' + BOARDS.length + '. Par ' + board.par + '.');
+  announce(boardName() + '. Par ' + board.par + '.');
+  return true;
 }
-// After a solve there is always somewhere to go: the next board, one still unsolved, or, with every board solved, back to the first.
-function nextOf() { const i = BOARDS.findIndex(b => b.id === boardId); return BOARDS[i + 1] || BOARDS.find(b => b.id !== boardId && !completed.includes(b.id)) || BOARDS[0]; }
-const campaignDone = () => BOARDS.every(b => completed.includes(b.id)) && nextOf() === BOARDS[0];
+// After a solve there is always somewhere to go: the next board, one still unsolved, or, with the campaign finished,
+// a New Game+ board: one of the pool not dealt since the pool was last used up, never the board just played.
+function nextOf() {
+  const i = BOARDS.findIndex(b => b.id === boardId);
+  return (i >= 0 && BOARDS[i + 1]) || BOARDS.find(b => b.id !== boardId && !completed.includes(b.id)) || (campaignDone() ? drawPool() : BOARDS[0]);
+}
+let drawn = null;
+function drawPool() {
+  if (drawn && drawn.id !== boardId) return drawn;
+  let left = POOL.filter(b => b.id !== boardId && !played.includes(b.id));
+  if (!left.length) left = POOL.filter(b => b.id !== boardId);
+  drawn = left[Math.floor(Math.random() * left.length)];
+  return drawn;
+}
+function campaignDone() { return BOARDS.every(b => completed.includes(b.id)); }
+function inPool() { return !BOARDS.some(b => b.id === boardId); }
+function boardName() { return inPool() ? 'New Game+ board' : 'Board ' + (BOARDS.findIndex(b => b.id === boardId) + 1) + ' of ' + BOARDS.length; }
 function hasNext() { return BOARDS.length > 1; }
 function nextBoard() { go(nextOf().id); }
 
@@ -1002,7 +1036,10 @@ addEventListener('pointermove', e => {
     if (g.queued || g.max <= 8) return;
     const w = nearestLevel(dx, dy), s = screenAxis(w), along = dx * s.x + dy * s.y;
     g.leanW = w; if (!reduced()) leanGoal.copy(w).multiplyScalar(LEAN_MAX * clamp01(along / LEAN_SPAN));
-    // With reduced motion there is no lean, so a still arrow shows which way the cube will roll.
+    // A still arrow shows which way the whole cube will roll, the straight arrow the hint uses, so a roll never looks
+    // like a slice's curved arrow before it is let go. Under reduced motion it is the only sign, with no lean. Back
+    // near the start, where a release rolls nothing, the arrow goes.
+    if (d <= 8) { dropTree(sel.mark); sel.mark = null; sel.markW = null; }
     else if (!sel.mark || !sel.markW.equals(w)) { dropTree(sel.mark); sel.mark = rollArrow(w, markMat); sel.markW = w.clone(); }
     setRamp(along >= TIP_COMMIT ? 1 : 0); kick(); return;
   }
@@ -1112,21 +1149,24 @@ function showHint(move) {
 function updateHintButton() { $('#hint-btn').setAttribute('aria-pressed', String(!!hint || !!hintWorker)); $('#hint-btn').disabled = !!state && state.out; $('#undo-btn').classList.toggle('hinted', hint === 'undo'); }
 
 // ---------- Chrome ----------
-const icons = { restart: 'M5 8V3m0 5h5M5 8a8 8 0 1 1-1 9', undo: 'M9 5 4 10l5 5M4 10h10a6 6 0 0 1 0 12', hint: 'M9 18h6m-5 3h4M8 14a6 6 0 1 1 8 0l-1 2H9z', settings: 'M4 6h16M4 12h16M4 18h16M9 3v6m7 0v6m-8 0v6', help: 'M9 8a3 3 0 1 1 5 2c-2 1-2 2-2 4m0 4v.1', next: 'M5 12h14m-6-6 6 6-6 6', first: 'M19 12H6m5-5-5 5 5 5M3 6v12' };
+const icons = { restart: 'M5 8V3m0 5h5M5 8a8 8 0 1 1-1 9', undo: 'M9 5 4 10l5 5M4 10h10a6 6 0 0 1 0 12', hint: 'M9 18h6m-5 3h4M8 14a6 6 0 1 1 8 0l-1 2H9z', settings: 'M4 6h16M4 12h16M4 18h16M9 3v6m7 0v6m-8 0v6', help: 'M9 8a3 3 0 1 1 5 2c-2 1-2 2-2 4m0 4v.1', next: 'M5 12h14m-6-6 6 6-6 6' };
 for (const [id, path] of Object.entries(icons)) { const b = $('#' + id + '-btn'); if (b) b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + path + '"/></svg>'; }
 const sizeWords = { 2: '2 by 2 by 2', 3: '3 by 3 by 3' };
 function updateUI() {
   if (!state) return;
   const i = BOARDS.findIndex(b => b.id === boardId);
-  $('#readout').textContent = (i + 1) + ' / ' + BOARDS.length + ' · ' + history.length + ' / ' + board.par;
+  // A New Game+ board shows the infinity sign where a campaign board shows its number, as Tilt and Cast do.
+  $('#readout').textContent = (i < 0 ? '∞' : (i + 1) + ' / ' + BOARDS.length) + ' · ' + history.length + ' / ' + board.par;
   $('#undo-btn').disabled = !history.length && !busy();
   $('#next-btn').hidden = !showNext;
-  // With every board solved, the arrow turns back to the first board: a quiet end mark.
-  const done = showNext && campaignDone(), nb = $('#next-btn');
-  if (nb.dataset.kind !== (done ? 'first' : 'next')) { nb.dataset.kind = done ? 'first' : 'next'; nb.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + icons[done ? 'first' : 'next'] + '"/></svg>'; nb.setAttribute('aria-label', done ? 'Every board solved; back to the first board' : 'Next board'); }
-  canvas.setAttribute('aria-label', 'Glass cube ' + sizeWords[n] + ', board ' + (i + 1) + ' of ' + BOARDS.length + ', ' + movesWord(history.length) + ', par ' + board.par + (state.out ? ', solved' : ''));
-  const sel = $('#board-select'); sel.value = boardId;
+  // With the campaign finished, the arrow from a campaign board starts New Game+.
+  if (showNext) $('#next-btn').setAttribute('aria-label', i >= 0 && POOL.includes(nextOf()) ? 'Start New Game+' : 'Next board');
+  canvas.setAttribute('aria-label', 'Glass cube ' + sizeWords[n] + ', ' + boardName().toLowerCase() + ', ' + movesWord(history.length) + ', par ' + board.par + (state.out ? ', solved' : ''));
+  const sel = $('#board-select'); sel.value = i < 0 ? '' : boardId;
   for (const o of sel.options) o.textContent = (BOARDS.findIndex(b => b.id === o.value) + 1) + ' / ' + BOARDS.length + (completed.includes(o.value) ? ' · solved' : '');
+  $('#new-game').disabled = !campaignDone();
+  $('#new-game-note').textContent = campaignDone() ? '' : 'Complete all ' + BOARDS.length + ' to unlock New Game+.';
+  $('#new-game-note').hidden = campaignDone();
   updateHintButton();
 }
 function announce(text) { $('#announcement').textContent = text; }
@@ -1152,10 +1192,11 @@ function announceMove(move, tr) {
   const what = move[0] === 'tip' ? 'roll ' + sideWord(worldDir(move[1], orient)) : 'turn ' + turnWords(move);
   announce('Move ' + history.length + ': ' + what + '. ' + (tr.out ? 'The marble leaves.' : tr.path.length > 1 ? 'The marble falls ' + (tr.path.length - 1) + '.' : 'The marble stays.'));
 }
-function announceSolved() { announce('Solved in ' + movesWord(history.length) + '; par ' + board.par + '.' + (campaignDone() ? ' Every board is solved.' : '')); }
+function announceSolved() { announce('Solved in ' + movesWord(history.length) + '; par ' + board.par + '.' + (!inPool() && campaignDone() ? ' Every board is solved.' : '')); }
 
 for (const b of BOARDS) { const o = document.createElement('option'); o.value = b.id; $('#board-select').append(o); }
 $('#board-select').onchange = e => { go(e.target.value); $('#settings').close(); };
+$('#new-game').onclick = () => { if (campaignDone()) { go(drawPool().id); $('#settings').close(); } };
 $('#motion').onchange = e => { prefs.motion = e.target.value; applyPrefs(); save(); };
 $('#restart-btn').onclick = restart; $('#restart-row').onclick = () => { restart(); $('#settings').close(); };
 $('#undo-btn').onclick = undo; $('#hint-btn').onclick = pressHint; $('#next-btn').onclick = nextBoard;
@@ -1177,7 +1218,8 @@ applyPrefs(); save(); arrival();
 kick();
 
 window.__cubeMaze = {
-  boards: BOARDS,
+  boards: BOARDS, pool: POOL,
+  get played() { return played.slice(); },
   get board() { return boardId; },
   get state() { return { n, masks: state.masks.slice(), spout: state.spout.slice(), marble: state.marble, g: state.g, out: state.out, moves: history.length, history: history.map(m => m.slice()), par: board.par, solved: state.out, busy: busy() || !!gesture, queued: queue.length, hint: hint && (hint === 'undo' ? 'undo' : hint.slice()), searching: !!hintWorker, next: showNext, completed: completed.slice() }; },
   go, tip(d) { enqueue({ kind: 'tip', dir: d }); }, turn(axis, l, dir) { enqueue({ kind: 'turn', move: [axis, l, dir] }); }, undo, restart, pressHint,

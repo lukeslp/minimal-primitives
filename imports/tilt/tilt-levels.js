@@ -19,6 +19,15 @@
   const ids = new Set(All.map(board => board.id));
   // Before November 16, 2026 the campaign was all fifty, l01 to l50 in turn, and reached counted in that order.
   const OLD_ORDER = All.map(board => board.id).sort();
+  // From November 16 to 17, 2026 the campaign was these thirty, and reached (order 2) counted in their order.
+  const ORDER_2 = ['l01', 'l02', 'l03', 'l04', 'l05', 'l06', 'l07', 'l08', 'l09', 'l10', 'l11', 'l12', 'l23', 'l15', 'l26', 'l25', 'l37', 'l18', 'l33', 'l30', 'l47', 'l45', 'l38', 'l46', 'l42', 'l40', 'l31', 'l50', 'l39', 'l41'];
+  // A board's place in the campaign it was saved under, for finding the nearest board still in the campaign.
+  const nearestOpen = (id, reach, finished) => {
+    const at = ORDER_2.indexOf(id), open = Boards.filter((board, index) => index <= reach);
+    if (at < 0) return Boards.find(board => !finished.has(board.id)) || Boards[0];
+    const far = board => Math.abs(ORDER_2.indexOf(board.id) - at);
+    return open.reduce((best, board) => far(board) < far(best) || (far(board) === far(best) && ORDER_2.indexOf(board.id) > ORDER_2.indexOf(best.id)) ? board : best);
+  };
   const $ = id => document.getElementById(id);
 
   const paths = {
@@ -53,8 +62,9 @@
       const motion = data.motion === 'reduce' || data.motion === 'system' ? data.motion : 'system';
       // Before campaign version 2 every original tray was available.
       const previous = data.campaign === 2 ? (Number.isInteger(data.reached) ? data.reached : 0) : 11;
-      // A save without order 2 counts reached in the fifty-board order: every campaign board it had open stays open.
-      const opened = data.order === 2 ? previous : Math.max(...OLD_ORDER.slice(0, Math.max(0, previous) + 1).map(id => Boards.findIndex(item => item.id === id)));
+      // Order 3 counts reached in this campaign; order 2 in the thirty above; none in the fifty-board order. Every
+      // campaign board a save had open stays open.
+      const opened = data.order === 3 ? previous : Math.max(-1, ...(data.order === 2 ? ORDER_2 : OLD_ORDER).slice(0, Math.max(0, previous) + 1).map(id => Boards.findIndex(item => item.id === id)));
       const reached = Math.min(Boards.length - 1, Math.max(0, opened,
         Boards.findIndex(item => item.id === board), ...done.map(id => Boards.findIndex(item => item.id === id) + 1)));
       const pool = Array.isArray(data.pool) ? [...new Set(data.pool.filter(id => Pool.some(item => item.id === id)))] : [];
@@ -73,9 +83,10 @@
   let played = saved ? saved.pool : [];
   const campaignDone = () => Boards.every(board => done.has(board.id));
   let current = All.find(board => board.id === (saved && saved.board)) || Boards[0];
-  // A player last on a board left out of the campaign goes on from the first campaign board not finished; with
-  // the campaign finished, that board is one of the pool and stays.
-  if (!Boards.includes(current) && !campaignDone()) current = Boards.find(board => !done.has(board.id)) || Boards[0];
+  // A player last on a board left out of the campaign goes on from the open campaign board nearest it in the campaign
+  // it was saved under (the first not finished, for a board left out before that); with the campaign finished, that
+  // board is one of the pool and stays.
+  if (!Boards.includes(current) && !campaignDone()) current = nearestOpen(current.id, reached, done);
   const inPool = () => !Boards.includes(current);
   let parsed = E.prepare(current);
   let place = { level: parsed.start.level, row: parsed.start.row, col: parsed.start.col };
@@ -99,7 +110,7 @@
     try {
       localStorage.setItem(KEY, JSON.stringify({
         campaign: 2,
-        order: 2,
+        order: 3,
         reached: reached,
         board: current.id,
         done: [...done],
@@ -471,7 +482,8 @@
     cancelMotion();
     current = next;
     drawn = null;
-    if (inPool()) played = (played.length + 1 >= Pool.length ? [] : played.filter(item => item !== id)).concat(id);
+    // A round ends once every pool board has been served; opening the board in hand again serves nothing new.
+    if (inPool()) { const served = played.filter(item => item !== id).concat(id); played = served.length >= Pool.length ? [] : served; }
     parsed = E.prepare(current);
     par = E.par(current);
     place = { level: parsed.start.level, row: parsed.start.row, col: parsed.start.col };

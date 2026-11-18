@@ -1,7 +1,7 @@
 {"script": "weave.js", "engine": "engine.js", "policy": "hits-v1", "append": false, "hooks": [
-  ["    if (E.solved(board, grid)) { finished.add(board.id); reached = Math.min(boards.length - 1, Math.max(reached, boards.indexOf(board) + 1)); }\n", "    if (E.solved(board, grid)) { finished.add(board.id); reached = Math.min(boards.length - 1, Math.max(reached, boards.indexOf(board) + 1)); }\n    window.MinimalAdapter?.committed();\n"],
+  ["    if (E.solved(board, grid)) { finished.add(board.id); reached = Math.min(boards.length - 1, Math.max(reached, boards.indexOf(board) + 1)); courseReached = Math.max(courseReached, course.openedBy(finished)); }\n", "    if (E.solved(board, grid)) { finished.add(board.id); reached = Math.min(boards.length - 1, Math.max(reached, boards.indexOf(board) + 1)); courseReached = Math.max(courseReached, course.openedBy(finished)); }\n    window.MinimalAdapter?.committed();\n"],
   ["    } else if (action.type === 'hint') {\n", "    } else if (action.type === 'hint') {\n      if (!E.solved(board, grid)) window.MinimalAdapter?.assist();\n"],
-  [" Press Hint again to weave it.`); } }", " Press Hint again to weave it.`); window.MinimalAdapter?.changed(); } }"],
+  [" Press Hint again to weave it.`);\n        }\n", " Press Hint again to weave it.`); window.MinimalAdapter?.changed();\n        }\n"],
   ["      const previous = history.pop();", "      window.MinimalAdapter?.undo(); const previous = history.pop();"],
   ["    } else if (action.type === 'restart' || action.type === 'go') {\n", "    } else if (action.type === 'restart' || action.type === 'go') {\n      if (action.type === 'restart') window.MinimalAdapter?.restart();\n"]
 ]}

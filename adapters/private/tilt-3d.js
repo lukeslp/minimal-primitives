@@ -3,22 +3,25 @@ function __minimalSettle(){stopLook();for(let n=0;busy()&&n<20;n++){fastForward(
 const __minimal=MinimalBridge.install({
   rulesVersion:'__RULES__',scoringPolicy:'__POLICY__',
   describe(){return{id:boardId,mode:'campaign',layout:{levels:board.levels},solved:solvedNow,repeat:done.includes(boardId),restored:history.length>0||undoStack.length>0,value:history.length,progress:{completed:done.length}};},
-  snapshot(){return{board:boardId,history:history.slice(),undoStack:undoStack.map(h=>h.slice()),done:done.slice(),reached,order:2,pool:played.slice(),prefs:{...prefs},hint,look:{yaw:look.yaw,pitch:look.pitch,zoom:look.zoom,vx:look.vx,vy:look.vy},text:$('#announcement').textContent,ui:MinimalBridge.ui()};},
+  snapshot(){return{board:boardId,history:history.slice(),undoStack:undoStack.map(h=>h.slice()),done:done.slice(),reached,order:3,pool:played.slice(),prefs:{...prefs},hint,look:{yaw:look.yaw,pitch:look.pitch,zoom:look.zoom,vx:look.vx,vy:look.vy},text:$('#announcement').textContent,ui:MinimalBridge.ui()};},
   restore(d){
-    // The game's own reading of its save (readSave): finished marks on any of the fifty boards stay; a save without
-    // order 2 (before game-riffs d3d9b9e) counts reached in the fifty-board order and keeps every campaign board it had
-    // open; a player on a board the campaign left out goes on from the first campaign board not finished, unless the
-    // campaign is finished, when that board is one of the pool and stays, moves and all.
+    // The game's own reading of its save (readSave): finished marks on any of the fifty boards stay; reached counts in
+    // this build's twenty-five with order 3 (game-riffs 9ad63d8), in the thirty of 0.5.9 with order 2 (d3d9b9e), and
+    // in the fifty-board order with neither, and every campaign board a save had open stays open. A player on a board
+    // the campaign left out goes on from the open campaign board nearest it in the campaign it was saved under (the
+    // first not finished, for a board left out before that), unless the campaign is finished, when that board is one
+    // of the pool and stays, moves and all.
     const saved=ALL.find(v=>v.id===d?.board),moves=a=>Array.isArray(a)&&a.every(m=>typeof m==='string');
     if(!saved||!moves(d.history)||!Array.isArray(d.undoStack)||!d.undoStack.every(moves)||!Array.isArray(d.done)||!Number.isInteger(d.reached)||!d.prefs||!d.look)throw Error('Invalid Tilt · 3D state.');
     const nextDone=[...new Set(d.done.filter(known))];
     const was=Math.min(ALL.length-1,Math.max(0,d.reached));
-    const opened=d.order===2?was:Math.max(...OLD_ORDER.slice(0,was+1).map(indexOf));
+    const opened=d.order===3?was:Math.max(-1,...(d.order===2?ORDER_2:OLD_ORDER).slice(0,was+1).map(indexOf));
     const nextReached=Math.min(BOARDS.length-1,Math.max(0,opened,...nextDone.map(id=>indexOf(id)+1)));
     const finishedAll=BOARDS.every(v=>nextDone.includes(v.id));
     const keep=indexOf(saved.id)>=0?indexOf(saved.id)<=nextReached:finishedAll;
     if(indexOf(saved.id)>=0&&!keep)throw Error('Board not reached.');
-    const b=keep?saved:(BOARDS.find(v=>!nextDone.includes(v.id))||BOARDS[0]);
+    const at=ORDER_2.indexOf(saved.id),far=x=>Math.abs(ORDER_2.indexOf(x.id)-at);
+    const b=keep?saved:at<0?(BOARDS.find(v=>!nextDone.includes(v.id))||BOARDS[0]):BOARDS.slice(0,nextReached+1).reduce((best,x)=>far(x)<far(best)||(far(x)===far(best)&&ORDER_2.indexOf(x.id)>ORDER_2.indexOf(best.id))?x:best);
     const history0=keep?d.history:[],undo0=keep?d.undoStack:[];
     replay(b,history0);for(const h of undo0)replay(b,h);
     queue=[];anim=null;cueState=null;clearHint();hideWay();endLookHint();lookHintDue=null;stroke=null;lookG=null;armed=false;look.anim=null;
