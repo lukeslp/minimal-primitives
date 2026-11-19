@@ -1,0 +1,1 @@
+Spiral Galaxies stays steady on Android: its diamonds and controls no longer flicker away. Growing a galaxy also fills the squares around its diamond. Saved boards and progress are kept. Still no camera input and no camera permission in this build.

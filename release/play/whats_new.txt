@@ -1,3 +1,5 @@
+Spiral Galaxies stays steady on Android: its diamonds and controls no longer flicker away. Growing a galaxy also fills the squares around its diamond.
+
 Every game ends with the same continue arrow, shown the moment you solve.
 
 Clearer endings.

@@ -703,7 +703,7 @@
       "id": "galaxies",
       "title": "Spiral Galaxies",
       "repository": "lukeslp/game-riffs",
-      "commit": "4a9c6886cec972eed3c8fe8b605b544a357fbc3b",
+      "commit": "476d1b9da7c7c0e59a8179db8833317fecd8feea",
       "entry": "galaxies/index.html",
       "runtime": {
         "id": "galaxies",
@@ -821,19 +821,19 @@
         {
           "path": "galaxies/galaxies.css",
           "source": "galaxies/galaxies.css",
-          "sha256": "90bf9f50d7ff88648d3bef36b6ef9ad1288d58053f59571e487176eba49c3e0b",
-          "bytes": 19630
+          "sha256": "2dad28c1aa6752a52dcfe72d2b5e9c1e4e85e3a3bcf908eedfe42fb348011638",
+          "bytes": 19825
         },
         {
           "path": "galaxies/galaxies.js",
           "source": "galaxies/galaxies.js",
-          "sha256": "6a45f76abf63c1b99b8852fddaac3859ee377951cf5285c59834e907e36b117c",
-          "bytes": 42177
+          "sha256": "72297853e570d9e9ad1456983e47f9a42f39f9163611b77737b31c592e2e111e",
+          "bytes": 42507
         },
         {
           "path": "galaxies/index.html",
           "source": "galaxies/index.html",
-          "sha256": "22c12ce12086096b2c9793e1a6a7e820df4e424e065d040e0c087a4da8046281",
+          "sha256": "9cbbbdc4e7bc3454016efead508098f9e2f03069654d0b731bae843ba2dc4b29",
           "bytes": 8479
         },
         {

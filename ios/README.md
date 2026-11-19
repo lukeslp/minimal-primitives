@@ -21,7 +21,7 @@ browser build makes it, like the Android app. Builds go out through TestFlight a
 - If the collection cannot be loaded (a failed navigation, or a missing page), the
   shell shows "The games could not load." with Retry instead of a blank screen. The
   library does the same when its own data cannot be read.
-- Identity: `com.oneimpossiblethingatatime.minimalprimitives`, version 0.5.11 (build 31), matching Android,
+- Identity: `com.oneimpossiblethingatatime.minimalprimitives`, version 0.5.12 (build 32), matching Android,
   team 596T7J7FB6, iPhone and iPad.
 
 ## Build

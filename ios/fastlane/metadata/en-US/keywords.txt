@@ -1,0 +1,1 @@
+logic,nonogram,minimalist,mines,hexagon,bridges,slant,tents,towers,weaves,brain,switch,accessible
