@@ -32,7 +32,8 @@
 .centre span{display:none}.centre[aria-pressed=true]::before{background:var(--ink);transform:scale(1.25)}
 .centre.evidence::before{outline:2px dashed var(--ink);outline-offset:3px}.centre:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
 .star-field{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;fill:var(--ink);overflow:hidden}
-.constellation{animation:orbit var(--orbit) linear infinite;transform-box:view-box}
+/* The board's sky holds still. Turning a group inside the board's drawing repaints the whole board every frame, and Android Chrome then drops layers (the diamonds, the outlines, the toolbar); the finished sky turns whole boxes instead. */
+.constellation{transform-box:view-box}
 @keyframes orbit{to{transform:rotate(360deg)}}
 .page-hidden .constellation{animation-play-state:paused}
 .turn-example{width:144px;height:96px;position:relative;margin:22px auto 8px;display:grid;place-items:center}

@@ -39,7 +39,7 @@ NEW = [
 ]
 # Games moved past --games-ref one at a time, each to a commit whose page the
 # build's transforms and adapters were checked against.
-REPIN = {}  # Every game is at --games-ref: c965c4f in 0.5.7 (the Settings standard), 261303e in 0.5.8 (final master), d3d9b9e in 0.5.9 (the balance pass and Hint), 29b29ad in 0.5.10 (25-board campaigns, Weaves' course, Hint reasons, the Cube Maze swipe arrow), 4a9c688 in 0.5.11 (the continue disc at every solve, Towers' fixed towers, Weaves' optional cloths).
+REPIN = {'galaxies': '476d1b9d'}  # 0.5.12: Spiral Galaxies alone to 476d1b9d (game-riffs PRs 240, 243: the board sky holds still, so Android stops dropping the diamonds; PR 224: growing a galaxy fills its diamond's own squares). Every game is at --games-ref: c965c4f in 0.5.7 (the Settings standard), 261303e in 0.5.8 (final master), d3d9b9e in 0.5.9 (the balance pass and Hint), 29b29ad in 0.5.10 (25-board campaigns, Weaves' course, Hint reasons, the Cube Maze swipe arrow), 4a9c688 in 0.5.11 (the continue disc at every solve, Towers' fixed towers, Weaves' optional cloths).
 # Web-only files a newer runtime.json lists: home-screen installs and the site's privacy page.
 WEB_ONLY = ('manifest.webmanifest', 'sw.js', 'pwa.js', 'privacy.html')
 WEB_ONLY_DIRS = ('icons/',)
