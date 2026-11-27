@@ -6,28 +6,28 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<script src="./pwa.js?v=ccbd96c0" defer></script><link rel="stylesheet" href="./shoo.css?v=c07895db">
+<script src="./pwa.js?v=ccbd96c0" defer></script><link rel="stylesheet" href="./shoo.css?v=232ccc0a">
 <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
-<link rel="stylesheet" href="./controls.css?v=e9a44e73">
+<link rel="stylesheet" href="./controls.css?v=ca42b497">
 <meta name="description" content="Bees flee from wherever you tap. Herd them home.">
 <meta property="og:title" content="Shoo · Minimal">
 <meta property="og:description" content="Bees flee from wherever you tap. Herd them home.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://lukesteuber.com/games/shoo-minimal/">
-<meta property="og:image" content="https://lukesteuber.com/games/shoo-minimal/og.png?v=90a59cef8b56">
+<meta property="og:image" content="https://lukesteuber.com/games/shoo-minimal/og.png?v=980df38c10ca">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:type" content="image/png">
-<meta property="og:image:alt" content="A honeycomb with four bees, two flowers, a short wall and a black hive at one edge.">
+<meta property="og:image:alt" content="A finished Shoo board: an amber honeycomb with two flowers and the bees home in their dark hive.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Shoo · Minimal">
 <meta name="twitter:description" content="Bees flee from wherever you tap. Herd them home.">
-<meta name="twitter:image" content="https://lukesteuber.com/games/shoo-minimal/og.png?v=90a59cef8b56">
-<meta name="twitter:image:alt" content="A honeycomb with four bees, two flowers, a short wall and a black hive at one edge.">
+<meta name="twitter:image" content="https://lukesteuber.com/games/shoo-minimal/og.png?v=980df38c10ca">
+<meta name="twitter:image:alt" content="A finished Shoo board: an amber honeycomb with two flowers and the bees home in their dark hive.">
 </head>
 <body><header><button id="restart-btn" class="ib" aria-label="Restart puzzle"></button><h1 class="sr-only">Shoo</h1><div id="readout" class="readout"></div></header>
 <main id="board-shell" aria-label="Shoo puzzle"><div class="board-stage"><div id="board" class="board" role="group" aria-label="Shoo board"></div><div id="completion" class="completion" hidden><p id="end-line" class="end-line control-end-line" hidden></p><button id="next-btn" class="ib" type="button" aria-label="Next board" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div></div></main>
-<p id="feedback" role="status" aria-live="polite"></p>
+<p id="feedback" aria-hidden="true"></p>
 <p id="live" class="sr-only" aria-live="polite"></p>
 <nav aria-label="Game controls"><div class="toolbar"><div><button id="undo-btn" class="ib" aria-label="Undo"></button><button id="hint-btn" class="ib" aria-label="Hint"></button></div><div><button id="settings-btn" class="ib" aria-label="Settings"></button><button id="help-btn" class="ib" aria-label="Help"></button></div></div></nav>
 <dialog id="settings" class="sheet" aria-labelledby="settings-title"><div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
@@ -37,11 +37,11 @@
 </div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
 <dialog id="help" class="sheet" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">How to play</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
 <p>Tap a cell. Every bee beside it hops one cell straight away from the tap.</p>
-<p>Tap a bee and it dodges and stays put, while the bees beside it flee.</p>
-<p>Bring every bee into the hive, in as few taps as you can. The count at the top is taps and par.</p>
-<div class="controls"><p>Flowers, walls, other bees, hatched gaps and the edge stop a bee; a bee that cannot go stays. A bee on the edge can only slide along it.</p><p>Undo takes back one tap. Restart sets the board up again, and Undo brings it back.</p></div>
-<details class="help-more"><summary>More controls</summary><p>Hint marks one tap on a shortest way home with a dashed ring. Tap Hint again to play it. When no way home is left, Hint says so and its second tap undoes.</p><p>Arrows move. Enter or Space taps. <kbd>Z</kbd> or Backspace undoes. <kbd>H</kbd> hints.</p></details>
+<p>Tap a bee and it dodges and stays put. The bees beside it still hop away.</p>
+<p>Get every bee into the hive in as few taps as you can. The top line shows the board, then your taps and par.</p>
+<div class="controls"><p>A bee can’t hop onto a flower, another bee or a hatched gap, or across a wall or off the edge. If it can’t hop, it stays where it is. So a bee on the edge can only move along it.</p><p>Undo takes back one tap. Restart puts the bees back at the start, and Undo after a restart brings your taps back.</p></div>
+<details class="help-more"><summary>More controls</summary><p>Hint puts a dashed ring on the next tap of a shortest way home. Press Hint again to play it. If the bees can no longer all get home, Hint says so, and pressing it again undoes your last tap.</p><p>Keys: arrows move, Home and End jump to the ends of a row, Enter or Space taps, <kbd>Z</kbd>, <kbd>U</kbd> or Backspace undoes, and <kbd>H</kbd> hints.</p></details>
 </div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
-<script src="./engine.js?v=9766380e"></script><script src="./boards.js?v=b89b9f46"></script><script src="./campaign.js?v=a7e3a4bd"></script><script src="./payoff.js?v=fc58db60"></script><script src="./shoo.js?v=cebb9470"></script>
-<script defer src="./controls.js?v=0710856c"></script>
+<script src="./engine.js?v=9766380e"></script><script src="./boards.js?v=b89b9f46"></script><script src="./campaign.js?v=a7e3a4bd"></script><script src="./payoff.js?v=fc58db60"></script><script src="./shoo.js?v=d01de7e2"></script>
+<script defer src="./controls.js?v=5fe132c7"></script>
 </body></html>

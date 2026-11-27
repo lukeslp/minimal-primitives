@@ -1,3 +1,39 @@
+On the iPhone Duo's folded screen, the library's Settings button, its right-hand games and the close buttons in Settings and Scores no longer sit under the camera. Hexsweeper's menu now gives touch or mouse instructions to match your device, and closes with Escape.
+
+Balance now goes on with new boards after its last one. Spiral Galaxies' New Game+ no longer hands back boards you already solved. In Spiral Galaxies, the faint stars in an uncovered sky now hold still; the bright ones still twinkle.
+
+Balance's hint now says "1 black square" instead of "1 black squares".
+
+On a phone the collection now stays upright; an iPad turns freely.
+
+Every game's Help reads more plainly. Balance's hints are plain sentences, hint lines sit above the toolbar on phones with a home indicator, and in Tangles a drag on a ring's tile turns the ring.
+
+Tangles' tile in the library now shows it finished once its last board is solved, as the game itself counts it. Horologist's finished tile shows a fuller clock plate, and Hexsweeper's shows a cleared sphere.
+
+The library now marks four more games when you finish them. Tangles and Horologist show their solved board, and Bending turns its tile color. Hexsweeper turns color once you have cleared every sphere size, and its card says so.
+
+Tilt and Shoo leave more room under the board for the Next button.
+
+Tap the board number at the top of a game to open its board list. Notan's Settings now list every board to choose from.
+
+Horologist opens with three short boards on a first visit, shows which way each wheel turns, and finishes in color. Help plays the opening boards again.
+
+Akari's light look ends the way the dark one does: the continue arrow at every solve, and after the fiftieth board, Next starts New Game+.
+
+Spiral Galaxies fills in the last single squares when that finishes the board. Board numbers in Slant, Akari, Bridges, Spiral Galaxies and Folding no longer sit under the Home button.
+
+Boards you solve after a game's campaign now count beside it, as in 25 + 12 ✓, and extra sets show how many are left.
+
+Weaves adds endless cloths, a new one each time. Its optional cloths open once the sixteen main boards are done.
+
+Hexsweeper's sphere keeps its numbers and depth while it turns on Android, and a lost game offers Undo. Spiral Galaxies runs more smoothly.
+
+Akari's bulbs and numbers are easier to see. Horologist and Cube Maze have more room on phones, and Folding's table takes the paper's color at the solve.
+
+The library follows the web collection's new order, and Delve and Harmonies have left it.
+
+Cast has a new board 21. If you finished the old one, it stays finished.
+
 Spiral Galaxies stays steady on Android: its diamonds and controls no longer flicker away. Growing a galaxy also fills the squares around its diamond.
 
 Every game ends with the same continue arrow, shown the moment you solve.

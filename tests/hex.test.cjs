@@ -95,6 +95,26 @@ async function surface(entry, { original = false, viewport = { width: 1024, heig
   return { context, page, frame, close: () => context.close() };
 }
 async function snapshot(frame) { return frame.evaluate(() => MinimalAdapter.snapshot()); }
+
+test('flat menu instructions follow pointer media and hide the inactive variant', async () => {
+  for (const mobile of [false, true]) {
+    const s = await surface('bounded.html', { mobile, viewport: mobile ? { width: 390, height: 844 } : { width: 1024, height: 768 } });
+    try {
+      await s.frame.locator('#menu-btn').click();
+      const instructions = await s.frame.locator('.instructions-text').evaluate(node => ({
+        touch: getComputedStyle(node.querySelector('.menu-touch-instructions')).display,
+        pointer: getComputedStyle(node.querySelector('.menu-pointer-instructions')).display,
+        text: node.innerText,
+        coarse: matchMedia('(hover: none) and (pointer: coarse)').matches
+      }));
+      assert.equal(instructions.coarse, mobile);
+      assert.equal(instructions.touch, mobile ? 'inline' : 'none');
+      assert.equal(instructions.pointer, mobile ? 'none' : 'inline');
+      assert.equal(instructions.text, (mobile ? 'Tap to reveal · hold to flag' : 'Click to reveal · right-click or Ctrl-click to flag') + '\nMenu holds scores · Reset on the board');
+    } finally { await s.close(); }
+  }
+});
+
 async function recreate(s, entry, saved) {
   await s.page.evaluate(() => document.querySelector('iframe').remove());
   await s.page.evaluate(src => { const f = document.createElement('iframe'); f.style.cssText = 'display:block;border:0;width:100vw;height:100vh'; f.src = src; document.body.append(f); }, `${base}/collection/games/hexsweeper/${entry}${entry.includes('?') ? '&' : '?'}welcome=0&minimal=test`);

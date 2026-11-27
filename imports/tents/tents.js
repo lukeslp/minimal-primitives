@@ -3,7 +3,7 @@
   'use strict';
   const E = Tents, OPENING = TentsLevels.opening, L = TentsLevels.campaign;
   const $ = s => document.querySelector(s);
-  const K = { current: 'tents.current.v1', progress: 'tents.progress.v1', settings: 'tents.settings.v1', opening: 'tents.opening.v1', generated: 'tents.generated.v1' };
+  const K = { current: 'tents.current.v1', progress: 'tents.progress.v1', settings: 'tents.settings.v1', opening: 'tents.opening.v1', generated: 'tents.generated.v1', plus: 'tents.plus.v1' };
   const ids = new Set(L.map(p => p.id));
 
   /* ---- Storage: every read is validated; a bad save falls back to a fresh one. ---- */
@@ -28,6 +28,16 @@
      { version, seed, w, h, cells (the trees), rows, cols, state (the marks), playing } */
   let gen = read(K.generated, v => isObject(v) && v.version === 1 && Number.isInteger(v.seed) && typeof v.playing === 'boolean' && E.valid(v) && Array.isArray(v.rows) && E.stateValid(v, v.state), null);
   const allDone = () => L.every(p => progress.completed.includes(p.id));
+  // Wins after the campaign, counted from 2026-11-19 on (no earlier save records them): solves of generated boards
+  // with the campaign done. `held` is the last board counted, so undo and redo or a restart of it does not count twice.
+  const plus = read(K.plus, v => isObject(v) && Object.keys(v).length === 3 && v.version === 1 && Number.isInteger(v.wins) && v.wins >= 0 && typeof v.held === 'string' && v.held.length <= 96, { version: 1, wins: 0, held: '' });
+  const solvedCount = () => progress.completed.length + (plus.wins ? ' + ' + plus.wins : '') + ' ✓';
+  function countPlus() {
+    if (at !== 'generated' || !allDone()) return;
+    const key = 'free:' + gen.w + 'x' + gen.h + ':' + gen.seed;
+    if (plus.held === key) return;
+    plus.held = key; plus.wins++; write(K.plus, plus);
+  }
   const ENDING = 'All ' + L.length + ' boards solved.';
 
   const query = new URLSearchParams(location.search), asked = Number(query.get('level'));
@@ -169,7 +179,7 @@
       if (value === 1) n.dataset.t = (x * 3 + y * 5) % 4; else delete n.dataset.t;
       n.style.setProperty('--d', (x + y) * 35 + 'ms');
       const tie = partner.has(i) ? (tree ? ', its tent ' : ', tied to the tree ') + side(i, partner.get(i)) : '';
-      const state = tree ? 'tree' + tie : value === 1 ? 'tent' + tie + (v.touching.includes(i) ? ', touching another tent' : '') + (v.lonely.includes(i) ? ', no tree beside it' : '') : value === 2 ? 'marked as grass' : 'blank';
+      const state = tree ? 'tree' + tie : value === 1 ? 'tent' + tie + (v.touching.includes(i) ? ', touching another tent' : '') + (v.lonely.includes(i) ? ', no tree beside it' : '') : value === 2 ? 'dot' : 'blank';
       n.setAttribute('aria-label', 'Row ' + (y + 1) + ', column ' + (x + 1) + ': ' + state);
       if (tree) n.setAttribute('aria-disabled', 'true'); else n.removeAttribute('aria-disabled');
     });
@@ -192,7 +202,7 @@
       }
     }
     const n = L.findIndex(q => q.id === at), fresh = S.solved && nextTarget() === 'new', ended = S.solved && n >= 0 && allDone();
-    $('#readout').textContent = at === 'generated' ? p.w + ' × ' + p.h + ' · ' + progress.completed.length + ' ✓' : n < 0 ? '' : (n + 1) + ' / ' + L.length + ' · ' + progress.completed.length + ' ✓';
+    $('#readout').textContent = at === 'generated' ? p.w + ' × ' + p.h + ' · ' + solvedCount() : n < 0 ? '' : (n + 1) + ' / ' + L.length + ' · ' + solvedCount();
     $('#undo-btn').disabled = !S.undo.length;
     $('#completion').hidden = !S.solved;
     // The line under a solve that leaves the whole campaign done; the status line says it to screen readers.
@@ -204,9 +214,14 @@
     next.setAttribute('aria-label', fresh ? (at === 'generated' ? 'Next board' : 'Start New Game+') : 'Next puzzle');
     $('#free-row').hidden = !allDone();
     $('#feedback').classList.toggle('sr-only', S.solved);
-    $('#campaign').value = n < 0 ? '' : at;
+    // A board outside the campaign is listed as what it is, at the head of the list, while it is on the page (as
+    // Towers does): an opening board or a New Game+ board. The list never stands blank.
+    const k = openingAt(at), list = $('#campaign'); let here = list.querySelector('option[data-here]');
+    if (n < 0) { if (!here) { here = document.createElement('option'); here.dataset.here = ''; list.prepend(here); } here.value = at; here.textContent = k >= 0 ? 'Opening ' + (k + 1) + ' of ' + OPENING.length : 'New Game+ board'; }
+    else if (here) here.remove();
+    list.value = at;
     $('#previous').disabled = n <= 0; $('#following').disabled = n < 0 || n === L.length - 1;
-    for (const o of $('#campaign').options) if (o.value) o.textContent = optionText(o.value);
+    for (const o of list.options) if (o.value && !('here' in o.dataset)) o.textContent = optionText(o.value);
     forest();
   }
   // Labeled by place in play order, as the readout is: ids name boards in saves and do not follow play order.
@@ -226,8 +241,10 @@
     if (gen && gen.playing) { gen.playing = false; write(K.generated, gen); }
   }
   function judge(announce) {
+    const was = S.solved;
     S.solved = E.inspect(puzzle, S.cells).solved;
     if (!S.solved) return;
+    if (!was && announce) countPlus();
     if (ids.has(at) && !progress.completed.includes(at)) progress.completed.push(at);
     if (!announce) return;
     say(ids.has(at) && allDone() ? ENDING : 'Solved.');
@@ -423,5 +440,5 @@
   window.addEventListener('resize', () => { fit(); forest(); });
 
   applyPrefs(); switchBoard(at);
-  window.__tents = { S, get puzzle() { return puzzle; }, get at() { return at; }, get progress() { return progress; }, get generated() { return gen; }, keys: K };
+  window.__tents = { S, get puzzle() { return puzzle; }, get at() { return at; }, get progress() { return progress; }, get generated() { return gen; }, get plus() { return plus; }, keys: K };
 })();

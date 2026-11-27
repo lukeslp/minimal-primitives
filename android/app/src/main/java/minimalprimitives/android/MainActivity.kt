@@ -15,8 +15,10 @@ import android.content.ActivityNotFoundException
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.ActivityInfo
 import android.content.pm.ApplicationInfo
 import android.content.res.Configuration
+import android.graphics.Point
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -79,6 +81,7 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        holdPortraitOnPhones()
 
         assetLoader = WebViewAssetLoader.Builder()
             .setDomain(UrlPolicy.ASSET_HOST)
@@ -213,7 +216,34 @@ class MainActivity : Activity() {
         // fontScale is a handled config change, so the activity is not
         // recreated when the system font size changes: apply it here.
         webView.settings.textZoom = systemTextZoom(newConfig)
+        // A foldable opened or closed (smallestScreenSize is handled here too, so nothing is recreated).
+        holdPortraitOnPhones()
         keepScreenImmersive()
+    }
+
+    // Phones play in portrait, as Akari and Echo do on the web (game-riffs PR 271); a tablet, or a foldable's inner
+    // screen, turns freely: the screen's smallest width under 600 dp, as Android's own large-screen rules count it.
+    // The width is the whole screen's (the largest window it allows), not this activity's configuration: once
+    // portrait is requested, a large screen may letterbox the app into a phone-sized box, and the activity's own
+    // smallestScreenWidthDp (526 on an emulated 2208x1840 inner screen) would keep it locked after a foldable opens.
+    // The screen's smallest width does not change when a phone turns, so this never flips back and forth, and
+    // orientation, screen size and smallest screen size are handled config changes: setting it recreates nothing and
+    // loses no state. Both flavors (full and the camera-free fdroid) run this activity.
+    private fun holdPortraitOnPhones() {
+        val wanted = if (screenSmallestWidthDp() < 600) ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT
+            else ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        if (requestedOrientation != wanted) requestedOrientation = wanted
+    }
+
+    private fun screenSmallestWidthDp(): Int {
+        val (width, height) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            windowManager.maximumWindowMetrics.bounds.let { it.width() to it.height() }
+        } else {
+            val size = Point()
+            @Suppress("DEPRECATION") windowManager.defaultDisplay.getRealSize(size)
+            size.x to size.y
+        }
+        return (minOf(width, height) / resources.displayMetrics.density).toInt()
     }
 
     private fun systemTextZoom(config: Configuration): Int =

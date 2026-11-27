@@ -22,6 +22,11 @@ for(const game of selected)for(const [size,viewport] of Object.entries(sizes)) {
       assert.deepEqual(rect,{x:0,y:0,...viewport},'game uses the full viewport');
       const original=await h.standalone(base,game);
       assert.equal(await page.evaluate(()=>document.activeElement.tagName),'IFRAME','launch must focus game');
+      if(phase!=='opening'&&h.upright(game.id)&&h.phoneSideways(viewport)){
+        // Akari asks for the phone upright here (game-riffs PR 271), as on the web; nothing to play until it turns.
+        for(const f of [original,frame])assert.equal(await f.evaluate(()=>document.documentElement.hasAttribute('data-portrait-turn')),true,'the upright prompt shows');
+        return;
+      }
       if(phase!=='opening'){
         const before=await h.surface(original);
         await a[phase==='keyboard'?'keyMove':'touch'](original,game.id);
@@ -139,7 +144,9 @@ for(const game of selected) {
       await h.pixels(original,page,await page.locator('iframe').boundingBox(),game.id+'-completion');
     });
     await t.test('single proof-bearing completion event',()=>{assert.equal(events.length,1,'one completion event from real input');assert(events[0].payload.proof,'completion proof present');});
-    if(['notan','horologist','tilt','bending'].includes(game.id)||a.override(game.id).creditsBoard)await t.test('completed board credited in collection',()=>assert.equal(events[0].payload.progress.completed,1));
+    if(['notan','horologist','tilt','bending'].includes(game.id)||a.override(game.id).creditsBoard)await t.test('completed board credited in collection',()=>assert.equal(events[0].payload.progress.completed,
+      // Horologist's first visit is its first opening board (game-riffs PR 262), which records nothing.
+      game.id==='horologist'?0:1));
     assert.equal(ctx.parity.requests.filter(r=>r.kind!=='analytics').length,0,'no original score API attempts');
   });
   for(const storage of ['unavailable','corrupt'])test(`${game.id}: ${storage} storage keeps actual entry playable`,async t=>{

@@ -51,7 +51,9 @@ async function context(browser, viewport, {scheme='dark', motion='reduce', stora
       // tighter lamp shadow. Source hashes remain checked.
       if(base==='imports'&&rel==='akari/akari.css') {
         let source=body.toString();
-        source=adopt(source,'box-shadow:0 0 4px 2px #fff,0 0 14px 5px #ffffff66,0 0 32px 9px #ffffff20','box-shadow:0 0 2px 1px #fff,0 0 8px 2px #ffffff66,0 0 16px 4px #ffffff14','Akari lamp reference anchor');
+        // Since game-riffs PR 218 the bulb is the game's own ringed disc, which the build leaves as it is.
+        if(!source.includes('.lamp{width:32%;min-width:10px;aspect-ratio:1;border-radius:50%;background:#fff;box-shadow:0 0 0 2px #000,'))
+          source=adopt(source,'box-shadow:0 0 4px 2px #fff,0 0 14px 5px #ffffff66,0 0 32px 9px #ffffff20','box-shadow:0 0 2px 1px #fff,0 0 8px 2px #ffffff66,0 0 16px 4px #ffffff14','Akari lamp reference anchor');
         source=adopt(source,'background:repeating-linear-gradient(135deg,transparent 0 7px,#ffffff28 7px 8px),#0003','background:#484848cc','Akari panel reference anchor');
         // The Next fade left with the continue disc (game-riffs PR 204); older sources still take the accepted timing.
         if(source.includes('next-reveal')){
@@ -70,7 +72,7 @@ async function context(browser, viewport, {scheme='dark', motion='reduce', stora
       if(base==='imports'&&['akari/controls.js','akari-light/controls.js'].includes(rel)) {
         // Upstream now places Akari's Next in its board stage itself (completionRoot).
         const source=body.toString(),anchor="node.classList.add('control-completion');root.append(node);";
-        if(rel==='akari-light/controls.js'&&source.includes('config.completionRoot')&&!source.includes('"completionRoot"'))body=Buffer.from(source.replace('{"id":"akari-light",','{"id":"akari-light","completionRoot":"board-stage",'));
+        if(rel==='akari-light/controls.js'&&source.includes('config.completionRoot')&&!source.includes('"completionRoot"')&&source.includes('"completion":["completion"]'))body=Buffer.from(source.replace('{"id":"akari-light",','{"id":"akari-light","completionRoot":"board-stage",'));
         if(!source.includes('config.completionRoot')){
           assert.equal(source.split(anchor).length,2,'Akari completion parent reference anchor');
           body=Buffer.from(source.replace(anchor,"node.classList.add('control-completion');(byId('board-stage')||root).append(node);"));
@@ -217,4 +219,9 @@ function sameSnapshot(actual,expected,message) {
   }
   assert.deepEqual(actual,expected,message);
 }
-module.exports={mainTiles,sameSnapshot,ROOT,EVIDENCE,ORIGIN,games,launch,context,ready,restored,open,shell,standalone,snapshot,surface,layout,pixels,verifyImports};
+// Games that ask for the phone upright when it is held sideways (game-riffs PR 271: portrait.js), and the sizes where
+// they ask: a touch screen whose short side is under 600 px, wider than tall and at most 500 px tall. In the app a
+// phone stays upright (MainActivity, CollectionViewController), so those sizes are only reached on the web.
+const upright=id=>fs.existsSync(path.join(ROOT,'imports',id,'portrait.js'));
+const phoneSideways=v=>v.width>v.height&&v.height<=500&&Math.min(v.width,v.height)<600;
+module.exports={upright,phoneSideways,mainTiles,sameSnapshot,ROOT,EVIDENCE,ORIGIN,games,launch,context,ready,restored,open,shell,standalone,snapshot,surface,layout,pixels,verifyImports};

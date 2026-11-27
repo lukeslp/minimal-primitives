@@ -22,7 +22,10 @@ kbd{font:500 14px/1 var(--mono)}
    is a plain sharp square with nothing drawn on it; a square you placed has well-rounded corners
    (about a third of the cell), where the ground shows through. Nothing is marked on the givens, so a board that is mostly given stays
    quiet, and black-against-white stays the loudest thing on it. */
-#board-shell{position:absolute;inset:58px 6px 120px;display:flex}
+/* The space under the board holds, from the bottom: the toolbar (48px over the larger of 6px and the
+   safe-area inset), an 8px gap, two lines of hint, and the x marks past the ends of the columns (15px).
+   Hints are written to fit two lines on a 360px phone, so a hint never reaches the board or its marks. */
+#board-shell{position:absolute;inset:58px 6px calc(max(6px,env(safe-area-inset-bottom)) + 114px);display:flex}
 .board-stage{flex:none;margin:auto;position:relative}
 .board{display:flex;flex-direction:column;border:1px solid var(--frame);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .grid-row{display:flex;flex:none}
@@ -88,7 +91,9 @@ body[data-control-frame] #completion{display:none}
 /* On a field the ink is black in both themes, so the disc's arrow takes the field's color, not the page's. */
 html[data-field] body[data-control-frame] button#next-btn.control-completion{color:var(--field)!important}
 
-#feedback{position:fixed;bottom:62px;left:16px;right:16px;margin:0;text-align:center;color:var(--sub);font:14px/1.3 var(--sans);pointer-events:none;min-height:1.3em}
+/* The hint and status line stands 8px above the toolbar, which the control frame lifts by the safe-area
+   inset on a phone with a home indicator; the line rises with it and grows upward. */
+#feedback{position:fixed;bottom:calc(max(6px,env(safe-area-inset-bottom)) + 56px);left:max(16px,env(safe-area-inset-left));right:max(16px,env(safe-area-inset-right));margin:0;text-align:center;color:var(--sub);font:14px/1.3 var(--sans);pointer-events:none;min-height:1.3em}
 .toolbar{position:fixed;bottom:max(6px,env(safe-area-inset-bottom));left:8px;right:8px;display:flex;justify-content:space-between}
 .toolbar>div{display:flex}
 .ib{display:inline-grid;place-items:center;width:48px;height:48px;min-width:48px;min-height:48px;border:0;background:none;padding:12px;color:var(--ink);transition:opacity .15s,transform .1s}
@@ -106,6 +111,7 @@ header,.toolbar,button{-webkit-user-select:none;user-select:none;-webkit-touch-c
 .sheet-body{padding:20px 24px;overflow:auto;min-height:0;overscroll-behavior:contain}
 .sheet-body p{margin:0 0 16px;max-width:60ch}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;border-bottom:1px solid var(--line)}
+.row[hidden]{display:none}
 .row select{max-width:65%;min-height:44px;background:var(--bg);border:0;padding:4px 8px}
 .row button{min-height:44px;background:none;border:0;padding:8px}
 .row button:not(:disabled){text-decoration:underline;text-underline-offset:4px}
@@ -118,11 +124,13 @@ header,.toolbar,button{-webkit-user-select:none;user-select:none;-webkit-touch-c
 @media(max-width:480px){.sheet-head{padding:8px 12px}.sheet-body{padding:16px}}
 
 @media(max-height:520px) and (min-width:560px){
-  #board-shell{inset:50px 72px 64px 12px}
+  #board-shell{inset:50px calc(max(8px,env(safe-area-inset-right)) + 64px) calc(max(6px,env(safe-area-inset-bottom)) + 58px) max(12px,env(safe-area-inset-left))}
   .toolbar{left:auto;right:8px;top:12px;bottom:12px;flex-direction:column;width:48px}
   .toolbar>div{flex-direction:column}
   .completion{bottom:12px}
-  #feedback{left:12px;right:72px;bottom:6px;font-size:12px}
+  /* Sideways the toolbar is a column at the right edge: the line keeps 16px clear of it and sits above
+     the home indicator. */
+  #feedback{left:max(12px,env(safe-area-inset-left));right:calc(max(8px,env(safe-area-inset-right)) + 64px);bottom:max(6px,env(safe-area-inset-bottom));font-size:12px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 :root[data-motion="reduce"] *,:root[data-motion="reduce"] *::before,:root[data-motion="reduce"] *::after{animation:none!important;transition:none!important}

@@ -6,35 +6,36 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<script src="./pwa.js?v=ccbd96c0" defer></script><link rel="stylesheet" href="./balance.css?v=a171afe8">
-<link rel="stylesheet" href="./controls.css?v=e9a44e73">
+<script src="./pwa.js?v=ccbd96c0" defer></script><link rel="stylesheet" href="./balance.css?v=e9714377">
+<link rel="stylesheet" href="./controls.css?v=ca42b497">
 <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
 <meta name="description" content="Fill the grid with black and white: never three alike in a row, and as many of one as the other in every row and column.">
 <meta property="og:title" content="Balance">
 <meta property="og:description" content="Fill the grid with black and white: never three alike in a row, and as many of one as the other in every row and column.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://lukesteuber.com/games/balance/">
-<meta property="og:image" content="https://lukesteuber.com/games/balance/og.png?v=649b3ab1b384">
+<meta property="og:image" content="https://lukesteuber.com/games/balance/og.png?v=3bb25ef6d21e">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:type" content="image/png">
-<meta property="og:image:alt" content="A six-by-six grid partly filled with black and white squares. The fixed squares have sharp corners and the placed ones rounded corners; the rest are still gray.">
+<meta property="og:image:alt" content="A finished Balance board: white squares and groups of yellow, blue, orange and magenta squares on a magenta ground.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Balance">
 <meta name="twitter:description" content="Fill the grid with black and white: never three alike in a row, and as many of one as the other in every row and column.">
-<meta name="twitter:image" content="https://lukesteuber.com/games/balance/og.png?v=649b3ab1b384">
-<meta name="twitter:image:alt" content="A six-by-six grid partly filled with black and white squares. The fixed squares have sharp corners and the placed ones rounded corners; the rest are still gray.">
+<meta name="twitter:image" content="https://lukesteuber.com/games/balance/og.png?v=3bb25ef6d21e">
+<meta name="twitter:image:alt" content="A finished Balance board: white squares and groups of yellow, blue, orange and magenta squares on a magenta ground.">
 </head>
 <body><header><button id="restart-btn" class="ib" aria-label="Restart puzzle"></button><h1 class="sr-only">Balance</h1><div id="readout" class="readout"></div></header><main id="board-shell" aria-label="Balance puzzle"><div class="board-stage"><div id="board" class="board" role="grid" aria-label="Balance board"></div><div id="completion" class="completion" hidden><p id="ending" class="ending control-end-line" aria-hidden="true" hidden></p><button id="next-btn" class="ib" type="button" aria-label="Next puzzle" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div></div></main><p id="feedback" role="status" aria-live="polite"></p>
 <nav aria-label="Game controls"><div class="toolbar"><div><button id="undo-btn" class="ib" aria-label="Undo"></button><button id="hint-btn" class="ib" aria-label="Hint"></button></div><div><button id="settings-btn" class="ib" aria-label="Settings"></button><button id="help-btn" class="ib" aria-label="Help"></button></div></div></nav>
 <dialog id="settings" class="sheet" aria-labelledby="settings-title"><div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
 <h3 class="group">This board</h3><label class="row">Campaign <select id="campaign"></select></label><div class="row"><button id="previous">Previous</button><button id="following">Next</button></div><div class="row"><span>Current board</span><button id="reset">Restart</button></div>
+<h3 class="group">New Game+</h3><p id="plus-locked"></p><div id="free-row" class="row" hidden><span id="free-label">Endless · 0 ✓</span><button id="new-game">New board</button></div>
 <h3 class="group">Display</h3><label class="row">Theme <select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label class="row">Motion <select id="motion"><option value="system">System</option><option value="reduce">Reduced</option></select></label></div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
 <dialog id="help" class="sheet" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">How to play</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
-<p>Make every square black or white. Never three alike in a row, across or down. Every row and column holds as many black as white.</p>
+<p>Fill every square with black or white. No row or column can have three of the same shade in a row. Each row and column needs as many black squares as white ones.</p>
 <p><button id="replay-opening" class="text-action">Play the opening boards again</button></p>
-<div class="controls"><p>Tap — black → white → empty. A square with sharp corners is fixed. The ones you place have rounded corners.</p><p>A small x past the end of a row or column marks a broken rule there: three alike, or too many of one shade.</p><p>Hint shows a square the rules force, or a wrong mark. Press it again to fill or fix it.</p><p>Keys — arrows move, <kbd>Enter</kbd> or <kbd>Space</kbd> changes a square, <kbd>Z</kbd> undoes, <kbd>H</kbd> hints.</p></div>
+<div class="controls"><p>Tap a square to make it black. Tap again for white, and once more to empty it. Squares with sharp corners are fixed. The ones you fill have rounded corners.</p><p>A small x past the end of a row or column means that line breaks a rule. It has three of a shade in a row, or too many of one shade.</p><p>Hint puts a heavy outline on a square the rules decide, or on one you got wrong, and dashes the squares that show why. Press Hint again to fill or fix it.</p><p>Keys: arrows move, <kbd>Enter</kbd> or <kbd>Space</kbd> changes a square, <kbd>Z</kbd> or <kbd>Backspace</kbd> undoes, and <kbd>H</kbd> hints.</p></div>
 </div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
-<script src="./engine.js?v=7ab03aaa"></script><script src="./levels.js?v=d01f3d8e"></script><script src="./balance.js?v=8822ec57"></script>
-<script defer src="./controls.js?v=75f7fc1c"></script>
+<script src="./engine.js?v=45a2b45d"></script><script src="./endless.js?v=85ab6ffc"></script><script src="./levels.js?v=d01f3d8e"></script><script src="./balance.js?v=fd2ffce0"></script>
+<script defer src="./controls.js?v=eacdb9c4"></script>
 </body></html>

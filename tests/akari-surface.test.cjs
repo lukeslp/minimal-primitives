@@ -7,8 +7,8 @@ let browser;const getBrowser=async()=>browser||(browser=await h.launch());
 after(async()=>browser?.close());
 
 // Since game-riffs PR 204 the dark Akari's Next is the control frame's continue disc, as in Weaves: 64 px, shown at the
-// solve, in the gap under the board or on the toolbar's row, never over the board or a control. The Light look
-// (game-riffs akari-classic, the package's akari-light) keeps its 48 px Next just under the board, as on the web.
+// solve, in the gap under the board or on the toolbar's row, never over the board or a control. Since game-riffs PR 261
+// (8fe53efb) the Light look (game-riffs akari-classic, the package's akari-light) finishes the same way, as on the web.
 async function completionNearBoard(frame) {
   const geometry=await frame.evaluate(()=>{
     const box=n=>{const r=n.getBoundingClientRect();return[r.left,r.top,r.right,r.bottom];};
@@ -16,11 +16,7 @@ async function completionNearBoard(frame) {
   });
   const meets=(a,b)=>Math.min(a[2],b[2])-Math.max(a[0],b[0])>0&&Math.min(a[3],b[3])-Math.max(a[1],b[1])>0;
   const size=[Math.round(geometry.next[2]-geometry.next[0]),Math.round(geometry.next[3]-geometry.next[1])];
-  if(geometry.look==='akari-light'){
-    const gap=geometry.next[1]-geometry.board[3];
-    assert.ok(gap>=8&&gap<=24,'Next stays close to the finished board: '+JSON.stringify(geometry));
-    assert.deepEqual(size,[48,48]);
-  }else assert.deepEqual(size,[64,64],'Next is the 64 px disc: '+JSON.stringify(geometry));
+  assert.deepEqual(size,[64,64],'Next is the 64 px disc: '+JSON.stringify(geometry));
   assert.ok(geometry.next[0]>=0&&geometry.next[1]>=0&&geometry.next[2]<=geometry.viewport[0]&&geometry.next[3]<=geometry.viewport[1],'Next remains in the viewport');
   assert.ok(!meets(geometry.next,geometry.board),'Next does not cover the board: '+JSON.stringify(geometry));
   for(const c of geometry.controls)assert.ok(!meets(geometry.next,c),'Next does not cover a control: '+JSON.stringify({next:geometry.next,control:c}));
@@ -28,7 +24,9 @@ async function completionNearBoard(frame) {
   assert.equal(await frame.locator('#share-btn:visible').count(),0,'completion has only Next (Share stays out of the package)');
 }
 
-for(const [size,viewport] of Object.entries({phone:{width:390,height:844},landscape:{width:844,height:390},tall:{width:587,height:1330}}))test(`Akari ${size}: smooth panels distinguish rule coverage from natural light spill`,async t=>{
+// Landscape is the iPhone Duo's open inner screen held sideways (951 x 669): a phone held sideways shows Akari's upright
+// prompt instead (game-riffs PR 271), and in the app a phone stays upright.
+for(const [size,viewport] of Object.entries({phone:{width:390,height:844},landscape:{width:951,height:669},tall:{width:587,height:1330}}))test(`Akari ${size}: smooth panels distinguish rule coverage from natural light spill`,async t=>{
   const ctx=await h.context(await getBrowser(),viewport);t.after(()=>ctx.close());
   const {page,frame}=await h.shell(ctx,h.games.find(g=>g.id==='akari'));
   const press=async i=>{await frame.locator('#board .cell').nth(i).focus();await page.keyboard.press('Enter');await a.tick(page,800);};

@@ -1,0 +1,1 @@
+Hexsweeper's menu now gives touch or mouse instructions to match your device, and closes with Escape. Saved boards and progress are kept.

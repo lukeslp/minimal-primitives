@@ -11,7 +11,7 @@
   const INPUTS = ['head', 'eyes', 'pointer'], SELECTS = ['dwell', 'tap'], HOLDS = [600, 800, 1000, 1400], BUZZ = ['buzz', 'calm'], REWARDS = ['colour', 'calm'], SOUNDS = ['off', 'on'];
   const SQ = Math.sqrt(3) / 2, RAD = 1 / Math.sqrt(3);
   // Screen angles of the six directions, east first, as the engine orders them.
-  const ANGLE = [0, -60, -120, 180, 120, 60], COMPASS = ['east', 'north-east', 'north-west', 'west', 'south-west', 'south-east'];
+  const ANGLE = [0, -60, -120, 180, 120, 60], COMPASS = ['east', 'northeast', 'northwest', 'west', 'southwest', 'southeast'];
   const WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
   const word = n => WORDS[n] || String(n), Word = n => { const w = word(n); return w[0].toUpperCase() + w.slice(1); };
   const hivesOf = b => { const L = E.layout(b); return L.cells.map((x, i) => i).filter(i => L.cells[i].kind === 'hive'); };
@@ -457,8 +457,8 @@
       const r = await findHint();
       if (!r || token !== epoch) return;
       hint = r.stuck ? { look: -1, stuck: true } : { look: r.look, moves: r.moves };
-      if (hint.stuck) announce('No bee can get home from here. Undo, or Hint again to undo.');
-      else { focus = hint.look; announce(`Hint: look at ${placeOf(hint.look)}. Hint again plays it.`); }
+      if (hint.stuck) announce('No bee can get home from here. Undo, or press Hint again to undo.');
+      else { focus = hint.look; announce(`Hint: look at ${placeOf(hint.look)}. Press Hint again to play it.`); }
       draw(); chrome();
     } else if (action.type === 'undo') {
       const previous = history.pop();
@@ -612,7 +612,7 @@
   function beginCalibration(full, base) {
     full = full && !base;
     calib = { full, base: base || null, mode: prefs.input, spots: full ? [0, 1, 2, 3, 4] : [0], step: 0, window: [], captured: [], progress: 0, last: null, dotAt: null };
-    setPhase('calibrating'); announce(base ? 'Calibration did not take. One dot instead: look at it and hold still.' : full ? 'Look at each dot in turn and hold still.' : 'Look at the dot and hold still.');
+    setPhase('calibrating'); announce(base ? 'Calibration didn’t work. Try one dot instead: look at it and hold still.' : full ? 'Look at each dot in turn and hold still.' : 'Look at the dot and hold still.');
   }
   function calibrate(t, f) {
     const dt = calib.last === null ? 0 : clamp(t - calib.last, 0, 120), head = calib.mode === 'head';
@@ -643,9 +643,9 @@
   // pointer. Nobody is kept in calibration for ever.
   function calibrationFailed() {
     const mode = calib.mode;
-    if (calib.base) { calFails = 0; T.stop(); virtual = false; showLive(false); calib = null; setPhase('pointer'); announce('Calibration did not take. Play by pointer; the camera button tries again.'); return; }
+    if (calib.base) { calFails = 0; T.stop(); virtual = false; showLive(false); calib = null; setPhase('pointer'); announce('Calibration didn’t work, so you’re playing by pointer. Press the camera button to try again.'); return; }
     if (++calFails >= 2) { calFails = 0; beginCalibration(false, G.current(calibration[mode]) ? calibration[mode] : G.typical(mode)); return; }
-    beginCalibration(true); announce('Again: look at each dot and hold still.');
+    beginCalibration(true); announce('Calibration didn’t work. Look at each dot again and hold still.');
   }
   function finishCalibration() {
     const { mode, full, captured } = calib, made = calib.base ? G.recentre(calib.base, captured[0]) : full ? (mode === 'head' ? G.headCalibration(captured) : G.eyesCalibration(captured)) : G.recentre(calibration[mode], captured[0]);
@@ -670,11 +670,11 @@
   }
   // The camera lost mid-play: play goes on by pointer, and the player's choice
   // of camera is kept, so the camera button or the next visit picks it up.
-  T.onLost = () => { if (phase !== 'camera' && phase !== 'calibrating') return; virtual = false; showLive(false); calib = null; setPhase('pointer'); announce('The camera stopped. Play by pointer; the camera button tries again.'); };
+  T.onLost = () => { if (phase !== 'camera' && phase !== 'calibrating') return; virtual = false; showLive(false); calib = null; setPhase('pointer'); announce('The camera stopped, so you’re playing by pointer. Press the camera button to try again.'); };
   let calFails = 0;
   function fallback(error) {
     T.stop(); virtual = false; showLive(false); calib = null; prefs.input = 'pointer'; save(); setPhase('pointer');
-    announce(error && error.code === 'vendor-missing' ? 'This site does not have the camera files. Play by pointer; the camera button tries again.' : 'Camera unavailable. Play by pointer; the camera button tries again.');
+    announce(error && error.code === 'vendor-missing' ? 'This site doesn’t have the camera files, so you’re playing by pointer. Press the camera button to try again.' : 'The camera isn’t available, so you’re playing by pointer. Press the camera button to try again.');
   }
   function stopCamera() {
     T.stop(); virtual = false; showLive(false); calib = null; resumeOnShow = false;
@@ -841,7 +841,7 @@
     if (!busy) rest(); else draw();
     if (solved()) paintWash(washOrigin ?? hivesOf(board)[0], false); else clearRewards();
   }
-  for (const id of ['theme', 'motion', 'buzz', 'rewards']) $('#' + id).onchange = e => { prefs[id] = e.target.value; applyPrefs(); save(); announce(id === 'theme' ? 'Theme changed.' : id === 'motion' ? 'Motion setting changed.' : id === 'rewards' ? (prefs.rewards === 'calm' ? 'Rewards in paper and ink only.' : 'Rewards in color.') : prefs.buzz === 'calm' ? 'The bees hold still.' : 'The bees buzz.'); };
+  for (const id of ['theme', 'motion', 'buzz', 'rewards']) $('#' + id).onchange = e => { prefs[id] = e.target.value; applyPrefs(); save(); announce(id === 'theme' ? 'Theme changed.' : id === 'motion' ? 'Motion setting changed.' : id === 'rewards' ? (prefs.rewards === 'calm' ? 'Calm rewards: no color.' : 'Rewards in color.') : prefs.buzz === 'calm' ? 'The bees hold still.' : 'The bees buzz.'); };
   // Sound: the first sound after it is turned on makes the audio context, inside this gesture.
   $('#sound').onchange = e => { prefs.sound = e.target.value; save(); if (prefs.sound === 'on') audio.tick(0); else audio.close(); announce(prefs.sound === 'on' ? 'Sound on.' : 'Sound off.'); };
   motionQuery.addEventListener('change', applyPrefs); darkQuery.addEventListener('change', applyPrefs);

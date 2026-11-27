@@ -29,7 +29,7 @@ NEW = [
     ('balance', 'Balance', 'balance'),
     ('cast', 'Cast', 'cast-3d'),  # the lit-room Cast (game-riffs cast-3d/) since 0.5.3
     ('tilt-3d', 'Tilt · 3D', 'tilt-3d'),
-    ('delve', 'Delve', 'delve'),
+    # Delve left with the index's tile at luke-portfolio 23f20bd (0.5.13); PR 95 removed its files.
     # Reached from the Tilt tile's card ("Also 3D · Cube Maze") since the index at luke-portfolio 3bb4e4e.
     ('cube-maze', 'Cube Maze', 'cube-maze'),
     # Tangles (game-riffs loop/) has its own tile on the index; its Experiments open from its Settings and Help.
@@ -37,9 +37,9 @@ NEW = [
     # The Weaves tile on the index (game-riffs weave-minimal/; weave/ is Quipu, a different game, and stays out).
     ('weaves', 'Weaves', 'weave-minimal'),
 ]
-# Games moved past --games-ref one at a time, each to a commit whose page the
+# Games moved past --games-ref (or --new-ref, for NEW) one at a time, each to a commit whose page the
 # build's transforms and adapters were checked against.
-REPIN = {'galaxies': '476d1b9d'}  # 0.5.12: Spiral Galaxies alone to 476d1b9d (game-riffs PRs 240, 243: the board sky holds still, so Android stops dropping the diamonds; PR 224: growing a galaxy fills its diamond's own squares). Every game is at --games-ref: c965c4f in 0.5.7 (the Settings standard), 261303e in 0.5.8 (final master), d3d9b9e in 0.5.9 (the balance pass and Hint), 29b29ad in 0.5.10 (25-board campaigns, Weaves' course, Hint reasons, the Cube Maze swipe arrow), 4a9c688 in 0.5.11 (the continue disc at every solve, Towers' fixed towers, Weaves' optional cloths).
+REPIN = {}  # 0.5.20: every game at 6c9bbb78 (game-riffs PR 282: Spiral Galaxies' New Game+ deals a board fresh when its saved marks already solve it; PR 283: Balance deals generated boards after its last one, balance/endless.js; PR 284: Noon's board shows keyboard focus; PR 285 is a readiness note the app does not carry), on f7c429d2 (PR 281: Spiral Galaxies' faint stars hold still on the board, so Android no longer blanks the diamonds and toolbars when a drag uncovers the first shape). 0.5.19: every game at 48f0b354 (game-riffs PR 279: Balance's hint says "1 black square", not "1 black squares"; PR 280 only notes three Tilt previews the app does not carry). 0.5.18: every game at 9c9b445c (game-riffs PRs 267-278: Balance's plain hints, hint lines above the toolbar, Akari upright on phones, Tangles' ring drag, the Help copy across nearly every game). 0.5.16: every game at 4316c2a0, the merge of game-riffs PR 265 (more room under the board for the Next disc in Tilt and Shoo · Minimal) on 02be3c8b. 0.5.15: every game at 02be3c8b, the merge of game-riffs PR 264 (on a touch screen the readout stands above the board while it is a button, so an iPhone tap reaches it) on ceb20e42 (game-riffs PRs 255-263: Notan's level select, readouts clear of Home, Galaxies' last squares, Horologist's finish in color and its three opening boards, Akari Classic's finish, the readout opens the level list). 0.5.14: every game at e9331aaa: 57d75298 (game-riffs PRs 248-252: wins after the campaign, Weaves' endless cloths) and Spiral Galaxies' performance pass (PR 247; PR 254 touches no bundled game). It holds Spiral Galaxies' 476d1b9d and Cast's 5fea7b69. Earlier: 0.5.13 moved Cast alone to 5fea7b69 (game-riffs PR 246: board 21 is c27), 0.5.12 Spiral Galaxies alone to 476d1b9d (PRs 224, 240, 243). Every game was at --games-ref: c965c4f in 0.5.7 (the Settings standard), 261303e in 0.5.8 (final master), d3d9b9e in 0.5.9 (the balance pass and Hint), 29b29ad in 0.5.10 (25-board campaigns, Weaves' course, Hint reasons, the Cube Maze swipe arrow), 4a9c688 in 0.5.11 (the continue disc at every solve, Towers' fixed towers, Weaves' optional cloths).
 # Web-only files a newer runtime.json lists: home-screen installs and the site's privacy page.
 WEB_ONLY = ('manifest.webmanifest', 'sw.js', 'pwa.js', 'privacy.html')
 WEB_ONLY_DIRS = ('icons/',)
@@ -78,9 +78,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--games', type=Path, default=ROOT.parent / 'game-riffs')
     parser.add_argument('--hex', type=Path, default=ROOT.parent / 'hexsweeper')
-    parser.add_argument('--games-ref', default='4a9c688')
-    parser.add_argument('--new-ref', default='4a9c688')
-    parser.add_argument('--hex-ref', default='80d30e1')
+    parser.add_argument('--games-ref', default='6c9bbb78')
+    parser.add_argument('--new-ref', default='6c9bbb78')
+    parser.add_argument('--hex-ref', default='435c855')
     parser.add_argument('--accessible-art', type=Path, default=None, help="defaults to the games checkout's accessible/art")
     args = parser.parse_args()
     args.accessible_art = args.accessible_art or args.games / 'accessible/art'
@@ -106,7 +106,7 @@ def main():
         # accessible puzzles, which have no index tile of their own, name their art here.
         ident, title, folder = entry[:3]
         art = entry[3] if len(entry) > 3 else None
-        sha = new_sha if entry in NEW else REPIN.get(ident, games_sha)
+        sha = REPIN.get(ident, new_sha if entry in NEW else games_sha)
         sha = git(args.games, 'rev-parse', sha + '^{commit}').decode().strip()
         manifest = json.loads(git(args.games, 'show', f'{sha}:{folder}/runtime.json'))
         manifest['files'] = [f for f in manifest['files'] if f not in WEB_ONLY and not f.startswith(WEB_ONLY_DIRS)]
@@ -153,7 +153,7 @@ def main():
     for old in target.rglob('*'):
         if old.is_file() and old.relative_to(target).as_posix() not in live:
             old.unlink()
-    (ROOT / 'sources.json').write_text(json.dumps({'schema': 1, 'games': records, 'shared': shared}, indent=2) + '\n')
+    (ROOT / 'sources.json').write_text(json.dumps({'schema': 1, 'games': records, 'shared': shared}, indent=2, ensure_ascii=False) + '\n')
     art_dir = ROOT / 'web/assets'
     art_dir.mkdir(parents=True, exist_ok=True)
     for record in records:

@@ -127,30 +127,40 @@ function svg(id,m,options={}){
   const body=glows+m.faint.map(field).join('')+(options.outer?m.outer.faint.map(field).join(''):'')+m.bright.map(star).join('')+(options.outer?m.outer.bright.map(star).join(''):'');
   return{defs,body};
 }
-// Smooth value noise summed over octaves: 0 to 1, the same for the same seed. It is laid out in board
-// squares from (left,top), not in pixels, so a close painting and a wide one agree where they meet.
-function noise(size,seed,per,octaves,left,top,unit){
-  const out=new Float32Array(size*size),at=(x,y,k)=>{let v=Math.imul(x,374761393)+Math.imul(y,668265263)+Math.imul(k,1274126177)|0;v=Math.imul(v^v>>>13,1103515245);return((v^v>>>16)>>>0)/4294967296;};
+// Smooth value noise summed over octaves into out: 0 to 1, the same for the same seed. It is laid out in board
+// squares from (left,top), not in pixels, so a close painting and a wide one agree where they meet. A generator,
+// so the work can be spread over idle moments; every number comes out exactly as if it ran at once.
+const ROWS=48;
+function* noise(out,size,seed,per,octaves,left,top,unit){
+  const at=(x,y,k)=>{let v=Math.imul(x,374761393)+Math.imul(y,668265263)+Math.imul(k,1274126177)|0;v=Math.imul(v^v>>>13,1103515245);return((v^v>>>16)>>>0)/4294967296;};
+  // the column positions are the same on every row of an octave, so they are worked out once per octave
+  const XI=new Float64Array(size),SX=new Float64Array(size);
   let amp=1,total=0;
-  for(let k=0;k<octaves;k++){const f=per*(1<<k);for(let y=0;y<size;y++){const fy=(top+y/unit)*f+4096,y0=Math.floor(fy),ty=fy-y0,sy=ty*ty*(3-2*ty);let x0=NaN,a=0,b=0,c=0,d=0;for(let x=0;x<size;x++){const fx=(left+x/unit)*f+4096,xi=Math.floor(fx),tx=fx-xi,sx=tx*tx*(3-2*tx);if(xi!==x0){x0=xi;a=at(xi,y0,seed+k);b=at(xi+1,y0,seed+k);c=at(xi,y0+1,seed+k);d=at(xi+1,y0+1,seed+k);}out[y*size+x]+=amp*(a+(b-a)*sx+(c-a)*sy+(a-b-c+d)*sx*sy);}}total+=amp;amp*=.5;}
-  for(let i=0;i<out.length;i++)out[i]/=total;return out;
+  for(let k=0;k<octaves;k++){const f=per*(1<<k);for(let x=0;x<size;x++){const fx=(left+x/unit)*f+4096,xi=Math.floor(fx),tx=fx-xi;XI[x]=xi;SX[x]=tx*tx*(3-2*tx);}
+    for(let y=0;y<size;y++){const fy=(top+y/unit)*f+4096,y0=Math.floor(fy),ty=fy-y0,sy=ty*ty*(3-2*ty),row=y*size;let x0=NaN,a=0,b=0,c=0,d=0;for(let x=0;x<size;x++){const xi=XI[x],sx=SX[x];if(xi!==x0){x0=xi;a=at(xi,y0,seed+k);b=at(xi+1,y0,seed+k);c=at(xi,y0+1,seed+k);d=at(xi+1,y0+1,seed+k);}out[row+x]+=amp*(a+(b-a)*sx+(c-a)*sy+(a-b-c+d)*sx*sy);}if(y%ROWS===ROWS-1)yield;}
+    total+=amp;amp*=.5;}
+  for(let i=0;i<out.length;i++)out[i]/=total;
 }
 // The gas and dust as one painted square out to the given radius. Soft glows alone look like fog;
 // fractal noise breaks them into cloud, pulls filaments through them and cuts ragged dust lanes.
-function cloud(m,size=640,radius=m.far){
+// cloudSteps paints it a slice at a time (each yield is a place to pause); cloud paints it at once.
+function* cloudSteps(m,size=640,radius=m.far){
   const canvas=document.createElement('canvas');canvas.width=canvas.height=size;const ctx=canvas.getContext('2d',{willReadFrequently:true}),unit=size/(radius*2),left=m.cx-radius,top=m.cy-radius,rgb=c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)).join(',');
   const blob=(h,c,stops,gain)=>{ctx.save();ctx.translate((h.x-left)*unit,(h.y-top)*unit);ctx.rotate((h.rot||0)*Math.PI/180);ctx.scale(1,h.ry/h.rx);const g=ctx.createRadialGradient(0,0,0,0,0,h.rx*unit);for(const[o,a]of stops)g.addColorStop(o,'rgba('+c+','+Math.min(1,a*h.a*gain)+')');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,h.rx*unit,0,TAU);ctx.fill();ctx.restore();};
   ctx.fillStyle='#000';ctx.fillRect(0,0,size,size);ctx.globalCompositeOperation='lighter';
   for(const h of[...m.haze,...m.outer.haze])blob(h,rgb(h.c),STOPS,1.25);
-  const glow=ctx.getImageData(0,0,size,size),px=glow.data;
+  const glow=ctx.getImageData(0,0,size,size),px=glow.data;yield;
   ctx.globalCompositeOperation='source-over';ctx.fillStyle='#000';ctx.fillRect(0,0,size,size);for(const h of m.dust)blob(h,'255,255,255',SHADE,1);
-  const grain=3.2/m.reach,lanes=ctx.getImageData(0,0,size,size).data,billow=noise(size,m.seed,grain,5,left,top,unit),wisp=noise(size,m.seed+97,grain*2.3,4,left,top,unit),rift=noise(size,m.seed+211,grain*1.5,4,left,top,unit);
+  const grain=3.2/m.reach,lanes=ctx.getImageData(0,0,size,size).data,billow=new Float32Array(size*size),wisp=new Float32Array(size*size),rift=new Float32Array(size*size);yield;
+  yield*noise(billow,size,m.seed,grain,5,left,top,unit);yield*noise(wisp,size,m.seed+97,grain*2.3,4,left,top,unit);yield*noise(rift,size,m.seed+211,grain*1.5,4,left,top,unit);
   for(let i=0,j=0;i<billow.length;i++,j+=4){
     const ridge=1-Math.abs(wisp[i]*2-1),form=.2+1.7*Math.pow(billow[i],1.6)+.22*Math.pow(ridge,5)*(.4+billow[i]),drift=Math.max(0,rift[i]-.52)*1.1,shade=Math.max(0,1-lanes[j]/255*(.55+.9*rift[i])-drift);
     px[j]=Math.min(255,px[j]*form*shade);px[j+1]=Math.min(255,px[j+1]*form*shade);px[j+2]=Math.min(255,px[j+2]*form*shade);px[j+3]=255;
+    if(i%(size*ROWS)===size*ROWS-1)yield;
   }
   ctx.putImageData(glow,0,0);return canvas;
 }
+function cloud(m,size,radius){const steps=cloudSteps(m,size,radius);let r;do r=steps.next();while(!r.done);return r.value;}
 // The same sky on a canvas, still, for the shared picture. unit is pixels per cell.
 function paint(ctx,m,unit,options={}){
   const rgb=c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)).join(',');
@@ -165,5 +175,5 @@ function paint(ctx,m,unit,options={}){
   }
   ctx.globalAlpha=1;
 }
-return{KINDS,STAR,kind,model,svg,cloud,paint};
+return{KINDS,STAR,kind,model,svg,cloud,cloudSteps,paint};
 });

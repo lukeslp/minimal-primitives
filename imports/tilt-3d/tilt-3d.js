@@ -83,6 +83,30 @@ function save() {
   if (corrupt) return;
   try { localStorage.setItem(KEY, JSON.stringify({ version: 1, order: 3, board: boardId, moves: history, done, reached, pool: played, settings: prefs })); } catch (_) {}
 }
+// Wins after the campaign: pool boards solved by a tip with the campaign finished, counted from 2026-11-19 on (no
+// earlier save records them). `set` names the pool boards solved at least once; `held` is the board counted last, so
+// Undo and the same tip, Restart, or a reload of that board count nothing more. A key of its own: the main save is
+// read field by field.
+const PLUS_STORE = 'tilt-3d.plus.v1';
+let plus = { version: 1, wins: 0, held: '', set: [] }, plusBlocked = false, setEnd = false;
+{
+  let raw = null;
+  try { raw = localStorage.getItem(PLUS_STORE); } catch (_) { plusBlocked = true; }
+  if (raw !== null) try {
+    const v = JSON.parse(raw);
+    if (!v || v.version !== 1 || !Number.isInteger(v.wins) || v.wins < 0 || typeof v.held !== 'string' || !Array.isArray(v.set)) throw Error('Unreadable');
+    plus = { version: 1, wins: v.wins, held: v.held, set: [...new Set(v.set.filter(id => POOL.some(b => b.id === id)))] };
+  } catch (_) { plusBlocked = true; }
+}
+const setDone = () => plus.set.length >= POOL.length;
+function countPlus() {
+  if (indexOf(boardId) >= 0 || !campaignDone() || plus.held === boardId) return;
+  const had = setDone();
+  plus.wins++; plus.held = boardId;
+  if (!plus.set.includes(boardId)) plus.set.push(boardId);
+  if (!had && setDone()) setEnd = true;
+  if (!plusBlocked) try { localStorage.setItem(PLUS_STORE, JSON.stringify(plus)); } catch (_) {}
+}
 const reduced = () => prefs.motion === 'reduce' || matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ---------- Renderer and scene ----------
@@ -725,6 +749,7 @@ function run(item) {
   const start = marbleLocal.clone();
   solvedNow = r.solved;
   if (solvedNow) { if (indexOf(boardId) >= 0 && !done.includes(boardId)) { done.push(boardId); if (campaignDone()) finale = true; } reached = Math.max(reached, Math.min(BOARDS.length - 1, indexOf(boardId) + 1)); lookHintDue = null; endLookHint(); showNext = true; }
+  if (solvedNow) countPlus();
   if (history.length === 3) lookHintDue = boardId;
   save(); announceTip(d, r); updateUI();
   const phases = [movePhase(d, from, r, start)];
@@ -745,7 +770,7 @@ function restart() {
 }
 function go(id) {
   const i = indexOf(id); if (i < 0 ? !(campaignDone() && POOL.some(b => b.id === id)) : i > reached) return false;
-  queue = []; anim = null; clearHint(); hideWay(); lookHintDue = null; endLookHint(); finale = false;
+  queue = []; anim = null; clearHint(); hideWay(); lookHintDue = null; endLookHint(); finale = false; setEnd = false;
   drawn = null; if (i < 0) { const served = played.filter(x => x !== id).concat(id); played = served.length >= POOL.length ? [] : served; }
   boardId = id; history = []; undoStack = []; resetLook(true); buildBoard(); syncAll(); save(); arrival(); say('');
   return true;
@@ -755,7 +780,9 @@ function go(id) {
 let drawn = null;
 function drawPool() {
   if (drawn && drawn.id !== boardId) return drawn;
-  let left = POOL.filter(b => b.id !== boardId && !played.includes(b.id));
+  // Pool boards not yet solved come first, while any are left.
+  let left = POOL.filter(b => b.id !== boardId && !plus.set.includes(b.id));
+  if (!left.length) left = POOL.filter(b => b.id !== boardId && !played.includes(b.id));
   if (!left.length) left = POOL.filter(b => b.id !== boardId);
   drawn = left[Math.floor(Math.random() * left.length)] || null;
   return drawn;
@@ -977,7 +1004,7 @@ const sensor = { enabled: false, pending: false, base: null, draft: null, since:
 const gravity = (beta, gamma, rotation = 0) => { const b = beta * DEG, g = gamma * DEG, r = rotation * DEG, x = Math.cos(b) * Math.sin(g), y = Math.sin(b); return { x: x * Math.cos(r) + y * Math.sin(r), y: y * Math.cos(r) - x * Math.sin(r) }; };
 const leanOf = (base, now) => ({ x: Math.asin(Math.max(-1, Math.min(1, now.x - base.x))) / DEG, y: Math.asin(Math.max(-1, Math.min(1, now.y - base.y))) / DEG });
 const status = t => { $('#sensor-status').textContent = t; };
-function sensorRecalibrate() { Object.assign(sensor, { base: null, draft: null, armed: false, neutralSince: null, candidate: null }); if (sensor.enabled) status('Hold your phone comfortably for a moment.'); }
+function sensorRecalibrate() { Object.assign(sensor, { base: null, draft: null, armed: false, neutralSince: null, candidate: null }); if (sensor.enabled) status('Hold your phone still for a moment.'); }
 function stopSensor() {
   sensor.enabled = false; sensor.pending = false; clearInterval(sensor.timer); sensor.timer = null; removeEventListener('deviceorientation', orientation); sensorRecalibrate();
   $('#phone-tilt').textContent = 'Turn on'; $('#phone-tilt').setAttribute('aria-pressed', 'false'); if (!stroke) leanGoal.set(0, 0, 0); kick();
@@ -1005,12 +1032,12 @@ async function startSensor() {
   if (!window.isSecureContext || typeof DeviceOrientationEvent === 'undefined') { status('Phone tilt is unavailable here. Swipes, taps and keys still work.'); return; }
   sensor.pending = true;
   try {
-    if (typeof DeviceOrientationEvent.requestPermission === 'function' && await DeviceOrientationEvent.requestPermission() !== 'granted') { status('Permission was not granted. Swipes, taps and keys still work.'); return; }
+    if (typeof DeviceOrientationEvent.requestPermission === 'function' && await DeviceOrientationEvent.requestPermission() !== 'granted') { status('Motion access was not allowed. Swipes, taps and keys still work.'); return; }
     if (reduced()) return;
     sensor.enabled = true; sensorRecalibrate(); sensor.last = performance.now();
     $('#phone-tilt').textContent = 'Turn off'; $('#phone-tilt').setAttribute('aria-pressed', 'true');
     addEventListener('deviceorientation', orientation);
-    sensor.timer = setInterval(() => { if (performance.now() - sensor.last > 4000) { stopSensor(); status('No tilt readings. Swipes, taps and keys still work.'); } }, 1000);
+    sensor.timer = setInterval(() => { if (performance.now() - sensor.last > 4000) { stopSensor(); status('The phone sent no tilt readings. Swipes, taps and keys still work.'); } }, 1000);
   } catch (_) { status('Phone tilt is unavailable. Swipes, taps and keys still work.'); }
   finally { sensor.pending = false; }
 }
@@ -1034,10 +1061,10 @@ function pressHint() {
   const moves = E.solve(board, place);
   // No tip finishes from here: the hint is Undo, played on the second press. After a reload there is nothing to undo,
   // so it is Restart, which Undo can take back.
-  if (!moves || !moves.length) { hint = undoStack.length ? 'undo' : 'restart'; say('No way on from here. Press Hint again to ' + hint + '.'); updateHintButton(); kick(); return; }
+  if (!moves || !moves.length) { hint = undoStack.length ? 'undo' : 'restart'; say('No tip can finish from here. Press Hint again to ' + hint + '.'); updateHintButton(); kick(); return; }
   hint = moves[0]; placeChevron(hintMark, place.level, hint);
   if (!reduced()) leanGoal.copy(DIRS[hint]).multiplyScalar(3.5 * DEG);
-  say(NAMES[hint] + '. Press Hint again to play it.'); updateHintButton(); kick();
+  say('Hint: tip ' + NAMES[hint].toLowerCase() + '. Press Hint again to play it.'); updateHintButton(); kick();
 }
 function updateHintButton() { const b = $('#hint-btn'); b.setAttribute('aria-pressed', String(!!hint)); b.disabled = solvedNow; $('#undo-btn').classList.toggle('hinted', hint === 'undo'); $('#restart-btn').classList.toggle('hinted', hint === 'restart'); }
 
@@ -1076,15 +1103,17 @@ const where = s => 'Level ' + (s.level + 1) + ', row ' + (s.row + 1) + ', column
 function say(text) { const n = $('#announcement'); n.textContent = ''; n.textContent = text; }
 function announceTip(d, r) {
   if (!r.moved) say(NAMES[d] + '. The marble stays.');
-  else if (r.solved) say(NAMES[d] + '. ' + (r.path.some(c => c.drop) ? 'Drops. ' : '') + where(r) + '. Out through the exit.');
-  else if (r.path.some(c => c.drop)) say(NAMES[d] + '. Drops to ' + where(r) + '.');
-  else say(NAMES[d] + '. ' + where(r) + '.');
+  else if (r.solved) say(NAMES[d] + '. The marble falls out through the exit.');
+  else if (r.path.some(c => c.drop)) say(NAMES[d] + '. The marble drops to ' + where(r).toLowerCase() + '.');
+  else say(NAMES[d] + '. The marble rolls to ' + where(r).toLowerCase() + '.');
 }
-function announceSolved() { say('Finished in ' + history.length + (history.length === 1 ? ' move' : ' moves') + '; par ' + par + '.' + (ending() ? ' ' + endLine() : '')); }
+function announceSolved() { say('Solved in ' + history.length + (history.length === 1 ? ' move' : ' moves') + '. Par ' + par + '.' + (closing() ? ' ' + endLine() : '')); }
 const campaignDone = () => BOARDS.every(b => done.includes(b.id));
 // The end: every board finished, shown on the last board, or on the one whose finish completed them all.
 const ending = () => solvedNow && campaignDone() && (finale || !BOARDS[indexOf(boardId) + 1]);
-const endLine = () => 'All ' + BOARDS.length + ' boards solved.';
+// The solve that puts the last pool board in the set ends on the whole count.
+const closing = () => ending() || setEnd && solvedNow;
+const endLine = () => 'All ' + (setEnd ? BOARDS.length + POOL.length : BOARDS.length) + ' boards solved.';
 function describe() {
   const lines = [solvedNow ? 'The marble is out, on the floor under the exit.' : 'Marble on ' + where(place).toLowerCase() + '.'];
   for (let k = 0; k < L; k++) {
@@ -1113,14 +1142,16 @@ function updateCatalog() {
 function updateUI() {
   if (!place) return;
   const i = indexOf(boardId);
-  // A pool board shows the infinity sign where a campaign board shows its number, as Cast's free play does.
-  $('#readout').textContent = (i < 0 ? '∞' : (i + 1) + ' / ' + BOARDS.length) + ' · ' + history.length + ' / ' + par;
+  // A pool board shows +k / 25, the pool boards solved, where a campaign board shows its number; once all are, the
+  // infinity sign, as Cast's free play does (+25 / 25 still on a solved board). Pool boards add the campaign and wins.
+  $('#readout').textContent = (i < 0 ? (!setDone() || solvedNow ? '+' + plus.set.length + ' / ' + POOL.length : '∞') : (i + 1) + ' / ' + BOARDS.length) + ' · ' + history.length + ' / ' + par +
+    (i < 0 ? ' · ' + BOARDS.length + (plus.wins ? ' + ' + plus.wins : '') + ' ✓' : '');
   $('#undo-btn').disabled = !undoStack.length && !busy();
   $('#next-btn').hidden = !showNext;
   // At the end one line shows above the arrow, and the arrow starts New Game+, a board from the pool (Replay from
   // board 1 only if the pool were empty).
   const end = showNext && ending(), kind = end && !POOL.length ? 'replay' : 'next', nb = $('#next-btn'), line = $('#end-line');
-  line.hidden = !end; line.textContent = end ? endLine() : '';
+  line.hidden = !(showNext && closing()); line.textContent = showNext && closing() ? endLine() : '';
   if (nb.dataset.kind !== kind) { nb.dataset.kind = kind; nb.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + icons[kind] + '"/></svg>'; }
   nb.setAttribute('aria-label', kind === 'replay' ? 'Replay from board 1' : end ? 'Start New Game+' : 'Next board');
   canvas.setAttribute('aria-label', describe());
@@ -1207,6 +1238,7 @@ window.__tilt3d = {
   boards: BOARDS,
   pool: POOL,
   get board() { return boardId; },
+  get plus() { return JSON.parse(JSON.stringify(plus)); },
   get state() { return { theme: prefs.theme, board: boardId, level: place.level, row: place.row, col: place.col, moves: history.length, par, solved: solvedNow, busy: busy(), queued: queue.length, history: history.slice(), done: done.slice(), reached, hint, next: showNext, ending: showNext && ending(), corrupt, looked: prefs.looked, motion: prefs.motion, sensor: { enabled: sensor.enabled, calibrated: !!sensor.base, armed: sensor.armed } }; },
   go, tip(d) { if (DIRS[d]) enqueue({ kind: 'tip', dir: d }); }, undo, restart, pressHint, next: nextBoard,
   swipeFor, tapFor,

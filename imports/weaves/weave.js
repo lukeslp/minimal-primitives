@@ -1,14 +1,14 @@
 /* Weave. By Luke Steuber. */
 (function () {
   'use strict';
-  const E = WeaveEngine, course = WeaveCourse, boards = course.all, $ = s => document.querySelector(s);
+  const E = WeaveEngine, course = WeaveCourse, G = WeaveGenerate, boards = course.all, $ = s => document.querySelector(s);
   const NS = 'http://www.w3.org/2000/svg', KEY = 'weave-minimal.v1', boardNode = $('#board');
   const motionQuery = matchMedia('(prefers-reduced-motion: reduce)'), darkQuery = matchMedia('(prefers-color-scheme: dark)');
   const copy = grid => grid.map(row => row.slice()), clamp = (x, a, b) => Math.max(a, Math.min(b, x));
   const smooth = x => x * x * (3 - 2 * x), beat = x => 1 - (1 - x) ** 3;
   let board = boards[0], grid = E.start(board), hits = 0, history = [], finished = new Set();
   let prefs = { theme: 'system', motion: 'system' }, protectSave = false, saved = null, kept = new Set(), keepMode = false;
-  // The optional cloths Next has served since the endless round last ran out.
+  // The optional cloths New Game+'s Next cloth has served, once all are solved, since the round last ran out.
   let played = [];
   function validGrid(g, b) {
     return Array.isArray(g) && g.length === b.rows && g.every(row => Array.isArray(row) && row.length === b.cols && row.every(v => v === 1 || v === -1)) && b.pins.every(([r, c, v]) => g[r][c] === v);
@@ -18,7 +18,8 @@
   try {
     const raw = localStorage.getItem(KEY);
     if (raw !== null) {
-      const s = JSON.parse(raw), b = boards.find(b => b.id === s?.board);
+      // An endless cloth is saved as its id, g and the seed, with the seed beside it; the cloth is made again from the seed.
+      const s = JSON.parse(raw), b = s?.seed === undefined ? boards.find(b => b.id === s?.board) : G.seedOf(s.board) === s.seed ? G.cloth(s.seed) : null;
       if (!b || !validGrid(s.grid, b) || !validHits(s.hits) || !Array.isArray(s.history) || s.history.length > 10000 || !s.history.every(h => validGrid(h.grid, b) && validHits(h.hits)) || !Array.isArray(s.finished) || !s.finished.every(id => boards.some(b => b.id === id)) || !['system', 'light', 'dark'].includes(s.settings?.theme) || !['system', 'reduce'].includes(s.settings?.motion)) throw Error('Invalid save');
       if (s.campaign !== undefined && (s.campaign !== 1 || !Number.isInteger(s.reached) || s.reached < 0 || s.reached >= (s.course === 1 ? boards.length : course.legacyCount))) throw Error('Invalid save');
       if (s.course !== undefined && (s.course !== 1 || !Number.isInteger(s.courseReached) || s.courseReached < 0 || s.courseReached >= course.main.length)) throw Error('Invalid course');
@@ -29,12 +30,30 @@
       played = Array.isArray(s.pool) ? [...new Set(s.pool.filter(id => course.more.some(b => b.id === id)))] : [];
     }
   } catch (_) { protectSave = true; }
+  // Wins after the course, counted from 2026-11-19 on: fresh solves, made by a move once all sixteen main boards are
+  // finished, of an optional cloth or an endless one. `held` is the last cloth counted (its id, or g: and its seed),
+  // so undo and redo, a restart or a reload of that cloth never counts it twice; `set` lists the optional cloths
+  // solved this way. An unreadable record is left as it is, as the main save is, and counting goes on unsaved.
+  const PLUS = 'weave-minimal.plus.v1';
+  let plus = { version: 1, wins: 0, held: '', set: [] }, protectPlus = false, setEnd = null;
+  try {
+    const raw = localStorage.getItem(PLUS);
+    if (raw !== null) {
+      const v = JSON.parse(raw);
+      if (!v || typeof v !== 'object' || Object.keys(v).sort().join() !== 'held,set,version,wins' || v.version !== 1 || !validHits(v.wins) || typeof v.held !== 'string' || v.held.length > 96 || !Array.isArray(v.set)) throw Error('Invalid count');
+      plus = { version: 1, wins: v.wins, held: v.held, set: [...new Set(v.set.filter(id => course.more.some(b => b.id === id)))] };
+    }
+  } catch (_) { protectPlus = true; }
   // Keep the legacy catalog index for old records and adapters. The small
   // course has its own progression; optional cloths never depend on this index.
   const openedBy = done => Math.max(-1, ...[...done].map(id => boards.findIndex(b => b.id === id))) + 1;
   let reached = Math.min(boards.length - 1, Math.max(saved ? (saved.campaign === 1 ? saved.reached : 11) : 0, openedBy(finished), boards.indexOf(board)));
   let courseReached = course.migrate(saved, reached, board.id, finished);
-  const available = b => course.index(b.id) < 0 || course.index(b.id) <= courseReached;
+  // The optional cloths and endless ones open with New Game+, once all sixteen main boards are finished.
+  const available = b => course.index(b.id) < 0 ? allDone() : course.index(b.id) <= courseReached;
+  // A board by id: a course board, or an endless cloth made from the seed in its id.
+  let made = null;
+  const lookup = id => { const b = boards.find(b => b.id === id); if (b || G.seedOf(id) === null) return b || null; if (made?.id !== id) made = G.cloth(G.seedOf(id)); return made; };
   // Each board's par is worked out when it is first shown.
   const pars = new Map(), parOf = b => { if (!pars.has(b.id)) pars.set(b.id, E.par(b)); return pars.get(b.id); };
   let hint = null, focus = [0, 0], keyboard = false, hover = null, refusal = null;
@@ -44,9 +63,9 @@
   const reduced = () => prefs.motion === 'reduce' || motionQuery.matches;
   const dark = () => prefs.theme === 'dark' || prefs.theme === 'system' && darkQuery.matches;
   const pinned = (r, c) => board.pins.some(p => p[0] === r && p[1] === c);
-  // Counts are said as a person would: 1 hit, 2 hits; 1 loose stretch, 2 loose stretches.
-  const count = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`, hitsWord = () => count(hits, 'hit'), looseWord = n => count(n, 'loose stretch', 'loose stretches');
-  // The stretches the dashed lines mark are also said: where each lies once
+  // Counts are said as a person would: 1 flip, 2 flips; 1 long run, 2 long runs.
+  const count = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`, hitsWord = () => count(hits, 'flip'), looseWord = n => count(n, 'long run');
+  // The runs the dashed lines mark are also said: where each lies once
   // three or fewer are left, and whether the focused crossing is in one.
   const where = run => run.axis === 'row' ? `row ${run.index + 1}, columns ${run.from + 1} to ${run.to + 1}` : `column ${run.index + 1}, rows ${run.from + 1} to ${run.to + 1}`;
   const looseText = list => looseWord(list.length) + (list.length && list.length <= 3 ? ': ' + list.map(where).join('; ') : '');
@@ -54,7 +73,7 @@
   function announce(text) { $('#announcement').textContent = text; }
   function save() {
     if (protectSave) return;
-    try { localStorage.setItem(KEY, JSON.stringify({ board: board.id, grid, hits, history, kept: [...kept], finished: [...finished], settings: prefs, campaign: 1, reached, course: 1, courseReached, pool: played })); } catch (_) {}
+    try { localStorage.setItem(KEY, JSON.stringify({ board: board.id, ...(board.seed === undefined ? {} : { seed: board.seed }), grid, hits, history, kept: [...kept], finished: [...finished], settings: prefs, campaign: 1, reached, course: 1, courseReached, pool: played })); } catch (_) {}
   }
   function svg(tag, attrs, parent) {
     const n = document.createElementNS(NS, tag);
@@ -240,7 +259,7 @@
     const threads = line => GRAIN.map(g => polyline(across(line, g * W))).join('');
     const looks = { row: [], col: [] };
     // Where each row starts along the one weft thread, for the dye's flow.
-    const weftFrom = [], dyes = dye > 0 ? remember('dyes', board.id, () => dyesFor(boards.indexOf(board), cols)) : null;
+    const weftFrom = [], dyes = dye > 0 ? remember('dyes', board.id, () => dyesFor(board.seed ?? boards.indexOf(board), cols)) : null;
     let weftLength = 0;
     for (let r = 0; r < rows; r++) { const [a, b] = extent('row', r); weftFrom.push(weftLength); weftLength += b - a; }
     for (const axis of ['row', 'col']) {
@@ -512,11 +531,15 @@
   function draw() { if (built !== board) build(); drawCloth(); drawRings(); }
   function chrome() {
     const loose = E.loose(board, grid), solved = E.solved(board, grid), [r, c] = focus;
-    const main = course.index(board.id), label = main < 0 ? `Optional cloth ${course.more.indexOf(board) + 1}` : `Board ${main + 1}`, endless = main < 0 && allDone();
-    boardNode.setAttribute('aria-label', `${label}, ${count(board.rows, 'row')} by ${count(board.cols, 'column')}. ${solved ? 'Cloth finished.' : looseText(loose) + '.'} ${hitsWord()}, par ${parOf(board)}. Focus row ${r + 1}, column ${c + 1}, ${grid[r][c] === 1 ? 'weft over' : 'warp over'}${pinned(r, c) ? ', pinned' : kept.has(r * board.cols + c) ? ', marked settled' : ', free'}${inLoose(loose, r, c) ? ', in a loose stretch' : ''}.`);
-    // After the course an optional cloth shows the infinity sign where a board shows its number, as Tilt's pool and Cast's free play do.
-    $('#readout').textContent = `${endless ? '∞' : `${main < 0 ? '+' + (course.more.indexOf(board) + 1) : main + 1} / ${main < 0 ? course.more.length : course.main.length}`} · ${hits} / ${parOf(board)}`;
-    $('#readout').setAttribute('aria-label', `${endless ? 'Endless cloth' : `${label} of ${main < 0 ? course.more.length : course.main.length}`}; ${hitsWord()}; par ${parOf(board)}`);
+    const main = course.index(board.id), more = course.more.indexOf(board), label = main >= 0 ? `Board ${main + 1}` : more >= 0 ? `Optional cloth ${more + 1}` : 'Endless cloth';
+    boardNode.setAttribute('aria-label', `${label}, ${count(board.rows, 'row')} by ${count(board.cols, 'column')}. ${solved ? 'Cloth finished.' : looseText(loose) + '.'} ${hitsWord()}, par ${parOf(board)}. Row ${r + 1}, column ${c + 1}: ${grid[r][c] === 1 ? 'row thread on top' : 'column thread on top'}${pinned(r, c) ? ', knotted' : kept.has(r * board.cols + c) ? ', marked' : ''}${inLoose(loose, r, c) ? ', in a long run' : ''}.`);
+    // After the course an optional cloth shows how many of the forty-four are solved, +k / 44, while some are left or
+    // it is solved; otherwise, and on an endless cloth, the infinity sign stands where a board shows its number, as
+    // Tilt's pool and Cast's free play do. Both add the sixteen and the wins since: 16 + 12 ✓. Before the finish an
+    // optional cloth (only an older save can hold one) keeps its own number.
+    const after = main < 0 && allDone(), k = plus.set.length, N = course.more.length, inSet = after && more >= 0 && (k < N || solved);
+    $('#readout').textContent = `${main >= 0 ? `${main + 1} / ${course.main.length}` : more >= 0 && !after ? `+${more + 1} / ${N}` : inSet ? `+${k} / ${N}` : '∞'} · ${hits} / ${parOf(board)}${after ? ' · ' + tally() : ''}`;
+    $('#readout').setAttribute('aria-label', `${main >= 0 ? `${label} of ${course.main.length}` : more >= 0 && !after ? `${label} of ${N}` : inSet ? `${k} of ${N} optional cloths solved` : 'Endless cloth'}; ${hitsWord()}; par ${parOf(board)}${after ? '; ' + tallyWords() : ''}`);
     $('#keep-btn').setAttribute('aria-pressed', String(keepMode));
     $('#undo-btn').disabled = history.length === 0;
     $('#hint-btn').disabled = solved;
@@ -525,17 +548,37 @@
   }
   // The end of the main course. Next takes the following board; after the last,
   // the first board not yet finished. With every main board finished, Next goes
-  // on to the forty-four optional cloths, drawn at random, each once before any
-  // comes back. Before that, an optional cloth's Next returns to the main boards.
-  // Replay, from board 1 with the finished marks kept, is left for an empty pool.
-  const allDone = () => course.main.every(b => finished.has(b.id)), endLine = `All ${course.main.length} boards solved.`;
+  // on to the forty-four optional cloths not yet solved, drawn at random, and
+  // once all are solved to endless cloths, each made from a new seed. Before
+  // that, an optional cloth's Next returns to the main boards. Replay, from
+  // board 1 with the finished marks kept, is left for a course with no Next.
+  const allDone = () => course.main.every(b => finished.has(b.id)), setDone = () => plus.set.length === course.more.length;
+  const endLine = () => `All ${course.main.length + (setDone() ? course.more.length : 0)} boards solved.`;
+  const tally = () => `${course.main.length}${plus.wins ? ' + ' + plus.wins : ''} ✓`, tallyWords = () => `${course.main.length} boards${plus.wins ? ` and ${plus.wins} more` : ''} solved`;
+  const pick = list => list[Math.floor(Math.random() * list.length)];
+  // An endless cloth waiting behind Next is only its id until it is opened.
   let drawn = null;
   function drawPool() {
     if (drawn && drawn !== board) return drawn;
-    let left = course.more.filter(b => b !== board && !played.includes(b.id));
-    if (!left.length) left = course.more.filter(b => b !== board);
-    drawn = left[Math.floor(Math.random() * left.length)] || null;
+    const left = course.more.filter(b => b !== board && !plus.set.includes(b.id));
+    drawn = left.length ? pick(left) : { id: G.id(G.fresh()) };
     return drawn;
+  }
+  // New Game+'s Next cloth: an optional cloth not yet solved; with all solved, any
+  // of them again, each once before any comes back.
+  function nextCloth() {
+    let left = course.more.filter(b => b !== board && !plus.set.includes(b.id));
+    if (!left.length) left = course.more.filter(b => b !== board && !played.includes(b.id));
+    if (!left.length) { played = []; left = course.more.filter(b => b !== board); }
+    return pick(left);
+  }
+  function countPlus() {
+    if (course.index(board.id) >= 0 || !allDone()) return;
+    const id = board.seed === undefined ? board.id : 'g:' + board.seed;
+    if (plus.held === id) return;
+    plus.wins++; plus.held = id;
+    if (board.seed === undefined && !plus.set.includes(board.id)) { plus.set.push(board.id); if (setDone()) setEnd = board.id; }
+    if (!protectPlus) try { localStorage.setItem(PLUS, JSON.stringify(plus)); } catch (_) {}
   }
   function nextTarget() {
     const i = course.index(board.id);
@@ -553,28 +596,33 @@
       next.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${icons[mode]}"/></svg>`;
     }
     next.setAttribute('aria-label', course.index(board.id) < 0 && !allDone() ? 'Return to main boards' : mode === 'replay' ? 'Replay from board 1' : 'Next board');
-    line.textContent = endLine;
-    line.hidden = !solved || !allDone() || course.index(board.id) < 0;
+    line.textContent = endLine();
+    // On a cloth after the course the line shows once, on the solve that completes the forty-four.
+    line.hidden = !solved || !allDone() || course.index(board.id) < 0 && setEnd !== board.id;
   }
-  // Settings lists every board as current, completed, available or locked.
+  // Settings lists every main board as current, completed, available or locked,
+  // then New Game+: a line until the course is finished, then a row for the
+  // optional cloths and one for endless cloths, each with its count.
   function catalog() {
-    for (const [id, entries] of [['board-catalog', course.main], ['more-catalog', course.more]]) {
-    const list = $('#' + id);
-    if (!list.children.length) entries.forEach((b, i) => {
+    const list = $('#board-catalog');
+    if (!list.children.length) course.main.forEach((b, i) => {
       const item = document.createElement('li'), button = document.createElement('button');
       button.type = 'button'; button.dataset.board = b.id;
-      button.innerHTML = `<span>${id === 'board-catalog' ? 'Board' : 'Cloth'} ${i + 1} · ${b.rows}×${b.cols}</span><span class="catalog-state"></span>`;
+      button.innerHTML = `<span>Board ${i + 1}<span class="catalog-size"><span class="catalog-dot"> · </span>${b.rows}×${b.cols}</span></span><span class="catalog-state"></span>`;
       button.addEventListener('click', () => { if (!available(b)) return; if (b !== board) go(b.id); $('#settings').close(); });
       item.append(button); list.append(item);
     });
-    entries.forEach((b, i) => {
+    course.main.forEach((b, i) => {
       const button = list.children[i].firstChild, here = b === board, done = finished.has(b.id), open = available(b);
       button.dataset.state = here ? 'current' : done ? 'completed' : open ? 'available' : 'locked';
       button.disabled = !open;
       button.querySelector('.catalog-state').textContent = [here ? 'Current' : null, done ? 'Completed' : null, !here && !done ? (open ? 'Available' : 'Locked') : null].filter(Boolean).join(' · ');
       if (here) button.setAttribute('aria-current', 'true'); else button.removeAttribute('aria-current');
     });
-    }
+    const open = allDone();
+    $('#plus-locked').hidden = open; $('#plus-more').hidden = !open; $('#plus-endless').hidden = !open;
+    $('#plus-more span').textContent = `More cloths · ${plus.set.length} / ${course.more.length}`;
+    $('#plus-endless span').textContent = `Endless · ${plus.wins} ✓`;
   }
   function rest() { display = { before: grid, after: grid, swap: 1, settle: 1 }; tight = dye = E.solved(board, grid) ? 1 : 0; draw(); chrome(); }
   // A hidden page runs no frames, so motion there settles at once.
@@ -594,6 +642,9 @@
     grid = next; hits = nextHits; hint = null; refusal = null;
     // The move is saved before any motion, so leaving the page cannot lose it.
     if (E.solved(board, grid)) { finished.add(board.id); reached = Math.min(boards.length - 1, Math.max(reached, boards.indexOf(board) + 1)); courseReached = Math.max(courseReached, course.openedBy(finished)); }
+    // `finished` lists course boards only; a solve made by a move after the course may count as a win.
+    if (board.seed !== undefined) finished.delete(board.id);
+    if (remember && E.solved(board, grid)) countPlus();
     display = { before, after: grid, swap: 0, settle: 0 }; chrome(); save();
     // Unweaving a finished cloth opens it again and lets its colour go during the same swap.
     await tween(120, t => { display.swap = smooth(t); display.settle = smooth(t); tight = loosen * (1 - smooth(t)); dye = dyed * (1 - smooth(t)); draw(); });
@@ -607,8 +658,8 @@
       // Then the dye flows along every thread, about a second, and holds.
       await tween(1100, t => { dye = Math.max(dye, t); draw(); });
       if (token !== epoch) return;
-      announce(`Cloth finished in ${hitsWord()}. Par ${parOf(board)}. ${allDone() ? endLine : 'Next board is available.'}`);
-    } else if (at) announce(`Row ${at[0] + 1}, column ${at[1] + 1} changed. ${hitsWord()}. ${looseText(E.loose(board, grid))}.`);
+      announce(`Cloth finished in ${hitsWord()}. Par ${parOf(board)}. ${!allDone() ? 'Next board is ready.' : course.index(board.id) >= 0 || setEnd === board.id ? endLine() : tallyWords() + '.'}`);
+    } else if (at) announce(`Flipped row ${at[0] + 1}, column ${at[1] + 1}. ${hitsWord()}. ${looseText(E.loose(board, grid))}.`);
   }
   async function act(action) {
     const token = epoch;
@@ -617,7 +668,7 @@
       if (!Number.isInteger(r) || !Number.isInteger(c) || r < 0 || c < 0 || r >= board.rows || c >= board.cols || pinned(r, c)) return;
       history.push({ grid: copy(grid), hits, kept: [...kept] });
       const k = r * board.cols + c; if (kept.has(k)) kept.delete(k); else kept.add(k);
-      hint = null; save(); rest(); announce(`Row ${r + 1}, column ${c + 1} ${kept.has(k) ? 'marked settled' : 'unmarked'}.`);
+      hint = null; save(); rest(); announce(`Row ${r + 1}, column ${c + 1} ${kept.has(k) ? 'marked' : 'unmarked'}.`);
     } else if (action.type === 'flip') {
       const { r, c } = action;
       if (!Number.isInteger(r) || !Number.isInteger(c) || r < 0 || c < 0 || r >= board.rows || c >= board.cols) return;
@@ -625,10 +676,10 @@
       // keyboard ring back from where arrow keys have taken it since.
       const next = E.flip(board, grid, r, c);
       if (!next) {
-        refusal = { r, c, pulse: 0 }; announce(`Row ${r + 1}, column ${c + 1} is pinned.`);
+        refusal = { r, c, pulse: 0 }; announce(`Row ${r + 1}, column ${c + 1} is knotted and can’t flip.`);
         await tween(180, t => { if (refusal) refusal.pulse = Math.sin(t * Math.PI); draw(); }); return;
       }
-      if (kept.has(r * board.cols + c) && !action.hinted) { announce(`Row ${r + 1}, column ${c + 1} is marked settled. Unmark it to flip it.`); return; }
+      if (kept.has(r * board.cols + c) && !action.hinted) { announce(`Row ${r + 1}, column ${c + 1} is marked. Unmark it before you flip it.`); return; }
       await change(next, hits + 1, true, token, [r, c]);
     } else if (action.type === 'hint') {
       if (hint) await act({ type: 'flip', r: hint.r, c: hint.c, hinted: true });
@@ -636,22 +687,24 @@
         hint = E.hint(board, grid);
         if (hint) {
           focus = [hint.r, hint.c];
-          const pair = hint.pair?.map(([r, c]) => `row ${r + 1}, column ${c + 1}`).join(' and ');
-          announce(`${pair ? `The equal crossings at ${pair} force the opposite in their ${hint.axis}. ` : ''}Flip row ${hint.r + 1}, column ${hint.c + 1}. Press Hint again to weave it.`);
+          // The pair both have one thread on top, so a third in that line would make a run of three.
+          const pair = hint.pair?.map(([r, c]) => `row ${r + 1}, column ${c + 1}`).join(' and '), top = v => v === 1 ? 'the row thread' : 'the column thread';
+          announce(pair ? `${pair[0].toUpperCase() + pair.slice(1)} both have ${top(-hint.to)} on top, so row ${hint.r + 1}, column ${hint.c + 1} needs ${top(hint.to)} on top. Press Hint again to flip it.` : `Flip row ${hint.r + 1}, column ${hint.c + 1}. Press Hint again to flip it.`);
         }
       }
     } else if (action.type === 'undo') {
       const previous = history.pop();
-      if (previous) { kept = new Set(previous.kept || []); await change(previous.grid, previous.hits, false, token); announce(`Move undone. ${hitsWord()}.`); }
-      else { rest(); announce('No move to undo.'); }
+      if (previous) { kept = new Set(previous.kept || []); await change(previous.grid, previous.hits, false, token); announce(`Undone. ${hitsWord()}.`); }
+      else { rest(); announce('Nothing to undo.'); }
     } else if (action.type === 'restart' || action.type === 'go') {
       if (action.type === 'go') {
-        const next = boards.find(b => b.id === action.id); if (!next || !available(next)) return; board = next; drawn = null;
-        // After the course, an optional cloth opened counts as served; the round ends once all have been.
-        if (course.index(board.id) < 0 && allDone()) { const served = played.filter(id => id !== board.id).concat(board.id); played = served.length >= course.more.length ? [] : served; }
+        const next = lookup(action.id); if (!next || !available(next)) return; board = next; drawn = null;
+        // Once all forty-four are solved, an optional cloth opened counts as served; the round ends once all have been.
+        if (course.more.includes(board) && allDone() && setDone()) { const served = played.filter(id => id !== board.id).concat(board.id); played = served.length >= course.more.length ? [] : served; }
       }
+      setEnd = null;
       grid = E.start(board); hits = 0; history = []; kept.clear(); keepMode = false; hint = null; hover = null; refusal = null; focus = [0, 0]; fit(); rest(); save();
-      announce(action.type === 'restart' ? 'Board restarted.' : course.index(board.id) < 0 ? `Optional cloth ${course.more.indexOf(board) + 1}.` : `Board ${course.index(board.id) + 1}.`);
+      announce(action.type === 'restart' ? 'Board restarted.' : board.seed !== undefined ? 'Endless cloth.' : course.index(board.id) < 0 ? `Optional cloth ${course.more.indexOf(board) + 1}.` : `Board ${course.index(board.id) + 1}.`);
     }
   }
   async function drain() {
@@ -667,7 +720,7 @@
   const flip = (r, c) => enqueue({ type: 'flip', r, c });
   const undo = () => enqueue({ type: 'undo' }, true), restart = () => enqueue({ type: 'restart' }, true);
   // A locked board cannot be opened, from Settings or from the test hook.
-  const go = id => { const b = boards.find(b => b.id === id); return !b || !available(b) ? Promise.resolve(false) : enqueue({ type: 'go', id }, true).then(() => true); };
+  const go = id => { const b = lookup(id); return !b || !available(b) ? Promise.resolve(false) : enqueue({ type: 'go', id }, true).then(() => true); };
   // Hit-testing uses the board's fixed crossing grid, never a shape in motion.
   function nearest(event) {
     const matrix = boardNode.getScreenCTM(); if (!matrix) return null;
@@ -731,8 +784,10 @@
   const icons = { keep: 'M5 12l4 4L19 6M4 3h16v18H4Z', restart: 'M5 7a8 8 0 1 1-1 9M5 3v5h5', undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12', hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z', next: 'M5 12h14M13 6l6 6-6 6', replay: 'M4 11V9a3 3 0 0 1 3-3h12m-3-3 3 3-3 3M20 13v2a3 3 0 0 1-3 3H5m3 3-3-3 3-3', settings: 'M4 7h16M4 17h16M8 4v6M16 14v6', help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2' };
   for (const [id, d] of Object.entries(icons)) if (id !== 'replay') $('#' + id + '-btn').innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
   $('#undo-btn').onclick = undo; $('#restart-btn').onclick = restart; $('#hint-btn').onclick = () => enqueue({ type: 'hint' });
-  $('#keep-btn').onclick = () => { keepMode = !keepMode; chrome(); announce(keepMode ? 'Mark settled crossings. Choose a crossing to mark or unmark it.' : 'Flip crossings.'); };
+  $('#keep-btn').onclick = () => { keepMode = !keepMode; chrome(); announce(keepMode ? 'Marking on. Choose a crossing to mark or unmark it.' : 'Marking off.'); };
   $('#next-btn').onclick = () => { if (!E.solved(board, grid)) return; const next = nextTarget(); go((next || course.main[0]).id); };
+  $('#next-cloth').onclick = () => { if (!allDone()) return; go(nextCloth().id); $('#settings').close(); };
+  $('#new-cloth').onclick = () => { if (!allDone()) return; go(G.id(G.fresh())); $('#settings').close(); };
   for (const id of ['settings', 'help']) {
     $('#' + id + '-btn').onclick = () => { gestures.clear(); hover = null; drawRings(); $('#' + id).showModal(); };
     $('#' + id).addEventListener('close', () => $('#' + id + '-btn').focus());
@@ -751,7 +806,7 @@
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) animation?.finish();
   });
-  window.__weave = { boards, get board() { return board.id; }, get state() { return { rows: board.rows, cols: board.cols, grid: copy(grid), pins: board.pins.map(p => p.slice()), loose: E.loose(board, grid), solved: E.solved(board, grid), hits, par: parOf(board), kept: [...kept] }; }, get reached() { return reached; }, get courseReached() { return courseReached; }, get played() { return played.slice(); }, course, flip, undo, restart, go };
+  window.__weave = { boards, get board() { return board.id; }, get state() { return { rows: board.rows, cols: board.cols, grid: copy(grid), pins: board.pins.map(p => p.slice()), loose: E.loose(board, grid), solved: E.solved(board, grid), hits, par: parOf(board), kept: [...kept] }; }, get reached() { return reached; }, get courseReached() { return courseReached; }, get played() { return played.slice(); }, get plus() { return JSON.parse(JSON.stringify(plus)); }, course, flip, undo, restart, go };
   window.__minimalize = { bounds() {
     const box = cloth.getBBox(), m = cloth.getScreenCTM();
     const corners = [[box.x, box.y], [box.x + box.width, box.y], [box.x, box.y + box.height], [box.x + box.width, box.y + box.height]].map(([x, y]) => new DOMPoint(x, y).matrixTransform(m));

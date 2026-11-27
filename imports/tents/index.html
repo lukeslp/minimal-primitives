@@ -6,24 +6,24 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<script src="./pwa.js?v=ccbd96c0" defer></script><link rel="stylesheet" href="./tents.css?v=7a0e465f">
-<link rel="stylesheet" href="./controls.css?v=e9a44e73">
+<script src="./pwa.js?v=ccbd96c0" defer></script><link rel="stylesheet" href="./tents.css?v=2942a019">
+<link rel="stylesheet" href="./controls.css?v=ca42b497">
 <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
 <meta name="description" content="Give every tree its own tent, keep the tents apart, and match the numbers on each row and column.">
 <meta property="og:title" content="Tents">
 <meta property="og:description" content="Give every tree its own tent, keep the tents apart, and match the numbers on each row and column.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://lukesteuber.com/games/tents/">
-<meta property="og:image" content="https://lukesteuber.com/games/tents/og.png?v=cb0386a28650">
+<meta property="og:image" content="https://lukesteuber.com/games/tents/og.png?v=2fb2416ad59f">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:type" content="image/png">
-<meta property="og:image:alt" content="A grid of trees with tents pitched beside some of them, dots on the squares ruled out, and a number at the end of each row and column.">
+<meta property="og:image:alt" content="A finished Tents board: red and yellow tents pitched beside trees in a green meadow that runs past the grid.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Tents">
 <meta name="twitter:description" content="Give every tree its own tent, keep the tents apart, and match the numbers on each row and column.">
-<meta name="twitter:image" content="https://lukesteuber.com/games/tents/og.png?v=cb0386a28650">
-<meta name="twitter:image:alt" content="A grid of trees with tents pitched beside some of them, dots on the squares ruled out, and a number at the end of each row and column.">
+<meta name="twitter:image" content="https://lukesteuber.com/games/tents/og.png?v=2fb2416ad59f">
+<meta name="twitter:image:alt" content="A finished Tents board: red and yellow tents pitched beside trees in a green meadow that runs past the grid.">
 </head>
 <body><header><button id="restart-btn" class="ib" aria-label="Restart puzzle"></button><h1 class="sr-only">Tents</h1><div id="readout" class="readout"></div></header>
 <main id="board-shell" aria-label="Tents puzzle"><div class="board-stage"><div id="board" class="board" role="grid" aria-label="Tents board"></div><div id="completion" class="completion" hidden><p id="ending" class="ending control-end-line" aria-hidden="true" hidden></p><button id="next-btn" class="ib" type="button" aria-label="Next puzzle" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div></div></main>
@@ -38,9 +38,9 @@
 <p>Pitch one tent beside every tree. Each tent belongs to one tree. Tents never touch, not even at a corner.</p>
 <p>Each number counts the tents in its row or column.</p>
 <p><button id="replay-opening" class="text-action">Play the opening boards again</button></p>
-<div class="controls"><p>Tap: tent, then a dot, then blank. A dot is your note that a cell stays empty. Drag across cells to dot them; start the drag on a dot to clear dots.</p><p>A short line ties each tent to a tree beside it. A number turns gray when its line is exact and is boxed when it has too many. Tents that break a rule are hatched.</p></div>
-<details class="help-more"><summary>More controls</summary><p>Hint shows the next cell that can be worked out and says why. Tap it again to apply.</p><p>Arrows move. Enter or Space cycles a cell. <kbd>Z</kbd> or Backspace undoes. <kbd>H</kbd> hints. Restart clears the board; Undo brings it back.</p></details>
+<div class="controls"><p>Tap a cell to pitch a tent. Tap again for a dot, and once more to clear it. A dot is your note that a cell stays empty. Drag across blank cells to dot them. Start a drag on a dot to clear dots instead.</p><p>A short line ties each tent to a tree beside it. A number turns gray when its row or column has exactly that many tents, and gets a box when it has too many. A tent that touches another tent, or has no tree beside it, is hatched.</p></div>
+<details class="help-more"><summary>More controls</summary><p>Hint marks the next cells you can work out, or a mark that’s wrong, and says why. Press Hint again to make the change.</p><p>Keys: arrows move, and Home and End jump to the ends of the row. Enter or Space does what a tap does. <kbd>Z</kbd> or Backspace undoes. <kbd>H</kbd> hints. Restart clears the board, and Undo brings it back.</p></details>
 </div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
-<script src="./engine.js?v=981836ec"></script><script src="./levels.js?v=e1c70d5f"></script><script src="./tents.js?v=49ef54ad"></script>
-<script defer src="./controls.js?v=f8d12ba8"></script>
+<script src="./engine.js?v=34f17acd"></script><script src="./levels.js?v=e1c70d5f"></script><script src="./tents.js?v=a91a7dd3"></script>
+<script defer src="./controls.js?v=ec0cee4a"></script>
 </body></html>

@@ -5,6 +5,7 @@
     "balance.css",
     "balance.js",
     "engine.js",
+    "endless.js",
     "favicon.svg",
     "fonts/IBMPlexMono-500.woff2",
     "fonts/IBMPlexSans-400.woff2",

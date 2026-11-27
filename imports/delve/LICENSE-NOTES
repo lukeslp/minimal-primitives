@@ -1,8 +1,0 @@
-Delve by Luke Steuber.
-
-engine.js ports the grid routines of naqbu (lukeslp/naqbu, MIT): recursive
-shadowcasting (src/game/fov.ts), rooms-and-corridors generation and the
-breadth-first distance map (src/game/mapgen.ts), and the mulberry32 seeded
-random number generator with FNV-1a text seeds (src/core/rng.ts).
-
-fonts/: IBM Plex Mono and IBM Plex Sans, SIL Open Font License (fonts/OFL.txt).

@@ -8,6 +8,6 @@
     ["function undo() {\n  settleAll();", "function undo() { window.MinimalAdapter?.undo();\n  settleAll();"],
     ["function restart() {\n  settleAll();", "function restart() { window.MinimalAdapter?.restart();\n  settleAll();"],
     ["  if (busy()) return;\n  if (hint) { const d = hint;", "  if (busy()) return;\n  window.MinimalAdapter?.assist();\n  if (hint) { const d = hint;"],
-    ["  say(NAMES[hint] + '. Press Hint again to play it.'); updateHintButton(); kick();", "  say(NAMES[hint] + '. Press Hint again to play it.'); updateHintButton(); kick(); window.MinimalAdapter?.changed();"]
+    ["  say('Hint: tip ' + NAMES[hint].toLowerCase() + '. Press Hint again to play it.'); updateHintButton(); kick();", "  say('Hint: tip ' + NAMES[hint].toLowerCase() + '. Press Hint again to play it.'); updateHintButton(); kick(); window.MinimalAdapter?.changed();"]
   ]
 }

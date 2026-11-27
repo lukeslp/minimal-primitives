@@ -54,8 +54,11 @@ if(missing!==undefined){const support=[t.cores[h][0],missing,...blocked].filter(
 }
 return{status:'stalled',trace,domains,operations:b.used};
 }catch(e){if(e!==EXHAUSTED)throw e;return{status:'exhausted',trace,domains,operations:b.used};}}
-function next(p,state){const r=logical(p,state);if(r.status==='contradiction')return{contradiction:true,text:'These regions cannot all connect symmetrically. Undo or clear uncertain cells.'};if(r.status==='exhausted')return null;
-const t=topology(p);for(let i=0;i<state.length;i++)if(state[i]===-1&&r.domains[i].size===1){const g=[...r.domains[i]][0],j=t.pairs[g][i],proof=r.trace.filter(m=>m.i===i),last=proof.at(-1);const text={centre:'The cells touching a center belong to that galaxy.',pair:'A cell and its half-turn partner must have the same center.',rotation:'A cell and its half-turn partner must have the same center.',connectivity:'Only this center can reach this pair.',bridge:'This pair is the only connection to a required cell.',corridor:'Another galaxy needs this corridor; this pair must belong here.'}[last?.rule]||'Only this center can own this rotational pair.';return{i,g,pair:[...new Set([i,j])],support:[...new Set(proof.flatMap(m=>m.support).concat(t.cores[g]))],rule:last?.rule||'domain',text};}return null;}
+function next(p,state){const r=logical(p,state);if(r.status==='contradiction')return{contradiction:true,text:'These galaxies can’t all be finished as they stand. Undo, or clear squares you aren’t sure of.'};if(r.status==='exhausted')return null;
+const t=topology(p);for(let i=0;i<state.length;i++)if(state[i]===-1&&r.domains[i].size===1){const g=[...r.domains[i]][0],j=t.pairs[g][i],proof=r.trace.filter(m=>m.i===i),last=proof.at(-1);const text={centre:'Squares touching a diamond belong to its galaxy.',pair:'A square and its opposite across the diamond go in the same galaxy.',rotation:'A square and its opposite across the diamond go in the same galaxy.',connectivity:'No other galaxy can reach these squares.',bridge:'This galaxy can only reach a square it needs through these squares.',corridor:'Giving these squares to another galaxy would block a path a galaxy needs. They belong to this diamond.'}[last?.rule]||'Only this diamond’s galaxy can hold these squares.';return{i,g,pair:[...new Set([i,j])],support:[...new Set(proof.flatMap(m=>m.support).concat(t.cores[g]))],rule:last?.rule||'domain',text};}return null;}
+// The last open squares, when every one lies in some diamond's own squares (its core), are given to those diamonds,
+// but only when that finishes the board. Returns the filled board, or null (nothing to fill, or the board would not solve).
+function fillCores(p,s){if(!stateValid(p,s)||s.every(v=>v>=0))return null;const t=topology(p),out=s.slice();for(let g=0;g<t.cores.length;g++)for(const i of t.cores[g])if(s[i]<0&&out[i]<0)out[i]=g;return out.every(v=>v>=0)&&inspect(p,out).solved?out:null;}
 function paint(p,s,i,g,to=g){if(!stateValid(p,s)||!Number.isInteger(i)||i<0||i>=s.length||!Number.isInteger(g)||g<0||g>=p.centres.length)return false;const j=topology(p).pairs[g][i],givens=singletonGivens(p);if(j<0||givens[i]>=0||givens[j]>=0)return false;s[i]=to;s[j]=to;return true;}
 // Independent exact-cover enumerator: enumerate each connected symmetric
 // region by orbit subsets, then join disjoint regions covering the board.
@@ -86,5 +89,5 @@ if(difficulty==='Hard'){const basic=logical(p,null,{meter:b,advanced:false});if(
 const en=enumerate(p,{budget:Math.min(500000,b.limit-b.used)});b.tick(en.operations);if(en.count!==1||!en.complete)continue;stats.operations=b.used;return{...p,seed,version:VERSION,fallback:false,stats};}
 }catch(e){if(e!==EXHAUSTED)throw e;}stats.operations=b.used;
 return fallback?{...fallback,stats}:{status:'exhausted',stats};}
-return{VERSION,DIFFICULTIES,meter,rng,valid,stateValid,topology,singletonGivens,inspect,logical,next,paint,enumerate,transform,candidate,generate};
+return{VERSION,DIFFICULTIES,meter,rng,valid,stateValid,topology,singletonGivens,inspect,fillCores,logical,next,paint,enumerate,transform,candidate,generate};
 });

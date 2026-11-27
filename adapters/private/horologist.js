@@ -1,9 +1,14 @@
 const __minimal=MinimalBridge.install({
   rulesVersion:'__RULES__',scoringPolicy:'__POLICY__',
-  describe(){const p=puzzle;return{id:p.id,mode:'campaign',layout:Object.fromEntries(['W','H','drive','clocks','pillars','tray'].map(k=>[k,p[k]])),solved:S.solved,repeat:completed.includes(p.id),restored:M.hits>0,value:M.hits,progress:{completed:completed.length}};},
-  snapshot(){return{board:puzzle.id,model:M,prefs,completed,reached,order:3,pool:played.slice(),hint,keyboard,phases,tickStart,text:$('#feedback').textContent,ui:MinimalBridge.ui()};},
-  restore(d){clearTimeout(timer);epoch++;queue=[];animation=null;refusal=null;handFrom=null;dragging=null;touches.clear();two=null;puzzle=ALL.find(p=>p.id===d.board);if(!puzzle||!E.valid(puzzle,d.model.placed)||!Array.isArray(d.completed)||!Number.isInteger(d.reached))throw Error('Invalid saved gear train.');prefs=d.prefs;completed=[...new Set(d.completed.filter(id=>ALL.some(b=>b.id===id)))];
+  describe(){const p=puzzle;return{id:p.id,mode:opening(p)?'opening':'campaign',layout:Object.fromEntries(['W','H','drive','clocks','pillars','tray'].map(k=>[k,p[k]])),solved:S.solved,repeat:completed.includes(p.id),restored:M.hits>0,value:M.hits,progress:{completed:completed.length}};},
+  snapshot(){return{board:puzzle.id,model:M,prefs,completed,reached,order:3,pool:played.slice(),opening:primed(),resume:resumeId,hint,keyboard,phases,tickStart,text:$('#feedback').textContent,ui:MinimalBridge.ui()};},
+  restore(d){clearTimeout(timer);epoch++;queue=[];animation=null;refusal=null;handFrom=null;dragging=null;touches.clear();two=null;puzzle=ALL.find(p=>p.id===d.board)||OP.find(p=>p.id===d.board);if(!puzzle||!E.valid(puzzle,d.model.placed)||!Array.isArray(d.completed)||!Number.isInteger(d.reached))throw Error('Invalid saved gear train.');prefs=d.prefs;completed=[...new Set(d.completed.filter(id=>ALL.some(b=>b.id===id)))];
     played=Array.isArray(d.pool)?[...new Set(d.pool.filter(id=>POOL.some(b=>b.id===id)))]:[];drawn=null;
+    // Since game-riffs 69ee5cb3 (PR 262) three opening boards, o1 to o3 (opening.js), lead a first visit and come back
+    // from Help: a save may sit on one, as the game's own save may. They record nothing in completed or reached. The
+    // board to go back to from them (resumeId) and the mark that the openings were left (opening.v1) travel along; a
+    // snapshot from 0.5.14, which has neither, leaves the game's own mark as it is.
+    resumeId=typeof d.resume==='string'&&ALL.some(b=>b.id===d.resume)?d.resume:null;if('opening' in d){if(d.opening)prime();else{try{localStorage.removeItem(PRIMER);}catch(_){}}}
     // The game's own reading (restore): plates keep their ids and solved marks on any of the fifty stay; reached counts
     // in the twenty-five with order 3 (game-riffs 9ad63d8), in boards.js's fifty with order 2 (d3d9b9e) and in id order
     // with neither, and every campaign plate a save had open stays open. A player on a plate that left the campaign goes

@@ -358,7 +358,7 @@
       // showing the notes, and sound joins at the first tap or key.
       // A player who looks and holds (Access saved as Look and hold) is told
       // what the browser wants, not asked for a tap they may not make.
-      setTimeout(() => { if (mode === 'wait' && starting) { starting = false; startTune(performance.now() + 200); chrome(); announce(document.body.dataset.access === 'look' ? 'No sound yet: this browser starts sound only after a tap, click or key. The dots show the notes meanwhile.' : 'No sound yet: tap or press a key to hear the notes. The dots show them meanwhile.'); } }, 1500);
+      setTimeout(() => { if (mode === 'wait' && starting) { starting = false; startTune(performance.now() + 200); chrome(); announce(document.body.dataset.access === 'look' ? 'No sound yet. This browser plays sound only after a tap, click or key press. Until then, the dots show the notes.' : 'No sound yet. Tap or press a key to hear the notes. Until then, the dots show them.'); } }, 1500);
       return;
     }
     if (mode !== 'select' || !sel) return;
@@ -385,7 +385,7 @@
       announce('Undone. ' + left()); begin(now + AFTER);
     } else if (state.wrong) {
       voice({ kind: 'wrong', id, at: now, dur: 240, level: .22, group: 'cue' });
-      announce('Wrong note. Press as the falling sound plays to take it back.'); begin(now + AFTER);
+      announce('Wrong note. Press on the falling tone to take it back.'); begin(now + AFTER);
     } else {
       const origin = reward(id, k);
       if (solved()) {
@@ -394,7 +394,7 @@
         [5, 7, 8, 5].forEach((p, i) => voice({ kind: 'chord', at: now + i * 55, hz: E.PITCHES[p].hz * (i === 3 ? 2 : 1), pan: prefs.split === 'on' ? -.4 + i * .27 : 0, dur: 560 - i * 55, level: .2, group: 'cue' }));
         finale = { at: now, origin };
         finished.add(board.id); playTune(state.notes, now + 700, 'finish');
-        announce(`Tune rebuilt in ${hits} presses. Par ${par()}. ${allSolved() ? ENDING : 'Press as the rising sound plays for the next board.'}`);
+        announce(`Tune rebuilt in ${hits} presses. Par ${par()}. ${allSolved() ? ENDING : 'Press on the rising tone for the next board.'}`);
       } else { voice({ kind: 'confirm', id, at: now, hz: E.pitch(board, id).hz, pan: E.pan(board, id, prefs.split === 'on'), dur: 320, level: .38, group: 'cue' }); announce(`Right note, ${k + 1} of ${L}.`); begin(now + AFTER); }
     }
     chrome(); save();
@@ -448,7 +448,7 @@
     if (hint === 'undo') voice({ kind: 'undo', id: 'undo', at: now, hz: 560, to: 280, dur: 160, level: .4, group: 'cue' });
     else voice({ kind: 'confirm', id: hint, at: now, hz: E.pitch(board, hint).hz, pan: E.pan(board, hint, prefs.split === 'on'), dur: 320, level: .42, group: 'cue' });
     flash(hint, now, 320, 'cue');
-    announce(hint === 'undo' ? 'Hint: the falling sound, undo. Press Hint again to take it.' : 'Hint: this note. Press Hint again to take it.');
+    announce(hint === 'undo' ? 'Hint: the falling tone, Undo. Press Hint again to choose it.' : 'Hint: listen, this is the next note. Press Hint again to place it.');
     chrome();
   }
   const nextChoice = () => E.expected(board, state);
@@ -458,7 +458,7 @@
     const end = done && allSolved();
     $('#readout').textContent = end ? ENDING : `${n} / ${boards.length} · ${hits} / ${par()}`;
     $('#readout').setAttribute('aria-label', `${end ? ENDING + ' ' : ''}Board ${n} of ${boards.length}; ${hits} presses; par ${par()}`);
-    const status = mode === 'wait' ? 'Press any key or tap anywhere to start the sound.' : done ? 'Tune rebuilt.' : state.wrong ? 'A wrong note stands; press as the falling sound plays to take it back.' : 'Press any key or tap as each note of the tune comes round.';
+    const status = mode === 'wait' ? 'Press any key or tap anywhere to start the sound.' : done ? 'Tune rebuilt.' : state.wrong ? 'A wrong note is in the tune. Press on the falling tone to take it back.' : 'Press any key or tap when you hear the next note of the tune.';
     $('#board').setAttribute('aria-label', `Board ${n} of ${boards.length}: a tune of ${L} notes from ${board.notes.length}; ${state.notes.length - (state.wrong ? 1 : 0)} placed. ${status}`);
     $('#undo-btn').disabled = state.notes.length === 0;
     $('#hint-btn').disabled = done;
@@ -562,7 +562,7 @@
     takebacks++;
     voice({ kind: 'back', id: 'undo', at: now, hz: 520, to: 220, dur: 220, level: .3, group: 'cue' });
     begin(now + AFTER);
-    announce(h.completed ? 'Taken back. Choice started again.' : 'Choice started again.');
+    announce(h.completed ? 'Taken back. This step starts over.' : 'This step starts over.');
     chrome(); save();
   }
   // How far the long press has come, for its ring: nothing for the first
@@ -599,7 +599,7 @@
   const soundWaits = () => starting || (ctx && ctx.state === 'suspended' && mode !== 'pause');
   document.addEventListener('keydown', e => { if (e.isTrusted && soundWaits()) wakeAudio(); }, true);
   document.addEventListener('keyup', e => { const code = e.code || e.key; held.delete(code); if (switchKeys.delete(code)) { e.preventDefault(); switchUp(e.timeStamp, 'k' + code); } if (soundWaits()) wakeAudio(); });
-  const chromeTarget = t => t.closest && t.closest('button,select,a,label,dialog,input,textarea');
+  const chromeTarget = t => t.closest && t.closest('button,[role="button"],select,a,label,dialog,input,textarea');
   document.addEventListener('pointerdown', e => {
     lastInput = 'pointer';
     if (chromeTarget(e.target) || (e.pointerType === 'mouse' && e.button !== 0)) return;
@@ -643,7 +643,7 @@
     if (k === 'speed' && mode === 'select') begin(performance.now() + AFTER);
     chrome(); save();
     if (k === 'rewards' && !colourful()) $('#payoff').replaceChildren();
-    announce({ hold: holdTime() ? `Long press of ${holdTime() / 1000} seconds takes back the step.` : 'Long press off.', release: releaseTime() ? `Presses within ${releaseTime() / 1000} seconds of a release are ignored.` : 'Release time off.', rewards: colourful() ? 'Rewards in color.' : 'Rewards calm: paper and ink only.', shown: shown() ? 'Notes shown.' : 'Notes hidden: play with your eyes closed.', volume: `Volume ${prefs.volume}.`, split: prefs.split === 'on' ? 'Notes alternate between the ears.' : 'Every note in both ears.', speed: `Speed ${prefs.speed}. Par ${par()}.`, adapt: prefs.adapt === 'on' ? 'Adapting to your timing.' : 'Using the starting timing.', theme: 'Theme changed.', motion: 'Motion setting changed.' }[k]);
+    announce({ hold: holdTime() ? `Holding a press for ${holdTime() / 1000} seconds takes back a step.` : 'Long press off.', release: releaseTime() ? `Presses within ${releaseTime() / 1000} seconds of a release are ignored.` : 'Release time off.', rewards: colourful() ? 'Rewards in color.' : 'Rewards calm: paper and ink only.', shown: shown() ? 'Notes shown.' : 'Notes hidden: play with your eyes closed.', volume: `Volume ${prefs.volume}.`, split: prefs.split === 'on' ? 'Notes alternate between the ears.' : 'Every note in both ears.', speed: `Speed ${prefs.speed}. Par ${par()}.`, adapt: prefs.adapt === 'on' ? 'Adapting to your timing.' : 'Using the starting timing.', theme: 'Theme changed.', motion: 'Motion setting changed.' }[k]);
   });
   motionQuery.addEventListener('change', applyPrefs); darkQuery.addEventListener('change', applyPrefs);
   window.addEventListener('resize', fit);

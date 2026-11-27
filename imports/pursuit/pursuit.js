@@ -212,7 +212,7 @@
     if (hint === i) hint = null;
     afterChange(t);
     const left = E.par(board) - state.filled.length;
-    if (solved()) announce(`Picture finished in ${hits} choices. Par ${E.par(board)}. ${allSolved() ? ENDING : 'Next board is open; follow or press Next.'}`);
+    if (solved()) announce(`Picture finished in ${hits} choices. Par ${E.par(board)}. ${allSolved() ? ENDING : 'Follow or press Next for the next board.'}`);
     else if (wasOpen) announce(`Filled. ${left} ${left === 1 ? 'ring' : 'rings'} left.`);
     else announce('Crossed out. Undo takes it back.');
     return true;
@@ -249,7 +249,7 @@
     const want = E.hint(board, state);
     if (hint !== null && hint === want) { if (want === 'undo') undo(); else chooseTarget(want); hint = null; chrome(); return; }
     hint = want; chrome();
-    announce(want === 'undo' ? 'Hint: undo. Hint again takes it.' : 'Hint: the marked ring. Hint again takes it.');
+    announce(want === 'undo' ? 'Hint: Undo. Press Hint again to choose it.' : 'Hint: follow the marked ring, or press Hint again to choose it.');
   }
 
   // ---- Chrome.
@@ -377,7 +377,7 @@
   function beginCalibration(base) {
     const mode = prefs.input === 'pointer' ? lastCamera : prefs.input;
     calib = { mode, base: base || null, spots: base ? [0] : [0, 1, 2, 3, 4], step: 0, window: [], captured: [], progress: 0, last: null, dotAt: null };
-    setPhase('calibrating'); announce(base ? 'Calibration did not take. One dot instead: look at it and hold still.' : 'Look at each dot in turn and hold still.');
+    setPhase('calibrating'); announce(base ? 'Calibration didn’t work. Try one dot instead: look at it and hold still.' : 'Look at each dot in turn and hold still.');
   }
   function calibrate(t, f) {
     const dt = calib.last === null ? 0 : clamp(t - calib.last, 0, 120), head = calib.mode === 'head';
@@ -406,7 +406,7 @@
   // offered one dot on a typical reach, and one who cannot hold that plays by
   // pointer. Nobody is kept in calibration for ever.
   function calibrationFailed() {
-    if (calib.base) { calFails = 0; T.stop(); virtual = false; showLive(false); calib = null; setPhase('pointer'); announce('Calibration did not take. Play by pointer; the camera button tries again.'); return; }
+    if (calib.base) { calFails = 0; T.stop(); virtual = false; showLive(false); calib = null; setPhase('pointer'); announce('Calibration didn’t work. Play with a pointer for now, or press the camera button to try again.'); return; }
     if (++calFails >= 2) { calFails = 0; beginCalibration(G.typical(calib.mode)); return; }
     beginCalibration(); announce('Again: look at each dot and hold still.');
   }
@@ -434,16 +434,16 @@
   function afterStart(full) { [fu, fv] = filters(); const tn = tuning[prefs.input]; if (full || !tn || (prefs.input === 'eyes' && tn.e !== 2)) beginTuning(full); else setPhase('camera'); }
   // The camera lost mid-play: play goes on by pointer, and the player's choice
   // of camera is kept, so the camera button or the next visit picks it up.
-  T.onLost = () => { if (phase !== 'camera' && phase !== 'calibrating') return; virtual = false; showLive(false); calib = null; tune = null; setPhase('pointer'); announce('The camera stopped. Play by pointer; the camera button tries again.'); };
+  T.onLost = () => { if (phase !== 'camera' && phase !== 'calibrating') return; virtual = false; showLive(false); calib = null; tune = null; setPhase('pointer'); announce('The camera stopped. Play with a pointer for now, or press the camera button to try again.'); };
   let calFails = 0;
   function fallback(error) {
     T.stop(); virtual = false; showLive(false); calib = null; tune = null; prefs.input = 'pointer'; save(); setPhase('pointer');
-    announce(error && error.code === 'vendor-missing' ? 'This site does not have the camera files. Play by pointer; the camera button tries again.' : 'Camera unavailable. Play by pointer; the camera button tries again.');
+    announce(error && error.code === 'vendor-missing' ? 'This site doesn’t have the camera files. Play with a pointer for now, or press the camera button to try again.' : 'The camera isn’t available. Play with a pointer for now, or press the camera button to try again.');
   }
   function stopCamera() {
     T.stop(); virtual = false; showLive(false); calib = null; tune = null; resumeOnShow = false;
     if (prefs.input !== 'pointer') lastCamera = prefs.input;
-    prefs.input = 'pointer'; save(); setPhase('pointer'); announce('Camera off. Playing by pointer.');
+    prefs.input = 'pointer'; save(); setPhase('pointer'); announce('Camera off. Playing with a pointer.');
   }
   function toPointer() { if (phase !== 'prompt') return; prefs.input = 'pointer'; save(); setPhase('pointer'); }
 
@@ -582,7 +582,7 @@
   });
   window.addEventListener('pointerdown', e => {
     pointer.x = e.clientX; pointer.y = e.clientY; pointer.present = true;
-    if ($('dialog[open]') || e.target.closest('button,select,a,dialog')) return;
+    if ($('dialog[open]') || e.target.closest('button,[role="button"],select,a,dialog')) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     // On the first screen, touching the play means play by touch.
     if (phase === 'prompt' && e.pointerType !== 'mouse') toPointer();

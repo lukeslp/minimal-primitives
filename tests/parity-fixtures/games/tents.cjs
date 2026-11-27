@@ -1,10 +1,12 @@
 'use strict';
 // Tents parity steps. A first visit opens on the opening boards; the campaign
 // select leads to the numbered boards, which keep their own saves. Trees take
-// no input, so every gesture aims at the first cell without one.
-const open='#board .cell:not(.tree)';
+// no input, so every gesture aims at the first cell without one. Since game-riffs
+// PR 259 (58c8772b) the list names an opening board first while it is on the page
+// (data-here), as Towers does; the steps pick among the numbered boards only.
+const open='#board .cell:not(.tree)',numbered='#campaign option:not([data-here])';
 const pick=index=>async(f,h)=>h.settings(f,'tents',async()=>{
-  const value=await f.locator('#campaign option').nth(index).getAttribute('value');
+  const value=await f.locator(numbered).nth(index).getAttribute('value');
   await f.locator('#campaign').selectOption(value);
 });
 module.exports={
@@ -27,7 +29,7 @@ module.exports={
   async nextBoard(f,{keyMove,settings,tick}){
     await keyMove(f,'tents');
     await settings(f,'tents',async()=>{
-      const value=await f.locator('#campaign option').nth(1).getAttribute('value');
+      const value=await f.locator(numbered).nth(1).getAttribute('value');
       await f.locator('#campaign').selectOption(value);
     });
     await tick(typeof f.page==='function'?f.page():f);

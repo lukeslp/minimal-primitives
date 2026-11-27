@@ -6,9 +6,23 @@
 <meta name="color-scheme" content="dark"><meta name="theme-color" content="#1a1a1a">
 <meta name="description" content="Tip a glass cube and turn its slices until the marble rolls out of the spout.">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://stats.dr.eamer.dev; worker-src 'self'; connect-src ws://127.0.0.1:47913 'self' https://stats.dr.eamer.dev; img-src 'self' data: https://stats.dr.eamer.dev; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'">
-<title>Cube Maze</title><link rel="icon" href="./favicon.svg"><link rel="stylesheet" href="./cube-maze.css?v=2ae549a6">
-<link rel="stylesheet" href="./controls.css?v=e9a44e73">
+<title>Cube Maze</title><link rel="icon" href="./favicon.svg"><link rel="stylesheet" href="./cube-maze.css?v=9bf13b03">
+<link rel="stylesheet" href="./controls.css?v=ca42b497">
 <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
+<meta property="og:title" content="Cube Maze">
+<meta property="og:description" content="Tip a glass cube or turn its layers until the marble falls out through the spout.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://lukesteuber.com/games/cube-maze/">
+<meta property="og:image" content="https://lukesteuber.com/games/cube-maze/og.png?v=0757ca4e3ee5">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="A transparent cube of glass cubes with a bent glass pipe through it and the marble out on the floor below.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Cube Maze">
+<meta name="twitter:description" content="Tip a glass cube or turn its layers until the marble falls out through the spout.">
+<meta name="twitter:image" content="https://lukesteuber.com/games/cube-maze/og.png?v=0757ca4e3ee5">
+<meta name="twitter:image:alt" content="A transparent cube of glass cubes with a bent glass pipe through it and the marble out on the floor below.">
 </head>
 <body>
 <header><h1 class="sr-only">Cube Maze</h1><button id="restart-btn" class="ib" type="button" aria-label="Restart board"></button><div id="readout" class="readout"></div></header>
@@ -21,11 +35,11 @@
 <h3 class="group">Display</h3><label class="row">Motion <select id="motion"><option value="system">System</option><option value="reduce">Reduced</option></select></label>
 </div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
 <dialog id="help" class="sheet" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">How to play</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
-<p>The marble falls straight down after every move and leaves only when the double ring faces down. Bring it out.</p>
-<p>Drag the cube to turn a layer, or swipe beside it to roll the whole cube.</p>
-<p>Drag with two fingers (or right-drag) to look around; pinch or scroll to zoom.</p>
-<details class="help-more"><summary>More controls</summary><p>The top line shows the board, then moves made and par.</p><p>Once all 25 boards are solved, the arrow and Settings go on to New Game+: the 25 boards the campaign leaves out, at random.</p><p>Hint shows a next move; press it again to play it.</p><p>The arrow keys roll the cube toward that side of the screen. F, B, L, R, U and D turn the front, back, left, right, top and bottom layers; on a three-cubie cube M, C and S turn the middle ones. Shift turns the other way. Q and E turn the view, + and − zoom, and 0 resets it. Z or Backspace undoes; H asks for a hint.</p><p>One switch (Settings, Access): the highlight first lights the four arrows together. Press to choose them, then press again when the arrow you want is lit; it rolls the cube that way. The drag key comes next: two gliding lines set where the drag starts, two more set where it ends, and a drag across the cube turns a layer. Undo, Hint and Next come last.</p></details>
+<p>Get the marble out of the cube. After every move it falls straight down as far as the tubes let it. It can only leave through the end with the double ring, and only when that end faces down.</p>
+<p>Drag across the cube to turn one layer. Swipe or tap beside the cube to roll the whole cube that way.</p>
+<p>To turn the view, drag with two fingers, or right-drag with a mouse. Pinch or scroll to zoom.</p>
+<details class="help-more"><summary>More controls</summary><p>The top line shows the board number, your moves and par.</p><p>Solve all 25 boards to open New Game+, with 25 more boards in random order. Start it from the arrow after a solve, or from Settings.</p><p>Hint shows a good next move. Press Hint again to play it. If you need to back up first, it lights Undo instead.</p><p>The arrow keys roll the cube toward that side of the screen. F, B, L, R, U and D turn the front, back, left, right, top and bottom layers clockwise, as seen from that side. Hold Shift to turn the other way. On a 3 by 3 by 3 cube, M, C and S turn the middle layers, the same way as L, D and F. Q and E turn the view, + and − zoom, and 0 resets the view. Z or Backspace undoes. H shows a hint.</p><p>One switch (Settings, Access): the highlight lights the four arrows together first. Press to pick them, then press again when the arrow you want is lit, and the cube rolls that way. The drag key comes next. Two moving lines set where the drag starts, two more set where it ends, and a drag across the cube turns a layer. Undo, Hint and Next come last.</p></details>
 </div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
-<script src="./engine.js?v=cfe746da"></script><script src="./boards.js?v=5e5107c1"></script><script src="./campaign.js?v=c435fa4c"></script><script src="./feet.js?v=cc200edc"></script><script type="module" src="./cube-maze.js?v=ef5bfc7d"></script>
-<script defer src="./controls.js?v=b6f41afa"></script>
+<script src="./engine.js?v=cfe746da"></script><script src="./boards.js?v=5e5107c1"></script><script src="./campaign.js?v=c435fa4c"></script><script src="./feet.js?v=cc200edc"></script><script type="module" src="./cube-maze.js?v=44bd6ffd"></script>
+<script defer src="./controls.js?v=03fbba6e"></script>
 </body></html>

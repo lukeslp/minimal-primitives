@@ -43,11 +43,15 @@ svg.solved #tray,svg.solved #holes,svg.solved .plate,svg.solved .pillar,svg.solv
 .wheel.clock[data-status=back] .gear-face,.wheel.clock[data-status=jammed] .gear-face,.clock.back .clock-ring,.clock.jammed .clock-ring{stroke:var(--status-fail)}
 .clock.jammed .clock-ring{stroke-width:3;stroke-dasharray:none}
 
-/* One steady completion light across the movement, with no success hue. */
+/* The finish: one steady light across the movement, then each turning wheel takes a dye along the train (plate.js dyes()). */
 svg.solved .wheel .gear-face{fill:var(--metal);stroke:var(--ink)}
 svg.solved .wheel .spoke,svg.solved .wheel .arbor,svg.solved .clock .clock-ring,svg.solved .clock .clock-tick,svg.solved .clock .clock-hand.second{stroke:var(--ink)}
 svg.solved .wheel .turn-mark{fill:var(--ink)}
 svg.solved #stage{filter:drop-shadow(0 0 1.6px var(--finish-glow))}
+:root{--dye-1:#1768ff;--dye-2:#ffe000;--dye-3:#ed6500;--dye-4:#da5cce}
+svg.solved .wheel[data-dye] .gear-face{transition:fill .5s ease var(--dye-at,0ms)}
+svg.solved.dyed .wheel[data-dye] .gear-face{fill:var(--dye)}
+@media(forced-colors:active){svg.solved.dyed .wheel[data-dye] .gear-face{fill:Canvas}}
 @media(forced-colors:active){svg.solved #stage{filter:none}}
 
 /* Settings campaign catalog. */
@@ -62,3 +66,15 @@ svg.solved #stage{filter:drop-shadow(0 0 1.6px var(--finish-glow))}
 .end-line{margin:0;font:500 13px/1.4 var(--mono);letter-spacing:.02em;color:var(--text);text-align:center;pointer-events:none}
 .end-line[hidden]{display:none}
 #end-line{position:absolute;left:50%;bottom:0;transform:translateX(-50%);white-space:nowrap}
+/* On a dye the wheel's lines stay dark in either theme, as Slant's and Cast's do. */
+svg.solved.dyed .wheel[data-dye] .gear-face{stroke:#000}
+svg.solved.dyed .wheel[data-dye] .spoke,svg.solved.dyed .wheel[data-dye] .arbor{stroke:#000}
+svg.solved.dyed .wheel[data-dye] .turn-mark{fill:#000}
+/* Which way each wheel turns (plate.js spins()); gone at the solve, when the dyes take over. */
+.spin-halo{fill:none;stroke:var(--bg);stroke-width:8;stroke-linecap:round;stroke-linejoin:round}
+.spin{fill:none;stroke:var(--ink);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.spin.want{stroke:var(--guide);stroke-dasharray:2 3.5}
+.spin.back{stroke:var(--status-fail)}
+@media(forced-colors:active){.spin,.spin.want,.spin.back{stroke:CanvasText}}
+/* Help's replay button, drawn as Towers' is. */
+.text-action{min-height:44px;padding:8px 12px;border:1px solid var(--line);background:none;font:500 14px/1.3 var(--mono);color:var(--text)}

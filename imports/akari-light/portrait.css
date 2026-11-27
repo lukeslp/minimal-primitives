@@ -1,0 +1,28 @@
+/* Upright on phones: the prompt that stands in for the board while a phone is held sideways
+   (portrait.js sets data-portrait-turn on <html>). Local to each game that opts in. Luke Steuber.
+   Everything else on the page keeps its layout, out of sight (visibility, not display, so the
+   game measures and keeps its board as it was); an open sheet stays where it is. */
+.portrait-turn {display:none;}
+html[data-portrait-turn] body > :not(.portrait-turn):not(dialog) {visibility:hidden!important;}
+/* A host page's own Home (Minimal Primitives) stays, so the player can leave without turning. */
+html[data-portrait-turn] [data-minimal-collection="home"] {visibility:visible!important;}
+html[data-portrait-turn] .portrait-turn {
+  position:fixed;inset:0;z-index:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  padding:16px max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
+  background:var(--bg,Canvas);color:var(--text,CanvasText);font:14px/1.4 var(--sans,system-ui,sans-serif);text-align:center;
+}
+.portrait-turn svg {width:56px;height:56px;fill:none;stroke:var(--sub,currentColor);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;overflow:visible;}
+.portrait-turn-line {margin:0;min-height:1.4em;}
+.portrait-turn-line:focus {outline:none;}
+.portrait-turn-line:focus-visible {outline:2px solid currentColor;outline-offset:4px;}
+/* The phone turns upright once, then rests. Without motion it is simply upright. */
+.portrait-turn-phone {transform-box:view-box;transform-origin:24px 24px;}
+html[data-portrait-turn] .portrait-turn-phone {animation:portrait-turn 900ms ease-in-out 300ms both;}
+@keyframes portrait-turn {from {transform:rotate(-90deg);} to {transform:rotate(0deg);}}
+@media (prefers-reduced-motion:reduce) {html[data-portrait-turn] .portrait-turn-phone {animation:none;}}
+html[data-motion="reduce"][data-portrait-turn] .portrait-turn-phone {animation:none;}
+@media (forced-colors:active) {
+  html[data-portrait-turn] .portrait-turn {background:Canvas;color:CanvasText;}
+  .portrait-turn svg {stroke:CanvasText;}
+  .portrait-turn-line:focus-visible {outline-color:Highlight;}
+}

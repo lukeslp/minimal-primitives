@@ -27,7 +27,7 @@ from pathlib import Path
 import re
 
 ROOT = Path(__file__).resolve().parents[1]
-PIN = '80d30e175d5274b281ecccbefca430497578c79a'
+PIN = '435c8557ee218245d23d42ffa44b32308ff9cfcb'
 
 
 def exact(text, anchor, replacement, path):
@@ -41,11 +41,107 @@ def script(name, rules=''):
     return (ROOT / 'adapters/private' / name).read_text().replace('__RULES__', rules)
 
 
+def adopt(text, anchor, replacement, path):
+    if anchor not in text and text.count(replacement) == 1:
+        return text
+    return exact(text, anchor, replacement, path)
+
+
+MENU_INSTRUCTIONS = '<div class="instructions-text">Tap to reveal · flag: right-click, Ctrl-click, or long-hold<br>Menu holds scores · Reset on the board</div>'
+MENU_INSTRUCTIONS_NEXT = '<div class="instructions-text"><span class="menu-touch-instructions">Tap to reveal · hold to flag</span><span class="menu-pointer-instructions">Click to reveal · right-click or Ctrl-click to flag</span><br>Menu holds scores · Reset on the board</div>'
+MENU_INPUT_CSS = '''.menu-touch-instructions { display: none; }
+.menu-pointer-instructions { display: inline; }
+@media (hover: none) and (pointer: coarse) {
+  .menu-touch-instructions { display: inline; }
+  .menu-pointer-instructions { display: none; }
+}
+.instructions-text {'''
+MENU_LIFECYCLE = '''    function openModal() {
+      if (modal) modal.classList.add("open");
+    }
+    function closeModal() {
+      if (modal) modal.classList.remove("open");
+    }'''
+MENU_LIFECYCLE_NEXT = '''    let menuFocusReturn = null;
+    let menuIsOpen = false;
+    function syncMenuFocus() {
+      const open = !!modal?.classList.contains("open");
+      if (open === menuIsOpen) return;
+      menuIsOpen = open;
+      if (open) {
+        menuFocusReturn ||= document.activeElement;
+        modal.inert = false;
+        closeBtn?.focus();
+      } else {
+        if (menuFocusReturn?.isConnected) menuFocusReturn.focus();
+        menuFocusReturn = null;
+        modal.inert = true;
+      }
+    }
+    if (modal) {
+      modal.inert = !modal.classList.contains("open");
+      new MutationObserver(syncMenuFocus).observe(modal, { attributes: true, attributeFilter: ["class"] });
+      syncMenuFocus();
+    }
+    function openModal(event) {
+      if (!modal || modal.classList.contains("open")) return;
+      menuFocusReturn = event?.currentTarget || document.activeElement;
+      modal.classList.add("open");
+      syncMenuFocus();
+    }
+    function closeModal() {
+      if (!modal || !modal.classList.contains("open")) return;
+      modal.classList.remove("open");
+      syncMenuFocus();
+    }
+    document.addEventListener("keydown", (event) => {
+      if (!modal?.classList.contains("open")) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        closeModal();
+      } else if (event.key === "Tab") {
+        const card = modal.querySelector(".modal-content");
+        const stops = Array.from(card.querySelectorAll('button, a[href], input, select, textarea, [tabindex]'))
+          .filter(node => node.tabIndex >= 0 && !node.matches(":disabled") && !node.closest("[inert]") &&
+            node.getClientRects().length && getComputedStyle(node).visibility === "visible");
+        const first = stops[0] || closeBtn;
+        const last = stops[stops.length - 1] || closeBtn;
+        if (!stops.includes(document.activeElement) ||
+            (event.shiftKey && document.activeElement === first) ||
+            (!event.shiftKey && document.activeElement === last)) {
+          event.preventDefault();
+          (event.shiftKey ? last : first)?.focus();
+        }
+      }
+    }, true);'''
+
+
+def menu_footer(text, path):
+    for domain, label in [('lukesteuber.com', 'Luke Steuber'), ('datapoems.io', 'Data Poems')]:
+        anchor = f'<a href="https://{domain}" target="_blank" rel="noopener noreferrer">{label}</a>'
+        text = adopt(text, anchor, anchor.replace(f'>{label}<', f'>{domain}<'), path)
+    return text
+
+
+def menu_instructions(text, path):
+    text = adopt(text, MENU_INSTRUCTIONS, MENU_INSTRUCTIONS_NEXT, path)
+    if text.count(MENU_INPUT_CSS) == 1:
+        return text
+    return exact(text, '.instructions-text {', MENU_INPUT_CSS, path)
+
+
+def menu_dialog(text, path):
+    return adopt(text, MENU_LIFECYCLE, MENU_LIFECYCLE_NEXT, path)
+
+
 def transform(game, path, text):
     if game['id'] != 'hexsweeper':
         return text
     if game['commit'] != PIN:
         raise ValueError('Hex adapter requires the accepted source pin (PIN)')
+    if path == 'hexsweeper/bounded.html':
+        text = menu_dialog(menu_instructions(menu_footer(text, path), path), path)
     sphere = path == 'hexsweeper/sphere/sphere.js'
     flat = path in ('hexsweeper/bounded.html', 'hexsweeper/infinite.html')
     entry = flat or path == 'hexsweeper/sphere/index.html'

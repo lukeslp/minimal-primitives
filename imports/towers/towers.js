@@ -4,7 +4,7 @@
   const E = Towers, ALL = TowersLevels;
   const OPENING = ALL.filter(p => p.opening), L = ALL.filter(p => !p.opening);
   const $ = s => document.querySelector(s);
-  const K = { current: 'towers.current.v1', progress: 'towers.progress.v1', settings: 'towers.settings.v1', primer: 'towers.primer.v1', generated: 'towers.generated.v1' };
+  const K = { current: 'towers.current.v1', progress: 'towers.progress.v1', settings: 'towers.settings.v1', primer: 'towers.primer.v1', generated: 'towers.generated.v1', plus: 'towers.plus.v1' };
   const ids = new Set(L.map(p => p.id));
   const openingAt = id => OPENING.findIndex(p => p.id === id);
   // Free play: the generated board in hand, kept under its own key so the campaign save keeps its shape.
@@ -45,6 +45,16 @@
   gen = read(K.generated, v => isObject(v) && v.version === 1 && Number.isInteger(v.seed) && Number.isInteger(v.n) && v.n >= 2 && v.n <= 6 && typeof v.playing === 'boolean' &&
     isObject(v.clues) && E.SIDES.every(side => heights(v.clues[side], v.n, v.n)) && heights(v.given, v.n * v.n, v.n) && E.stateValid(v, v.cells), null);
   const allDone = () => L.every(p => progress.completed.includes(p.id));
+  // Wins after the campaign, counted from 2026-11-19 on (no earlier save records them): solves of New Game+ boards
+  // with the campaign done. `held` is the last board counted, so undo and redo or a restart of it does not count twice.
+  const plus = read(K.plus, v => isObject(v) && Object.keys(v).length === 3 && v.version === 1 && Number.isInteger(v.wins) && v.wins >= 0 && typeof v.held === 'string' && v.held.length <= 96, { version: 1, wins: 0, held: '' });
+  const solvedCount = () => progress.completed.length + (plus.wins ? ' + ' + plus.wins : '') + ' ✓';
+  function countPlus() {
+    if (at !== 'generated' || !allDone()) return;
+    const key = 'free:' + gen.n + ':' + gen.seed;
+    if (plus.held === key) return;
+    plus.held = key; plus.wins++; write(K.plus, plus);
+  }
 
   const query = new URLSearchParams(location.search);
   let firstVisit = !query.has('level');
@@ -332,7 +342,7 @@
     draw(); drawPicker();
     const n = L.findIndex(p => p.id === at), fresh = S.solved && nextTarget() === 'new', ended = S.solved && n >= 0 && allDone();
     $('#undo-btn').disabled = !S.undo.length;
-    $('#readout').textContent = at === 'generated' ? puzzle.n + ' × ' + puzzle.n + ' · ' + progress.completed.length + ' ✓' : n < 0 ? '' : (n + 1) + ' / ' + L.length + ' · ' + progress.completed.length + ' ✓';
+    $('#readout').textContent = at === 'generated' ? puzzle.n + ' × ' + puzzle.n + ' · ' + solvedCount() : n < 0 ? '' : (n + 1) + ' / ' + L.length + ' · ' + solvedCount();
     $('#completion').hidden = !S.solved;
     // The line under a solve that leaves the whole campaign done; the status line says it to screen readers.
     $('#ending').hidden = !ended; $('#ending').textContent = ended ? ENDING : '';
@@ -346,7 +356,7 @@
     // opening board or a New Game+ board. The list never stands blank, and choosing a campaign board from it leaves
     // for that board as before.
     const k = openingAt(at), list = $('#campaign'); let here = list.querySelector('option[data-here]');
-    if (n < 0) { if (!here) { here = document.createElement('option'); here.dataset.here = ''; list.prepend(here); } here.value = at; here.textContent = k >= 0 ? 'Opening board ' + (k + 1) + ' of ' + OPENING.length : 'New Game+ board'; }
+    if (n < 0) { if (!here) { here = document.createElement('option'); here.dataset.here = ''; list.prepend(here); } here.value = at; here.textContent = k >= 0 ? 'Opening ' + (k + 1) + ' of ' + OPENING.length : 'New Game+ board'; }
     else if (here) here.remove();
     list.value = at;
     for (const o of list.options) if (!('here' in o.dataset)) o.textContent = optionText(o.value);
@@ -375,6 +385,7 @@
     const was = S.solved;
     S.solved = E.inspect(puzzle, S.cells).solved;
     if (S.solved) {
+      if (!was && announce) countPlus();
       if (ids.has(at) && !progress.completed.includes(at)) progress.completed.push(at);
       if (announce) say(ids.has(at) && allDone() ? ENDING : 'Complete.');
       if (!was && announce) startTour();
@@ -406,10 +417,10 @@
     say('Puzzle restarted. Undo restores your towers.');
   }
   function hint() {
-    if (S.solved) { say('Every row, column and number agrees.'); return; }
+    if (S.solved) { say('This board is already solved.'); return; }
     if (S.hint) { const move = S.hint; S.hint = null; S.focus = move.i; setCell(move.i, move.value); return; }
     const move = E.next(puzzle, S.cells);
-    if (!move) { say('No step found from these towers. Undo or clear a doubtful one.'); return; }
+    if (!move) { say('No next step from here. Undo, or clear a tower you aren’t sure of.'); return; }
     S.hint = move;
     say(move.text + (move.value ? ' Press Hint again to raise it to ' + move.value + '.' : ' Press Hint again to clear it.'));
     render();
@@ -635,7 +646,7 @@
   // For the tests: the state, and where on the page a cell's top face is.
   window.__towers = {
     S, keys: K,
-    get puzzle() { return puzzle; }, get at() { return at; }, get progress() { return progress; }, get generated() { return gen; },
+    get puzzle() { return puzzle; }, get at() { return at; }, get progress() { return progress; }, get generated() { return gen; }, get plus() { return plus; },
     get turn() { return { angle: turn, quarters: quarters(), resting: atRest() }; },
     get picking() { return pickerOpen(); },
     point(i) {

@@ -392,6 +392,11 @@ dialog.sheet::backdrop { background:var(--scrim); }
 #theme-btn svg { width:20px; height:20px; flex:none; }
 .practice-tools { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
 .practice-tools form { margin:0; }
+/* In Settings the actions line up with the headings and rows above them, as every other row does. */
+#settings .practice-tools { justify-content:flex-start; }
+/* An action set straight into the sheet's body, after its sections (the Minimal app adds Collection scores
+   there), keeps a section's distance from the one above. */
+#settings .sheet-body > .text-action { margin-top:20px; }
 .sheet-foot { border-top:1px solid var(--line); padding-top:12px; margin-top:20px; }
 .foot-btn { display:inline-flex; align-items:center; min-height:44px; font:400 16px/1.4 var(--sans); color:var(--sub); text-underline-offset:3px; background:none; border:0; cursor:pointer; }
 .lv-grid { list-style:none; margin:0 0 20px; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(max(44px,calc(40px * var(--zoom))),1fr)); gap:4px; }

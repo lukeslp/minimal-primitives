@@ -18,6 +18,52 @@ async function library(ctx,{wait=true}={}){
 }
 const named=locator=>locator.evaluate(node=>node.getAttribute('aria-label')||node.textContent.trim());
 
+test('Hexsweeper flat Menu: footer order, row spacing and keyboard dialog lifecycle',async t=>{
+  const ctx=await h.context(await getBrowser(),viewport);t.after(()=>ctx.close());
+  const page=await library(ctx);await h.open(page,'hexsweeper:classic');
+  await page.waitForSelector('#player iframe');const frame=inner(page);
+  await frame.waitForFunction(()=>document.readyState==='complete'&&window.MinimalAdapter);
+  const opener=frame.locator('#menu-btn'),close=frame.locator('#close-modal-btn');
+  const active=()=>frame.evaluate(()=>document.activeElement?.id);
+  const isOpen=()=>frame.locator('#modal-overlay').evaluate(n=>n.classList.contains('open'));
+  await opener.focus();await page.keyboard.press('Enter');
+  assert.equal(await isOpen(),true);assert.equal(await active(),'close-modal-btn');
+  const footer=frame.locator('#modal-overlay .menu-links');
+  assert.deepEqual(await footer.locator('a').allTextContents(),['lukesteuber.com','datapoems.io']);
+  const layout=await footer.evaluate(nav=>{
+    const row=nav.previousElementSibling,button=row.querySelector('[data-minimal-collection="scores"]');
+    return {last:nav===nav.parentElement.lastElementChild,label:button?.textContent,
+      above:row.getBoundingClientRect().top-row.previousElementSibling.getBoundingClientRect().bottom,
+      below:nav.getBoundingClientRect().top-row.getBoundingClientRect().bottom,
+      spacing:parseFloat(getComputedStyle(document.querySelector('#run-row')).marginBottom)};
+  });
+  assert.equal(layout.last,true);assert.equal(layout.label,'Collection scores');
+  assert.ok(Math.abs(layout.above-layout.spacing)<1,JSON.stringify(layout));
+  assert.ok(layout.below>=layout.spacing-1,JSON.stringify(layout));
+  await page.keyboard.press('Shift+Tab');
+  assert.equal(await footer.locator('a').last().evaluate(n=>n===document.activeElement),true);
+  await page.keyboard.press('Tab');assert.equal(await active(),'close-modal-btn');
+  const scores=frame.getByRole('button',{name:'Collection scores',exact:true});
+  await scores.focus();await page.keyboard.press('Tab');
+  assert.equal(await footer.locator('a').first().evaluate(n=>n===document.activeElement),true);
+  await page.keyboard.press('Escape');
+  assert.equal(await isOpen(),false);assert.equal(await active(),'menu-btn');
+  await page.keyboard.press('Enter');await close.click();
+  assert.equal(await isOpen(),false);assert.equal(await active(),'menu-btn');
+  await opener.click();await frame.locator('#modal-overlay').click({position:{x:2,y:2}});
+  assert.equal(await isOpen(),false);assert.equal(await active(),'menu-btn');
+  await opener.focus();
+  await frame.locator('#modal-overlay').evaluate(n=>n.classList.add('open'));
+  assert.equal(await active(),'close-modal-btn');
+  assert.equal(await frame.locator('#modal-overlay').evaluate(n=>n.inert),false);
+  await frame.locator('#modal-overlay').evaluate(n=>n.classList.remove('open'));
+  assert.equal(await active(),'menu-btn');
+  assert.equal(await frame.locator('#modal-overlay').evaluate(n=>n.inert),true);
+  await opener.click();await opener.evaluate(n=>n.remove());await page.keyboard.press('Escape');
+  assert.equal(await isOpen(),false);
+  assert.deepEqual(ctx.parity.errors,[]);assert.deepEqual(ctx.parity.requests,[]);
+});
+
 test('Cast: no link to the old Cast, and the page without WebGL leads back to the library',async t=>{
   const ctx=await h.context(await getBrowser(),viewport);t.after(()=>ctx.close());
   const {page,frame}=await h.shell(ctx,game('cast'));
@@ -32,7 +78,7 @@ test('Cast: no link to the old Cast, and the page without WebGL leads back to th
   await bare.addInitScript(()=>{const get=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...rest){return /webgl/.test(type)?null:get.call(this,type,...rest);};});
   const second=await library(bare);await h.open(second,'cast');await second.waitForSelector('#player iframe');
   const fallback=inner(second).locator('#fallback');await fallback.waitFor({state:'visible'});
-  assert.equal(await fallback.innerText(),'This lit room needs WebGL, which this browser has turned off. Back to all games.');
+  assert.equal(await fallback.innerText(),'This 3D version needs WebGL, which this browser has turned off. Back to all games.');
   await fallback.locator('a').focus();await second.keyboard.press('Enter');
   await second.locator('#library:visible').waitFor();assert.equal(await second.locator('#player iframe').count(),0,'the fallback leads Home');
 });
@@ -141,7 +187,7 @@ test('scores: plain wording without a service, and recent results at the library
   assert.equal(await page.locator('#score-context').textContent(),'Recently finished on this device');
   const rows=(await page.locator('#score-list .score-row').allInnerTexts()).map(row=>row.split('\n'));
   assert.equal(rows[0][0],'Notan');
-  assert.deepEqual(rows.slice(1),[['Delve','daily','depth 6'],['Tilt','4','1 move'],['Tangles','7','12 hits'],['Slant','p3','83s']],'a game the package no longer carries is left out');
+  assert.deepEqual(rows.slice(1),[['Tilt','4','1 move'],['Tangles','7','12 hits'],['Slant','p3','83s']],'games the package no longer carries (Delve, and one never carried) are left out');
   assert.equal(await page.locator('#score-category').isVisible(),false);
   assert.doesNotMatch(await page.locator('#scores').innerText(),/Choose a game|preview/i);
   await page.keyboard.press('Escape');assert.equal(await page.locator('#scores').evaluate(d=>d.open),false);
@@ -259,8 +305,10 @@ const fs=require('node:fs'),path=require('node:path');
 const arrived=async(frame,url)=>{await frame.waitForURL(url);await frame.waitForFunction(()=>document.readyState==='complete'&&!!document.getElementById('minimal-home'));};
 async function enter(page,key,url){await h.open(page,key);await page.waitForSelector('#player iframe');const frame=inner(page);await arrived(frame,url);return frame;}
 async function goHome(page,frame,list='#library'){await frame.locator('#minimal-home').focus();await page.keyboard.press('Enter');await page.locator(list+':visible').waitFor();assert.equal(await page.locator('#player iframe').count(),0);}
-// Every board of Tangles' own fifty finished, as its own record says it: that is what opens New Game+.
-const beatTangles=frame=>frame.evaluate(()=>{const save=JSON.parse(localStorage.getItem('loop.v1')||'{}');save.finished=[...new Set([...(save.finished||[]),'L50'])];localStorage.setItem('loop.v1',JSON.stringify(save));});
+// Every board of Tangles' course finished: that is what opens New Game+. Since game-riffs PR 250 (57d75298) Settings
+// reads the game's own finished boards, not its record, so they are set through the adapter as a restore would.
+const beatTangles=frame=>frame.evaluate(async()=>{const s=await MinimalAdapter.snapshot(),ids=LoopCourse;
+  await MinimalAdapter.restore({...s,finished:[...new Set([...s.finished,...ids])],reached:ids.length-1});});
 const TANGLES=/\/games\/tangles\/index\.html$/;
 
 test("a link to another packaged page keeps Home: Tangles' Experiments, the way back, and New Game+",async t=>{
@@ -279,16 +327,18 @@ test("a link to another packaged page keeps Home: Tangles' Experiments, the way 
   await again.locator('#help-btn').click();
   await again.locator('#help .experiments-help a[href$="set=square"]').click();await arrived(again,/experiments\.html\?set=square$/);
   await again.locator('#settings-btn').click();
-  await again.locator('#experiments a.experiment',{hasText:'Fifty boards'}).click();await arrived(again,TANGLES);
+  // Its row reads the campaign's size ("25 boards" since game-riffs 57d75298; "Fifty boards" before).
+  await again.locator('#experiments a.experiment',{hasText:/^Tangles\s*\d+ boards$/}).click();await arrived(again,TANGLES);
   assert.equal(await again.evaluate(()=>typeof MinimalBridge.nonce),'string');
   await goHome(page,again);
-  // New Game+, offered after board 50: in Settings, and as the disc on that board.
+  // New Game+, offered after the last course board: in Settings, and as the disc on that board. Since game-riffs
+  // PR 250 (57d75298) Settings offers it as a row of its own New Game+ group whose Open button goes there by script,
+  // so the package hands on the handshake there too (tools/transforms.py).
   again=await enter(page,'tangles',TANGLES);
   await beatTangles(again);await again.locator('#settings-btn').click();
-  const plus=again.locator('#experiments a.experiment',{hasText:'New Game+'});
-  assert.equal(await plus.getAttribute('href'),'./experiments.html?plus');
-  await plus.click();await arrived(again,/experiments\.html\?plus=?$/);
+  await again.locator('#plus-open').click();await arrived(again,/experiments\.html\?plus(&minimal=[^&]+)?$/);
   assert.equal(await again.evaluate(()=>document.title),'Tangles · New Game+');
+  assert.equal(await again.evaluate(()=>typeof MinimalBridge.nonce),'string','the handshake came along from Settings');
   await goHome(page,again);
   // Since game-riffs PR 205 the disc itself goes on to New Game+ from the last course board, by script (no link for
   // the click handler to see): the package hands on the handshake there too. The last board, every other course
@@ -447,8 +497,8 @@ for(const worker of [true,false])test(`Cube Maze: Hint shows a move ${worker?'fr
   if(!worker)await ctx.addInitScript(()=>{window.__refused=0;window.Worker=function(){window.__refused++;throw new DOMException('Fixture refuses workers','SecurityError');};});
   const {page,frame}=await h.shell(ctx,game('cube-maze'));
   await frame.locator('#hint-btn').click();
-  for(let n=0;n<80&&!(await frame.evaluate(()=>/Hint shown|Undo is the way back/.test(document.getElementById('announcement').textContent)));n++){await page.clock.runFor(100);await page.waitForTimeout(50);}
-  assert.equal(await frame.locator('#announcement').textContent(),'Hint shown; press Hint again to play it.');
+  for(let n=0;n<80&&!(await frame.evaluate(()=>/^Hint: (roll|turn) |Undo a move first/.test(document.getElementById('announcement').textContent)));n++){await page.clock.runFor(100);await page.waitForTimeout(50);}
+  assert.match(await frame.locator('#announcement').textContent(),/^Hint: (roll|turn) .+\. Press Hint again to play it\.$/);
   assert.equal(await frame.locator('#hint-btn').getAttribute('aria-pressed'),'true');
   if(!worker)assert.equal(await frame.evaluate(()=>window.__refused),1,'the worker was asked for and refused');
   // The second press plays the move that was shown.

@@ -206,6 +206,37 @@ body.help-open { overflow: hidden; }
   clip-path: inset(50%);
   white-space: nowrap;
 }
+/* A loss works as the Minimal games' dead end does: no card, the sphere
+   stays as it fell, and Undo waits where a finished board offers the way on,
+   centered just above the bar, as Folding's and Catch the Monkey's do. */
+.sphere-lost-undo {
+  position: fixed;
+  left: 50%;
+  bottom: max(66px, calc(env(safe-area-inset-bottom) + 64px));
+  z-index: 45;
+  width: 48px;
+  height: 48px;
+  margin-left: -24px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-main);
+  outline: 1px solid var(--text-main);
+  outline-offset: -7px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  filter: drop-shadow(0 0 3px var(--bg-color)) drop-shadow(0 0 1px var(--bg-color));
+  animation: lost-undo-in 0.2s ease-out both;
+}
+.sphere-lost-undo[hidden] { display: none; }
+.sphere-lost-undo svg { width: 26px; height: 26px; }
+.sphere-lost-undo:focus-visible { outline-width: 2px; }
+.sphere-lost-undo:active { transform: scale(0.94); }
+@keyframes lost-undo-in { from { opacity: 0; transform: scale(0.8); } }
+@media (prefers-reduced-motion: reduce) { .sphere-lost-undo { animation: none; } }
 /* Share progress, shown without touching the button's children. */
 .sphere-banner .banner-btn[data-state="busy"] { opacity: 0.6; cursor: wait; }
 .sphere-banner .banner-btn[data-state="error"] {
@@ -820,6 +851,13 @@ body.help-open { overflow: hidden; }
   <span><span class="stat-item" id="stats-time">000</span>s</span>
 </div>
 
+<button type="button" class="sphere-lost-undo" id="lost-undo-btn" aria-label="Undo failed move" hidden>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M9 14 4 9l5-5"></path>
+    <path d="M4 9h9.5a6.5 6.5 0 1 1 0 13H11"></path>
+  </svg>
+</button>
+<p id="sphere-announce" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
 <div id="sphere-banner" class="sphere-banner" role="status" hidden>
   <div class="banner-msg" id="banner-msg"></div>
   <div class="banner-meta" id="banner-meta" hidden></div>

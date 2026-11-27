@@ -443,8 +443,9 @@ body[data-control-frame] .access-zoom .access-key[data-from] {outline:3px solid 
     const dialogOpen=()=>!!document.querySelector('dialog[open],.modal-overlay.open');
     const visible=n=>!!n&&n.isConnected&&!n.hidden&&(n.checkVisibility?n.checkVisibility({checkOpacity:true,checkVisibilityCSS:true}):n.getClientRects().length>0);
     const usable=b=>visible(b)&&!b.disabled;
-    // The frame's own controls and the sheets keep their pointer roles.
-    const exempt=n=>!!(n&&n.closest&&n.closest('.control-toolbar,.control-restart,.control-completion,dialog,[role="dialog"],button#readout'));
+    // The frame's own controls and the sheets keep their pointer roles, as does
+    // a readout that opens the level list (a button, or #readout made one).
+    const exempt=n=>!!(n&&n.closest&&n.closest('.control-toolbar,.control-restart,.control-completion,dialog,[role="dialog"],button#readout,#readout[role="button"]'));
     const outside=n=>exempt(n)||!!(n&&n.closest&&n.closest('.access-pad'));
     const ICON={home:'<path d="M4 11 12 4l8 7M6 9.5V20h12V9.5"/>',up:'<path d="M12 19V5M6 11l6-6 6 6"/>',right:'<path d="M5 12h14M13 6l6 6-6 6"/>',down:'<path d="M12 5v14M6 13l6 6 6-6"/>',left:'<path d="M19 12H5M11 6l-6 6 6 6"/>',
       select:'<circle cx="12" cy="12" r="4.5" fill="currentColor" stroke="none"/>',back:'<circle cx="12" cy="12" r="5"/>',tab:'<path d="M4 12h11M11 7l5 5-5 5M20 5v14"/>',
@@ -681,7 +682,7 @@ body[data-control-frame] .access-zoom .access-key[data-from] {outline:3px solid 
       if(dialogOpen()||e.ctrlKey||e.metaKey||e.altKey||passKeys.has(e.key)||/^F\d+$/.test(e.key))return;
       if(e.target.closest&&e.target.closest('select,input,textarea,dialog'))return;
       // A toolbar button reached by Tab keeps Enter and Space.
-      if(lastInput==='keyboard'&&exempt(e.target)&&e.target.matches('button')&&(e.key==='Enter'||e.key===' '))return;
+      if(lastInput==='keyboard'&&exempt(e.target)&&e.target.matches('button,[role="button"]')&&(e.key==='Enter'||e.key===' '))return;
       e.preventDefault();e.stopImmediatePropagation();
       const code=e.code||e.key;if(e.repeat||held.has(code))return;held.add(code);down(e.timeStamp);
     },true);

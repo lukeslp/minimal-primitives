@@ -1,6 +1,6 @@
 /* Loop · Experiments · Loop's turning tiles on six other tilings, ten boards
    each. A set is chosen from Loop's Settings or Help, or opened on its own
-   page to share; once Loop's fifty boards are done, New Game+ plays all sixty
+   page to share; once Tangles' twenty-five are done, New Game+ plays all sixty
    in sequence. Every solved board draws its whole Mandaza picture. By Luke
    Steuber. */
 (function () {
@@ -43,6 +43,33 @@
   if (saved.positions && typeof saved.positions === 'object') for (const [key, v] of Object.entries(saved.positions)) if (v && typeof v === 'object' && typeof v.board === 'string') positions[key] = v;
   if (saved.position && typeof saved.position === 'object' && typeof saved.position.board === 'string') { const e = PLUS.find(x => x.data.id === saved.position.board); if (e) positions[saved.position.mode === 'plus' ? 'plus' : e.run.id] = positions[saved.position.mode === 'plus' ? 'plus' : e.run.id] || saved.position; }
   const loopBeaten = () => { const s = read(LOOP_KEY); return !!(s && Array.isArray(s.finished) && s.finished.includes(LAST_LOOP_BOARD)); };
+  // Wins after the campaign, counted from 2026-11-19 on (no earlier save records them), in the key Tangles' own
+  // page keeps too (loop.js): fresh solves of New Game+'s boards here once Tangles is beaten, and of its More boards
+  // there. `set` holds the More boards' ids and 'plus:' with each New Game+ board's id; `held` is the last board
+  // counted, so undoing and redoing its last move, or restarting it, does not count it again. The six sets played
+  // on their own are not New Game+ and count nothing. A value the page cannot read is left untouched.
+  const PLUS_KEY = 'loop.plus.v1', CAMPAIGN = 25, MORE = 25; // Tangles' course and its More boards (course.js)
+  let plusBlocked = false;
+  const plusValid = v => !!v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 4 && v.version === 1 && Number.isSafeInteger(v.wins) && v.wins >= 0 && typeof v.held === 'string' && v.held.length <= 96 && Array.isArray(v.set) && v.set.length <= MORE + PLUS.length && v.set.every(id => typeof id === 'string' && (/^L\d\d$/.test(id) || id.startsWith('plus:') && allIds.has(id.slice(5)))) && new Set(v.set).size === v.set.length;
+  function readPlus() {
+    try { const raw = localStorage.getItem(PLUS_KEY); if (raw === null) return { version: 1, wins: 0, held: '', set: [] }; const v = JSON.parse(raw); if (plusValid(v)) return v; } catch (_) {}
+    plusBlocked = true; return { version: 1, wins: 0, held: '', set: [] };
+  }
+  let plusWins = readPlus();
+  const plusDone = () => plusWins.set.filter(id => id.startsWith('plus:')).length, moreDone = () => plusWins.set.filter(id => !id.startsWith('plus:')).length;
+  const counted = () => mode === 'plus' && loopBeaten();
+  // A fresh New Game+ solve after the campaign counts once; the solve that completes the sixty returns the end
+  // line: all 110 boards once More boards are complete too, otherwise the course and the sixty, 85.
+  function countPlus() {
+    if (!counted()) return null;
+    if (!plusBlocked) plusWins = readPlus();
+    const id = 'plus:' + data.id; if (plusWins.held === id) return '';
+    const had = plusDone(); plusWins.wins++; plusWins.held = id; if (!plusWins.set.includes(id)) plusWins.set.push(id);
+    if (!plusBlocked) try { localStorage.setItem(PLUS_KEY, JSON.stringify(plusWins)); } catch (_) { /* not kept */ }
+    return had < PLUS.length && plusDone() === PLUS.length ? `All ${CAMPAIGN + PLUS.length + (moreDone() === MORE ? MORE : 0)} boards solved.` : '';
+  }
+  // New Game+ after the campaign deals a board not yet solved since, from the one after this, round to the first.
+  const dealPlus = () => { if (!counted()) return -1; for (let j = 1; j < PLUS.length; j++) { const n = (k + j) % PLUS.length; if (!plusWins.set.includes('plus:' + PLUS[n].data.id)) return n; } return -1; };
   let plusOpen = loopBeaten() || params.has('plus') || saved.plusOpen === true;
   let mode = 'set', run = RUNS[0];
   if (STANDALONE) run = STANDALONE;
@@ -60,7 +87,7 @@
   function announce(message) { const n = $('#announcement'); n.textContent = ''; n.textContent = message; }
   const svg = $('#board'), pic = D.makePic($('#finish'), false);
   let k, here, data, board, answer, rots, hits, history, locks, solved, lay, picture, view, groups, inkLayer, ends, sheen, marks, rimLayer;
-  const hitsWord = () => `${hits} ${hits === 1 ? 'hit' : 'hits'}`;
+  const hitsWord = () => `${hits} ${hits === 1 ? 'move' : 'moves'}`;
   let focus = 0, keyboard = false, hover = null, hint = null, turning = null, gesture = null, wheel = null, S = 1, clock = 0;
   // The line shown once, on the solve that finishes the last of the sixty.
   let ending = '';
@@ -173,7 +200,7 @@
   // board not yet finished, or, with all sixty done, plays them again from
   // board 1, fresh, keeping every finished mark.
   const firstOpenPlus = () => PLUS.findIndex(e => !finished.has(e.data.id));
-  const replay = () => mode === 'plus' && atEnd() && firstOpenPlus() < 0;
+  const replay = () => mode === 'plus' && atEnd() && dealPlus() < 0 && firstOpenPlus() < 0;
   // After a set's last board: the first unfinished board of the next set that
   // has one; with every set done, New Game+ once it is open, or Loop.
   const firstOpen = r => { const i = r.boards.findIndex(b => !finished.has(b.id)); return i < 0 ? null : i; };
@@ -182,7 +209,10 @@
     return plusOpen ? { plus: true, label: 'New Game+' } : { loop: true, label: 'Back to Tangles' };
   }
   function chrome() {
-    $('#readout').textContent = `${mode === 'plus' ? '+ ' : ''}${k + 1} / ${list().length} · ${hits} / ${data.stats.par}`;
+    // New Game+ after the campaign reads how many of the sixty are solved since, `+ k / 60`, until all are and this
+    // board is not, then its place, `+ n`; and the course with the wins since, ` · 25 + 12 ✓`.
+    const fresh = counted(), position = !fresh ? `${mode === 'plus' ? '+ ' : ''}${k + 1} / ${list().length}` : plusDone() < PLUS.length || solved ? `+ ${plusDone()} / ${PLUS.length}` : `+ ${k + 1}`;
+    $('#readout').textContent = `${position} · ${hits} / ${data.stats.par}${fresh ? ` · ${CAMPAIGN}${plusWins.wins ? ' + ' + plusWins.wins : ''} ✓` : ''}`;
     $('#undo-btn').disabled = !history.length;
     $('#hint-btn').disabled = solved;
     svg.dataset.locked = String(solved); svg.tabIndex = solved ? -1 : 0; svg.dataset.borders = settings.borders;
@@ -221,7 +251,8 @@
     solved = L.solved(board, rots);
     if (solved) {
       const had = finished.size; finished.add(data.id);
-      ending = had < PLUS.length && finished.size === PLUS.length ? `All ${PLUS.length} boards solved.` : '';
+      const won = countPlus();
+      ending = won !== null ? won : had < PLUS.length && finished.size === PLUS.length ? `All ${PLUS.length} boards solved.` : '';
       const t = track(); t.reached = Math.max(t.reached, Math.min(list().length - 1, k + 1));
       const own = tracks[here.run.id]; own.reached = Math.max(own.reached, Math.min(here.run.boards.length - 1, here.index + 1));
       drawRims(); drawEnds(); drawMarks(); const shown = chrome(); save();
@@ -299,6 +330,8 @@
   }
   function next() {
     if (!solved) return;
+    const dealt = dealPlus();
+    if (dealt >= 0) { tracks.plus.reached = Math.max(tracks.plus.reached, dealt); load(dealt); announce(`New Game+, board ${k + 1} of ${PLUS.length}.`); return; }
     if (!atEnd()) { load(k + 1); announce(`Board ${k + 1} of ${list().length}.`); return; }
     if (mode === 'plus') { const open = firstOpenPlus(); load(open < 0 ? 0 : open); announce(`New Game+, board ${k + 1} of ${PLUS.length}.`); return; }
     const to = onward();
@@ -435,9 +468,11 @@
   const doneIn = r => r.boards.filter(b => finished.has(b.id)).length;
   function settingsSheet() {
     const ex = $('#experiments'); ex.replaceChildren();
-    entryItem(ex, { label: 'Tangles', state: 'Fifty boards', href: ROOT, shape: icon('M8 7c4-3 9-2 10 2s-1 6 2 9-1 6-5 6-7-3-10-2-6-3-5-7 1-6 6-8Z') });
-    const plusDone = PLUS.filter(e => finished.has(e.data.id)).length;
-    entryItem(ex, { label: 'New Game+', state: plusOpen ? `${mode === 'plus' ? 'Current · ' : ''}${plusDone} / ${PLUS.length}` : "After Tangles' fifty", current: mode === 'plus', disabled: !plusOpen, action: mode === 'plus' ? () => {} : switchPlus, shape: icon('M12 5v14M5 12h14') });
+    entryItem(ex, { label: 'Tangles', state: `${CAMPAIGN} boards`, href: ROOT, shape: icon('M8 7c4-3 9-2 10 2s-1 6 2 9-1 6-5 6-7-3-10-2-6-3-5-7 1-6 6-8Z') });
+    // New Game+ counts the boards solved in it since the campaign; reached early by its address, the boards finished.
+    if (!plusBlocked) plusWins = readPlus();
+    const plusCount = loopBeaten() ? plusDone() : PLUS.filter(e => finished.has(e.data.id)).length;
+    entryItem(ex, { label: 'New Game+', state: plusOpen ? `${mode === 'plus' ? 'Current · ' : ''}${plusCount} / ${PLUS.length}` : `After board ${CAMPAIGN}`, current: mode === 'plus', disabled: !plusOpen, action: mode === 'plus' ? () => {} : switchPlus, shape: icon('M12 5v14M5 12h14') });
     for (const r of RUNS) {
       const current = mode === 'set' && r === run;
       entryItem(ex, { label: r.name, state: `${current ? 'Current · ' : ''}${doneIn(r)} / ${r.boards.length}`, current, href: STANDALONE ? `../${r.slug}/` : null, action: STANDALONE ? null : current ? () => {} : () => switchSet(r), shape: swatch(r) });

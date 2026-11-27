@@ -45,6 +45,20 @@ final class CollectionViewController: UIViewController, WKNavigationDelegate, WK
     override var prefersStatusBarHidden: Bool { true }
     override var prefersHomeIndicatorAutoHidden: Bool { true }
 
+    // Phones play in portrait, as Akari and Echo do on the web (game-riffs PR 271). An iPad, and the iPhone Duo's
+    // inner screen when it is open (669 x 951 pt, where the book and laptop layouts need landscape), turn freely: the
+    // rule is the screen's shorter side, under 600 pt, as on Android (smallestScreenWidthDp < 600). Info.plist keeps
+    // the iPhone's landscape orientations so the open Duo can use them; this narrows them on a phone-sized screen.
+    private var portraitOnly: Bool {
+        guard traitCollection.userInterfaceIdiom == .phone else { return false }
+        let screen = view.window?.windowScene?.screen.bounds.size ?? view.bounds.size
+        return min(screen.width, screen.height) < 600
+    }
+    private var lastPortraitOnly: Bool?
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        portraitOnly ? .portrait : (traitCollection.userInterfaceIdiom == .phone ? .allButUpsideDown : .all)
+    }
+
     override func loadView() {
         let config = WKWebViewConfiguration()
         config.setURLSchemeHandler(CollectionSchemeHandler(), forURLScheme: CollectionSchemeHandler.scheme)
@@ -71,6 +85,11 @@ final class CollectionViewController: UIViewController, WKNavigationDelegate, WK
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
+        // Opening or closing the Duo moves the scene to the other screen: ask UIKit to read the orientations again.
+        if lastPortraitOnly != portraitOnly {
+            lastPortraitOnly = portraitOnly
+            setNeedsUpdateOfSupportedInterfaceOrientations()
+        }
         #if DEBUG
         // Checks only, for a simulator that cannot fold: -MPDuoSimulate book|laptop reports a
         // made-up fold (a 24 pt band across the middle) so the layouts can be photographed.

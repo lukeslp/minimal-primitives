@@ -223,15 +223,15 @@
   function sentence(h) {
     const n = h.cells.length;
     switch (h.rule) {
-      case 'wrong-tent': return h.touching ? 'These tents touch, and no solution keeps this one. Clear it.' : 'Contradiction: no solution keeps this tent. Clear it.';
-      case 'wrong-grass': return 'Contradiction: every solution needs a tent here. Clear the dot.';
-      case 'no-tree': return plural(n, 'No tree beside this cell, so it is grass.', 'No tree beside these cells, so they are grass.');
-      case 'touch': return plural(n, 'This cell touches a tent, so it is grass.', 'These cells touch a tent, so they are grass.');
-      case 'line-full': return capital(lineName(h.line, h.index)) + ' has all its tents. The rest is grass.';
+      case 'wrong-tent': return h.touching ? 'These tents touch, and this one isn’t part of the answer. Clear it.' : 'This tent isn’t part of the answer. Clear it.';
+      case 'wrong-grass': return 'This cell needs a tent. Clear the dot.';
+      case 'no-tree': return plural(n, 'No tree beside this cell, so it stays empty.', 'No tree beside these cells, so they stay empty.');
+      case 'touch': return plural(n, 'This cell touches a tent, so it stays empty.', 'These cells touch a tent, so they stay empty.');
+      case 'line-full': return capital(lineName(h.line, h.index)) + ' has all its tents. The rest stay empty.';
       case 'line-needs': return capital(lineName(h.line, h.index)) + ' needs ' + plural(n, 'its last open cell.', 'every open cell it has left.');
       case 'tree-last': return 'This tree has one cell left for its tent.';
-      case 'contradiction': return 'Contradiction: as ' + (h.value === GRASS ? 'a tent' : 'grass') + ', ' + why(h.because) + '. So it is ' + (h.value === GRASS ? 'grass.' : 'a tent.');
-      case 'search': return 'Contradiction: ' + (h.value === GRASS ? 'with a tent here' : 'with grass here') + ', nothing else fits. So it is ' + (h.value === GRASS ? 'grass.' : 'a tent.');
+      case 'contradiction': return (h.value === GRASS ? 'With a tent here, ' : 'If this cell stays empty, ') + why(h.because) + '. So it ' + (h.value === GRASS ? 'stays empty.' : 'gets a tent.');
+      case 'search': return (h.value === GRASS ? 'With a tent here, ' : 'If this cell stays empty, ') + 'the rest of the board can’t be finished. So it ' + (h.value === GRASS ? 'stays empty.' : 'gets a tent.');
       default: return '';
     }
   }

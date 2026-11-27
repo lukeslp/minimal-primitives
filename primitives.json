@@ -333,20 +333,6 @@
     "directional control"
    ]
   },
-  "delve": {
-   "words": [
-    "push"
-   ],
-   "primitives": [
-    "step",
-    "strike",
-    "wait"
-   ],
-   "exercises": [
-    "directional control",
-    "inhibition and pacing"
-   ]
-  },
   "cube-maze": {
    "words": [
     "turn"

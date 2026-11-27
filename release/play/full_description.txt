@@ -1,4 +1,4 @@
-Twenty-nine small puzzle games in one app that runs offline.
+Twenty-eight small puzzle games in one app that runs offline.
 
 Interaction primitives are to doing what simple machines are to building: get, put, push, turn, join, split, bend, switch. Each game here is built on one or two of them.
 
@@ -22,7 +22,6 @@ Interaction primitives are to doing what simple machines are to building: get, p
 * Cube Maze: tip a glass cube and turn its slices until the marble rolls out of the spout
 * Tangles: turn tiles until every line closes into a loop, on hexagons and six other tilings
 * Weaves: pass each thread over or under; none may float past two crossings
-* Delve: descend a dungeon of squares, dodge attacks, fight and find the stairs
 
 Motor-accessible puzzles, in their own grid:
 

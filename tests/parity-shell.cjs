@@ -196,7 +196,7 @@ for(const [size,viewport] of Object.entries({phone:{width:390,height:844},tablet
     // The index at luke-portfolio dfb83d1: the name under the picture replaces "no name at rest" (2026-11-15).
     const caps=await page.locator('#tiles .tile').evaluateAll(tiles=>tiles.filter(t=>t.offsetParent).map(t=>{const cap=t.querySelector('.cap'),art=t.querySelector('.art');const c=cap.getBoundingClientRect(),a=art.getBoundingClientRect();
       return{display:getComputedStyle(cap).display,hidden:cap.getAttribute('aria-hidden'),text:cap.textContent.trim(),under:c.top>=a.top+a.height*0.8&&c.height>0};}));
-    assert.ok(caps.length>=19,'every bundled tile has a name');
+    assert.ok(caps.length>=17,'every bundled tile has a name');
     for(const cap of caps){assert.notEqual(cap.display,'none');assert.equal(cap.hidden,'true');assert.ok(cap.text.length>0);assert.ok(cap.under,cap.text+' sits under its picture');}
     assert.equal(await page.locator('#tiles .tile a.go:not([aria-label])').count(),0,'every tile link is named for screen readers');
     const head=page.locator('#library h1');assert.equal(await head.textContent(),'minimal primitives');assert.equal(await head.isVisible(),true);
@@ -308,7 +308,7 @@ test('a finished game shows its solved board in color, or one color where it has
   assert.deepEqual([sets.Slant.set,sets.Notan.set,sets.Cast.set,sets.Tilt.set,sets.Horologist.set].map(([key,field,list])=>[key,field,list.length]),
     [['slant.progress.v1','completed',54],['ink.v1','solved',53],['cast-3d.v1','finished',25],['tilt-levels-grok.v1','done',25],['horologist-plate.v1','solved',25]],"the index's own table, with Notan's from the package");
   assert.deepEqual(sets.Notan.set[2],RAMP,"Notan's campaign is its ramp; New Game+ is not part of it");
-  assert.deepEqual(LIFE.tiles.filter(x=>x.solved).map(x=>x.name),['Slant','Notan','Bridges','Akari','Spiral Galaxies','Cast','Folding','Towers','Weaves','Tents','Shoo','Balance']);
+  assert.deepEqual(LIFE.tiles.filter(x=>x.solved).map(x=>x.name),['Slant','Notan','Hexsweeper','Bridges','Akari','Towers','Weaves','Folding','Spiral Galaxies','Cast','Tangles','Horologist','Tents','Shoo','Balance']);
   const ctx=await h.context(await getBrowser(),{width:390,height:844},{seed:{localStorage:{...seen,
     'lukesteuber.minimal.slant:slant.progress.v1':done('Slant',54),'lukesteuber.minimal.notan:ink.v1':ink(RAMP.concat(PLUS)),'lukesteuber.minimal.akari:akari.progress.v1':done('Akari',50),
     'lukesteuber.minimal.bridges:bridges.progress.v1':done('Bridges',49),'lukesteuber.minimal.tilt:tilt-levels-grok.v1':JSON.stringify({done:ids('Tilt').slice(0,-1)}),
@@ -354,6 +354,57 @@ test('a tile is finished only when every current campaign id is in its game\'s o
   await page.reload();await page.locator('#tiles .tile.tilt.won').waitFor();
   assert.deepEqual(await page.locator('#tiles .tile.won').evaluateAll(n=>n.map(e=>e.dataset.game)),['tilt']);
   assert.deepEqual(ctx.parity.errors,[]);
+});
+// Since the index at 298f3e8 each tile finishes when its game counts itself finished. Tangles' beaten() needs only its
+// last course board (L50) in loop.v1 `finished`, whatever else is missing; Horologist (plate p48) and Hexsweeper (a
+// cleared sphere, once every size holds a best time; its set's field is null, the whole record is the map) show their
+// pictures, Bending the tint. Without L50, one board short, or one size without a number, each tile is as it was.
+const BEST=sizes=>JSON.stringify(Object.fromEntries(sizes.map((id,i)=>[id,{seconds:40+i,at:'2026-11-20T12:00:00.000Z'}])));
+const FOUR={tangles:['Tangles','loop','loop.v1','finished'],bending:['Bending','light','rimlight.dark.v3','done'],horologist:['Horologist','horologist','horologist-plate.v1','solved']};
+test('Tangles finishes on L50 alone; Horologist and Hexsweeper show their pictures, Bending the tint; short records change nothing',async t=>{
+  const tiles=Object.fromEntries(LIFE.tiles.filter(x=>x.game).map(x=>[x.game,x]));
+  const COURSE=require(path.join(h.ROOT,'imports/tangles/course.js'));
+  assert.deepEqual(tiles.tangles.set,['loop.v1','finished',[COURSE.at(-1)]],"Tangles' set is its last course board, as its beaten() counts");
+  assert.equal(COURSE.at(-1),'L50');
+  for(const game of ['bending','horologist']){const [name,cls,key,field]=FOUR[game];assert.deepEqual([tiles[game].name,tiles[game].classes[0],tiles[game].set[0],tiles[game].set[1],tiles[game].set[2].length],[name,cls,key,field,25],name);}
+  assert.deepEqual(tiles.hexsweeper.set,['hexsweeper-sphere-best-v1',null,['xsmall','easy','medium','hard','xlarge']]);
+  assert.deepEqual(['tangles','bending','horologist','hexsweeper'].map(g=>!!tiles[g].solved),[true,false,true,true],'pictures for Tangles, Horologist and Hexsweeper; the tint for Bending');
+  const key=game=>'lukesteuber.minimal.'+game+':'+FOUR[game][2],list=(game,ids)=>JSON.stringify({[FOUR[game][3]]:ids});
+  const sizes=tiles.hexsweeper.set[2];
+  const plain={};
+  const cases=[
+    // L50 with most of the course missing; every other game whole.
+    ['beaten',{[key('tangles')]:list('tangles',['L01','L02',COURSE.at(-1)]),[key('bending')]:list('bending',tiles.bending.set[2]),[key('horologist')]:list('horologist',tiles.horologist.set[2]),
+      'lukesteuber.minimal.hexsweeper:hexsweeper-sphere-best-v1':BEST(sizes)}],
+    // Every course board but L50; each other record one short, and one size whose time is not a number.
+    ['short',{[key('tangles')]:list('tangles',COURSE.slice(0,-1)),[key('bending')]:list('bending',tiles.bending.set[2].slice(0,-1)),[key('horologist')]:list('horologist',tiles.horologist.set[2].slice(1)),
+      'lukesteuber.minimal.hexsweeper:hexsweeper-sphere-best-v1':JSON.stringify({...JSON.parse(BEST(sizes.slice(0,4))),xlarge:{seconds:'41'}})}]];
+  for(const [label,seed] of cases){
+    const ctx=await h.context(await getBrowser(),{width:390,height:844},{seed:{localStorage:{...seen,...seed}}});t.after(()=>ctx.close());
+    const page=await library(ctx);
+    if(label==='beaten')for(const game of ['tangles','horologist','hexsweeper'])await page.locator('#tiles .tile.'+tiles[game].classes[0]+'.solved').waitFor();
+    await page.waitForTimeout(300);
+    const won=await page.locator('#tiles .tile.won').evaluateAll(n=>n.map(e=>e.dataset.game));
+    const state={};for(const game of ['tangles','bending','horologist','hexsweeper'])state[game]=await tileState(page,tiles[game].classes[0]);
+    if(label==='beaten'){
+      assert.deepEqual(won.sort(),['bending','hexsweeper','horologist','tangles'],label);
+      for(const game of ['tangles','bending','horologist','hexsweeper']){
+        const s=state[game],pic=tiles[game].solved,words=game==='hexsweeper'?' Every size cleared.':' All boards finished.';
+        if(pic)assert.deepEqual([s.won,s.pictured,s.solved,s.src,s.fill,s.check,s.words],[true,true,true,file(pic.dark),String(pic.fill),true,words],tiles[game].name+': its solved board');
+        else assert.deepEqual([s.won,s.pictured,s.solved,s.blend,s.check,s.words],[true,false,false,'multiply',true,words],tiles[game].name+': the one-color mark');
+      }
+      await page.screenshot({path:path.join(h.EVIDENCE,'finished-tiles-0517.png')});
+      // The pictures an unfinished library shows, for the comparison below.
+      const bare=await h.context(await getBrowser(),{width:390,height:844},{seed:{localStorage:{...seen}}});t.after(()=>bare.close());
+      const p0=await library(bare);await p0.waitForTimeout(300);
+      for(const game of ['tangles','bending','horologist','hexsweeper'])plain[game]=(await tileState(p0,tiles[game].classes[0])).src;
+      assert.deepEqual(await p0.locator('#tiles .tile.won').count(),0,'an unbeaten library has no finished tile');
+    }else{
+      assert.deepEqual(won,[],label+': no tile finished');
+      for(const game of Object.keys(state))assert.deepEqual([state[game].won,state[game].pictured,state[game].check,state[game].words,state[game].src],[false,false,false,'',plain[game]],tiles[game].name+' as it was');
+    }
+    assert.deepEqual(ctx.parity.errors,[]);
+  }
 });
 test('a solved picture follows the tile\'s ground, fades in, and holds still under reduced motion',async t=>{
   const sets=Object.fromEntries(LIFE.tiles.filter(x=>x.solved).map(x=>[x.name,x]));

@@ -109,7 +109,8 @@
   }
 
   // Count completions of a state, stopping at `limit`.
-  function count(n, state, limit, keep) {
+  function count(n, state, limit, keep, work) {
+    spend(work);
     const s = state.slice();
     if (!settle(n, s)) return 0;
     const i = s.indexOf(0);
@@ -117,7 +118,7 @@
     let total = 0;
     for (const v of [BLACK, WHITE]) {
       s[i] = v;
-      total += count(n, s, limit - total, keep);
+      total += count(n, s, limit - total, keep, work);
       if (total >= limit) break;
     }
     return total;
@@ -192,42 +193,70 @@
   }
 
   const cap = t => t[0].toUpperCase() + t.slice(1);
-  function sentence(m) {
-    const need = NAME[m.value], seen = NAME[other(m.value)];
-    if (m.rule === 'pair') return 'Two ' + seen + ' squares sit together, so the next one is ' + need + '.';
-    if (m.rule === 'gap') return 'A ' + seen + ' square on each side, so the middle is ' + need + '.';
-    if (m.rule === 'share') return 'This ' + m.kind + ' has all its ' + seen + ', so the rest are ' + need + '.';
-    if (m.rule === 'trial' && m.breaks) {
-      const f = m.breaks, where = f.kind + ' ' + (f.index + 1);
-      const what = f.why === 'run' ? 'three ' + NAME[f.shade] + ' in a row' : 'too many ' + NAME[f.shade] + ' squares';
-      const lead = m.chain.length ? cap(seen) + ' here soon breaks a rule: it forces the dashed squares, and ' : cap(seen) + ' here soon breaks a rule: ';
-      return lead + where + ' gets ' + what + ', so it is ' + need + '.';
-    }
-    return cap(seen) + ' here leaves no way to finish, so it is ' + need + '.';
+  // Hint's words come twice. `text` is shown under the board: "this square" is the one Hint outlines and
+  // "the dashed squares" are the ones it dashes, so the words point at what is drawn. `spoken` is what the
+  // status line reads aloud: the same sentence with the squares named by row and column.
+  const spot = (n, i) => 'the square at row ' + (Math.floor(i / n) + 1) + ', column ' + (i % n + 1);
+  const lineName = (kind, index) => kind + ' ' + (index + 1);
+  const lineAt = (n, kind, i) => lineName(kind, kind === 'row' ? Math.floor(i / n) : i % n);
+  // What breaks a line, as a player would put it: "three black in a row", "too many white squares".
+  // A count with its noun: "1 black square", "2 white squares".
+  const many = (k, noun) => k + ' ' + noun + (k === 1 ? '' : 's');
+  const fault = (why, shade) => why === 'run' ? 'three ' + NAME[shade] + ' in a row' : 'too many ' + NAME[shade] + ' squares';
+  // Both from one template: `put(shown, aloud)` gives the shown words in `text` and the named ones in `spoken`.
+  function both(build) {
+    return { text: build(shown => shown), spoken: build((shown, aloud) => aloud) };
   }
+  function sentence(m, n) {
+    const need = NAME[m.value], seen = NAME[other(m.value)], here = spot(n, m.i);
+    // Rule 1, two alike beside it or on each side of it: "If this square were black, row 3 would have
+    // three black in a row, so it is white."
+    if (m.rule === 'pair' || m.rule === 'gap') {
+      const line = lineAt(n, m.kind, m.i);
+      return both(put => 'If ' + put('this square', here) + ' were ' + seen + ', ' + line + ' would have three ' + seen + ' in a row, so it is ' + need + '.');
+    }
+    // Rule 2, the line already holds half of one shade.
+    if (m.rule === 'share') {
+      return both(put => cap(lineName(m.kind, m.index)) + ' already has ' + many(n / 2, seen + ' square') + ', half of its ' + n + ', so ' + put('this square', here) + ' is ' + need + '.');
+    }
+    // A tried shade: the dashed squares are the squares it would force and the marks they rest on, and
+    // the line they break is marked past its end.
+    if (m.rule === 'trial' && m.breaks) {
+      const f = m.breaks, line = lineName(f.kind, f.index), k = m.support.length;
+      const result = f.why === 'run' ? 'make ' + fault('run', f.shade) + ' in ' + line : 'give ' + line + ' ' + fault('share', f.shade);
+      if (!k) return both(put => 'If ' + put('this square', here) + ' were ' + seen + ', ' + line + ' would have ' + fault(f.why, f.shade) + ', so it is ' + need + '.');
+      return both(put => 'If ' + put('this square', here) + ' were ' + seen + ', ' + put(k === 1 ? 'the dashed square' : 'the dashed squares', 'the ' + many(k, 'dashed square')) + ' would ' + result + ', so it is ' + need + '.');
+    }
+    return both(put => 'If ' + put('this square', here) + ' were ' + seen + ', the board could not be finished, so it is ' + need + '.');
+  }
+  function explain(m, n) { return Object.assign(m, sentence(m, n)); }
 
   // The next deduction from the marks on the board. `depth` limits how far it may look:
   // 1 direct rules, 2 trying a shade and following direct rules, 3 trying a shade with a full search.
   // `first` takes the first square a tried shade settles, in board order, rather than the one with the
   // shortest reason; grading uses it, so a board's measured difficulty does not move with Hint's choice.
-  function next(p, s, depth, first) {
+  function next(p, s, depth, first, work) {
     if (!stateValid(p, s)) return null;
     depth = depth || 3;
     const n = p.n, v = inspect(p, s);
-    if (v.runs.length) return { fault: 'run', support: v.runs[0].cells, text: 'These three match. Change one of them.' };
+    if (v.runs.length) {
+      const run = v.runs[0], said = cap(lineAt(n, run.kind, run.cells[0])) + ' has ' + fault('run', s[run.cells[0]]) + '.';
+      return { fault: 'run', support: run.cells, said, text: said + ' Change one of them.', spoken: said + ' Change one of them.' };
+    }
     if (v.uneven.length || v.crowded.length) {
       const f = v.uneven[0] || v.crowded[0], line = lines(n).find(l => l.kind === f.kind && l.index === f.index);
       const b = tally(line, s)[BLACK], w = tally(line, s)[WHITE], shade = b > w ? BLACK : WHITE;
-      return { fault: 'share', support: line.cells.filter(i => s[i] === shade), text: 'This ' + f.kind + ' has too many ' + NAME[shade] + ' squares.' };
+      const said = cap(lineName(f.kind, f.index)) + ' has ' + fault('share', shade) + '.';
+      return { fault: 'share', support: line.cells.filter(i => s[i] === shade), said, text: said, spoken: said };
     }
     if (v.full) return null;
     const direct = simple(n, s);
-    if (direct) { direct.text = sentence(direct); return direct; }
+    if (direct) return explain(direct, n);
     if (depth < 2) return null;
     const fails = (i, shade, deep) => {
       const t = s.slice();
       t[i] = shade;
-      return deep ? count(n, t, 1) === 0 : !settle(n, t);
+      return deep ? count(n, t, 1, null, work) === 0 : !settle(n, t);
     };
     for (const deep of depth >= 3 ? [false, true] : [false]) {
       // A tried shade that fails by direct rules: of all the squares where one does, take the one whose
@@ -239,15 +268,18 @@
         if (noBlack && noWhite) { dead = dead === null ? i : dead; continue; }
         if (noBlack || noWhite) {
           const m = { i, value: noBlack ? WHITE : BLACK, rule: deep ? 'search' : 'trial', support: [] };
-          if (deep) { m.text = sentence(m); return m; }
+          if (deep) return explain(m, n);
           const t = trace(n, s, i, other(m.value));
           if (t) Object.assign(m, { support: [...t.chain, ...t.marks], chain: t.chain, marks: t.marks, breaks: t.line, lines: [{ kind: t.line.kind, index: t.line.index }] });
           if (!best || (t && (!best.breaks || m.support.length < best.support.length))) best = m;
           if (first) break;
         }
       }
-      if (best) { best.text = sentence(best); return best; }
-      if (dead !== null) return { fault: 'stuck', i: dead, support: [dead], text: 'Neither shade fits here. An earlier mark is wrong.' };
+      if (best) return explain(best, n);
+      if (dead !== null) {
+        const say = put => 'Neither shade fits ' + put('the dashed square', spot(n, dead)) + ', so an earlier mark is wrong.';
+        return { fault: 'stuck', i: dead, support: [dead], ...both(say) };
+      }
     }
     return null;
   }
@@ -272,17 +304,20 @@
     const rank = i => (named.has(i) ? 0 : 2) + (order.includes(i) ? 0 : 1);
     const i = wrong.slice().sort((a, b) => rank(a) - rank(b) || (order.indexOf(a) - order.indexOf(b)) || a - b)[0];
     const value = sol[i];
-    let text = 'No solution keeps ' + (m && m.fault ? 'the ringed square ' : 'this square ') + NAME[s[i]] + ', so it is ' + NAME[value] + '.';
-    if (stuck) text = 'Neither shade fits the dashed square, so an earlier mark is wrong. ' + text;
-    else if (m && m.fault) text = m.text.replace(/ Change one of them\.$/, '') + ' ' + text;
-    return { i, value, rule: 'fix', support: stuck ? [m.i] : m && m.fault ? m.support : [], text };
+    // The words: what is wrong, if a rule says so, then the shade this square (the one Hint outlines) needs.
+    const need = NAME[value], here = spot(n, i);
+    const say = stuck ? put => 'Neither shade fits ' + put('the dashed square', spot(n, m.i)) + ', so a mark is wrong: ' + put('this square', here) + ' should be ' + need + '.'
+      : m && m.fault ? put => m.said + ' ' + put('This square', cap(here)) + ' should be ' + need + '.'
+      : put => 'The board cannot be finished with ' + put('this square', here) + ' ' + NAME[s[i]] + ', so it should be ' + need + '.';
+    return { i, value, rule: 'fix', support: stuck ? [m.i] : m && m.fault ? m.support : [], ...both(say) };
   }
 
   // Solve from the givens by Hint's deductions alone and report how hard that was.
-  function grade(p, depth) {
+  function grade(p, depth, work) {
     const s = start(p), used = { pair: 0, gap: 0, share: 0, trial: 0, search: 0 };
     for (;;) {
-      const m = next(p, s, depth || 3, true);
+      spend(work);
+      const m = next(p, s, depth || 3, true, work);
       if (!m || m.fault) break;
       s[m.i] = m.value;
       used[m.rule]++;
@@ -298,13 +333,14 @@
     }
     return list;
   }
-  function fill(n, random) {
+  function fill(n, random, work) {
     const s = Array(n * n).fill(0);
     const place = i => {
+      spend(work);
       if (i === s.length) return true;
       for (const v of random() < 0.5 ? [BLACK, WHITE] : [WHITE, BLACK]) {
         s[i] = v;
-        if (!broken(n, s) && count(n, s, 1) > 0 && place(i + 1)) return true;
+        if (!broken(n, s) && count(n, s, 1, null, work) > 0 && place(i + 1)) return true;
       }
       s[i] = 0;
       return false;
@@ -317,21 +353,30 @@
   // Easy: direct rules only, and many givens. Normal: direct rules only, few givens.
   // Hard: may need a shade tried and followed.
   const DIFFICULTY = { Easy: { depth: 1, keep: 0.42 }, Normal: { depth: 1, keep: 0 }, Hard: { depth: 2, keep: 0 } };
-  function generate(seed, n, difficulty) {
-    const plan = DIFFICULTY[difficulty] || DIFFICULTY.Normal, random = rng(seed);
-    const solution = fill(n, random), givens = solution.slice();
-    const floor = Math.ceil(n * n * plan.keep);
-    let left = givens.length;
-    for (const i of shuffle(givens.map((_, k) => k), random)) {
-      if (left <= floor) break;
-      const was = givens[i];
-      givens[i] = 0;
+  // Optional deterministic work budget: each search node, fill step and grading step costs one unit.
+  // A spent budget returns null, never a board whose uniqueness was not proved. Unbudgeted campaign
+  // generation keeps precisely its old order and output.
+  const exhausted = new Error('Generation work budget exhausted');
+  function spend(work) { if (work && --work.left < 0) throw exhausted; }
+  function generate(seed, n, difficulty, maxWork) {
+    if (![2, 4, 6, 8, 10, 12].includes(n)) return null;
+    const work = maxWork === undefined ? null : { left: maxWork };
+    try {
+      const plan = DIFFICULTY[difficulty] || DIFFICULTY.Normal, random = rng(seed);
+      const solution = fill(n, random, work), givens = solution.slice();
+      const floor = Math.ceil(n * n * plan.keep);
+      let left = givens.length;
+      for (const i of shuffle(givens.map((_, k) => k), random)) {
+        if (left <= floor) break;
+        const was = givens[i];
+        givens[i] = 0;
+        const p = { n, givens };
+        if (count(n, givens, 2, null, work) === 1 && grade(p, plan.depth, work).solved) left--;
+        else givens[i] = was;
+      }
       const p = { n, givens };
-      if (count(n, givens, 2) === 1 && grade(p, plan.depth).solved) left--;
-      else givens[i] = was;
-    }
-    const p = { n, givens };
-    return { n, givens, seed: seed >>> 0, difficulty: DIFFICULTY[difficulty] ? difficulty : 'Normal', version: VERSION, level: grade(p).level };
+      return { n, givens, seed: seed >>> 0, difficulty: DIFFICULTY[difficulty] ? difficulty : 'Normal', version: VERSION, level: grade(p, 3, work).level };
+    } catch (e) { if (e === exhausted) return null; throw e; }
   }
 
   return { VERSION, EMPTY, BLACK, WHITE, NAME, rng, valid, stateValid, start, lines, inspect, solve, next, answer, fix, grade, generate };

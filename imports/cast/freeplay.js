@@ -156,10 +156,13 @@
   }
   // The free board for a start seed: the first accepted seed at or after it whose board is not in `avoid`
   // (keys of boards played lately; a few boards come up often). Seeds are 31-bit.
+  // The pinwheel outline draws a swastika, so no free board uses it. It stays in SHAPES, where every seed still
+  // draws as before: other saved free boards load as they were, and a saved pinwheel board is refused.
+  const RETIRED = new Set(['pinwheel']);
   function board(start, avoid = null) {
     for (let seed = Math.abs(Math.floor(start)) % 0x80000000, tries = 0; tries < 200000; seed = (seed + 1) % 0x80000000, tries++) {
       const cand = candidate(seed);
-      if (accept(cand) && !(avoid && avoid.has(key(cand.board)))) return {id: 'free', seed, n: cand.board.n, maxH: cand.board.maxH, left: cand.board.left, right: cand.board.right, plan: cand.board.plan, cubes: cand.board.cubes};
+      if (!RETIRED.has(cand.shape) && accept(cand) && !(avoid && avoid.has(key(cand.board)))) return {id: 'free', seed, n: cand.board.n, maxH: cand.board.maxH, left: cand.board.left, right: cand.board.right, plan: cand.board.plan, cubes: cand.board.cubes};
     }
     return null;
   }

@@ -1,6 +1,6 @@
 import {judge, nearestDot, pin, placed, spots, FULL, PLANET, WELL} from './well.mjs?v=ceff1282';
 import {boards as campaign, pool} from './boards.mjs?v=067f676d';
-import {fresh as freshCampaign, draw as fromPool, fingerprint, pack, restore, unlock} from './campaign.mjs?v=47087c77';
+import {fresh as freshCampaign, draw as fromPool, fingerprint, pack, restore, unlock} from './campaign.mjs?v=6e6b78f6';
 import {createView, createSky, trayPoint, NEXT, RIPPLE} from './dark-view.mjs?v=c3a289ef';
 
 // The campaign's stages, then New Game+'s boards: a record has one entry for each.
@@ -35,6 +35,26 @@ let protect = false;
   // An unreadable save is set aside before anything is written in its place.
   if (opened.keep !== null) try { localStorage.setItem(`${SAVE_KEY}.recovery.${Date.now()}`, opened.keep); } catch (_) {}
 }
+// Wins after the campaign: New Game+ solves, counted from 2026-11-19 on (no earlier save records them). `set` names
+// the pool boards solved at least once, `held` the board counted last, so Undo and a replace, Restart, or a reload
+// of the same board count nothing more. Its own key, so the campaign save keeps its shape.
+const PLUS_KEY = 'rimlight.dark.plus.v1';
+let plus = { version: 1, wins: 0, held: '', set: [] };
+let plusProtect = false;
+{
+  let raw = null;
+  try { raw = localStorage.getItem(PLUS_KEY); } catch (_) {}
+  if (raw !== null) {
+    const names = pool.map(fingerprint);
+    let saved = null;
+    try { saved = JSON.parse(raw); } catch (_) {}
+    if (saved && typeof saved === 'object' && Number.isInteger(saved.version) && saved.version >= 1 && Number.isInteger(saved.wins) && saved.wins >= 0 &&
+      typeof saved.held === 'string' && Array.isArray(saved.set)) {
+      plus = { version: 1, wins: saved.wins, held: saved.held, set: [...new Set(saved.set.filter(id => names.includes(id)))] };
+      plusProtect = saved.version > 1;
+    } else try { localStorage.setItem(`${PLUS_KEY}.recovery.${Date.now()}`, raw); } catch (_) {}
+  }
+}
 // Which stages have ever been solved, so a stage stays finished after its
 // planets go back to the tray.
 function marks() {
@@ -51,7 +71,21 @@ const inPool = () => record.board >= campaign.length;
 let finale = false;
 // The end: every stage finished, shown on the last stage, or on the one whose solve finished them all.
 const ending = () => !inPool() && stage().solved && allFinished() && (finale || record.board === campaign.length - 1);
-const endLine = () => `All ${campaign.length} boards solved.`;
+// True from the solve that put the last pool board into New Game+'s set until another board opens.
+let setEnd = false;
+const endLine = () => `All ${setEnd ? boards.length : campaign.length} boards solved.`;
+// A fresh solve of a New Game+ board, made by a move, counts once.
+function count() {
+  if (!inPool() || !allFinished()) return;
+  const id = fingerprint(boards[record.board]);
+  if (plus.held === id) return;
+  const had = plus.set.length;
+  plus.wins++;
+  plus.held = id;
+  if (!plus.set.includes(id)) plus.set.push(id);
+  if (had < pool.length && plus.set.length === pool.length) setEnd = true;
+  if (!plusProtect) try { localStorage.setItem(PLUS_KEY, JSON.stringify(plus)); } catch (_) {}
+}
 let result;
 let held = null;
 let history = [];
@@ -147,7 +181,7 @@ function tone() {
   } catch (_) {}
 }
 function announce() {
-  $('status').replaceChildren(document.createTextNode(stage().solved ? ending() ? endLine() : 'Solved' : `${result.count} of ${result.lit.length} lit`));
+  $('status').replaceChildren(document.createTextNode(stage().solved ? ending() || setEnd ? endLine() : 'Solved' : `${result.count} of ${result.lit.length} lit`));
 }
 function positionButtons() {
   const { scale, x, y } = view.geometry;
@@ -218,7 +252,9 @@ function update(atRest = false, before = null, landed = null) {
     if (landed) stage().planets.forEach((index, i) => { if (index !== null && index !== landed[i]) ripple(i, 110); });
     if (result.solved && !stage().solved) { wonAt = performance.now(); stage().planets.forEach((_, i) => ripple(i, 260 + i * 130)); }
     if (result.solved && !stage().solved && !inPool() && !allFinished() && campaign.every((_, i) => i === record.board || finished(i))) finale = true;
+    if (result.solved && !stage().solved) count();
     stage().solved = result.solved;
+    if (!result.solved) setEnd = false;
     if (result.solved && !inPool()) record.done[record.board] = true;
     if (result.solved) unlock(record, record.board, campaign);
     if (result.solved) selected = null;
@@ -226,18 +262,20 @@ function update(atRest = false, before = null, landed = null) {
     announce();
     save();
   }
-  // A New Game+ board reads +n, its place in the pool, beside the count of stages solved.
-  const solvedCount = campaign.filter((_, i) => finished(i)).length;
-  $('readout').textContent = inPool() ? `+${record.board - campaign.length + 1} · ${solvedCount} ✓` : `${record.board + 1} / ${campaign.length} · ${solvedCount} ✓`;
-  canvas.setAttribute('aria-label', `Bending, ${inPool() ? `New Game+ stage ${record.board - campaign.length + 1}` : `stage ${record.board + 1} of ${campaign.length}`}: ${result.lit.length} beams, ${stage().planets.length} planets`);
+  // The count of stages solved, then New Game+ wins. A New Game+ board reads +k / 23, the pool boards solved, until
+  // all are and it reads ∞ (on a solved board +23 / 23 still).
+  const solvedCount = `${campaign.filter((_, i) => finished(i)).length}${plus.wins ? ` + ${plus.wins}` : ''} ✓`;
+  const setShown = plus.set.length < pool.length || stage().solved;
+  $('readout').textContent = inPool() ? `${setShown ? `+${plus.set.length} / ${pool.length}` : '∞'} · ${solvedCount}` : `${record.board + 1} / ${campaign.length} · ${solvedCount}`;
+  canvas.setAttribute('aria-label', `Bending, ${inPool() ? `New Game+${setShown ? `, ${plus.set.length} of ${pool.length} solved` : ''}` : `stage ${record.board + 1} of ${campaign.length}`}: ${result.lit.length} beam${result.lit.length === 1 ? '' : 's'}, ${stage().planets.length} planet${stage().planets.length === 1 ? '' : 's'}`);
   // Next comes at the solve. The control frame stands it under the well; without the frame the row below holds it.
   $('completion').hidden = !stage().solved;
   $('next-btn').hidden = !stage().solved;
   // At the end the line shows above the arrow, and the arrow starts New Game+.
-  const end = ending();
+  const end = ending() || setEnd;
   $('end-line').hidden = !end;
   $('end-line').textContent = end ? endLine() : '';
-  $('next-btn').setAttribute('aria-label', end ? 'Start New Game+' : inPool() ? 'Next board' : 'Next stage');
+  $('next-btn').setAttribute('aria-label', ending() ? 'Start New Game+' : inPool() ? 'Next board' : 'Next stage');
   $('undo').disabled = history.length === 0;
   positionButtons();
   animation();
@@ -313,6 +351,7 @@ function load(index) {
   bodies = [];
   ripples = [];
   finale = false;
+  setEnd = false;
   wonAt = -Infinity;
   $('planet-buttons').replaceChildren();
   buttons = stage().planets.map((_, i) => {
@@ -342,10 +381,10 @@ function restart() {
   stage().planets.fill(null);
   update(true);
 }
-// New Game+: a board from the pool, each once before any comes again.
+// New Game+: a board from the pool, those not yet solved first, then each once before any comes again.
 function newBoard() {
   if (held || !allFinished()) return;
-  load(fromPool(record, campaign, pool));
+  load(fromPool(record, campaign, pool, Math.random, plus.set));
 }
 // The first press marks a dot of the answer that no planet holds yet and lights
 // the planet that goes there; the second moves it there as a tap would. The
@@ -562,6 +601,7 @@ window.__rimlight = {
   get done() { return campaign.map((_, i) => finished(i)); },
   get ending() { return ending(); },
   get hints() { return stage().hints; },
+  get plus() { return structuredClone(plus); },
   get hinted() { return hinted && { planet: hinted.planet, dot: hinted.dot }; },
   get reason() { return hinted?.reason ? hinted.reason.probe : null; },
   get gliding() { return gliding; },
