@@ -40,10 +40,12 @@ button,button *,header,.toolbar{-webkit-user-select:none;user-select:none;-webki
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 :root[data-motion=reduce] *,:root[data-motion=reduce] *::before,:root[data-motion=reduce] *::after{animation:none!important;transition:none!important}
 @media(forced-colors:active){.ib,#restart-btn{color:ButtonText}}
-/* The look glyph sits under the cube and above the Next disc's space (64 px tall, 64 px up), with room to spare. */
-.look-hint{position:fixed;z-index:1;bottom:calc(max(6px,env(safe-area-inset-bottom)) + 136px);width:72px;height:56px;pointer-events:none;animation:lh-show 3.2s linear both}
+/* The look glyph sits under the cube, 8 px above the Next disc's space wherever the shared frame puts it (64 px tall). */
+.look-hint{position:fixed;z-index:1;bottom:calc(var(--control-next-bottom,calc(max(6px,env(safe-area-inset-bottom)) + 64px)) + 72px);width:72px;height:56px;pointer-events:none;animation:lh-show 3.2s linear both}
 .look-hint svg{display:block;width:100%;height:100%;overflow:visible}
 .look-hint .arc{fill:none;stroke:rgba(255,255,255,.3);stroke-width:1.5;stroke-linecap:round;stroke-dasharray:2 4}
+/* Heads at both ends make the arc read as a turn either way, like the set's curved arrows. */
+.look-hint .arc-head{fill:none;stroke:rgba(255,255,255,.5);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .look-hint .dots circle{fill:rgba(255,255,255,.78)}
 .look-hint .mouse rect,.look-hint .mouse path{fill:none;stroke:rgba(255,255,255,.7);stroke-width:1.6;stroke-linejoin:round}.look-hint .mouse .lit{fill:#fff;stroke:none}
 .look-hint .dots,.look-hint .mouse{transform-box:view-box;transform-origin:36px 104px;animation:lh-sweep 2.6s ease-in-out both}

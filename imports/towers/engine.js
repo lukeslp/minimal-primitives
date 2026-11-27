@@ -200,7 +200,7 @@
       if (!wrong.length) return null;
       const repeated = wrong.find(j => state.repeats.includes(j));
       const i = repeated !== undefined ? repeated : wrong[0];
-      const why = repeated !== undefined ? 'This height repeats in its row or column.' : 'I tried every finished board with a ' + cells[i] + ' here and none fits the numbers.';
+      const why = repeated !== undefined ? 'This height repeats in its row or column.' : 'With a ' + cells[i] + ' here, no finished board fits the numbers.';
       const [row, column] = rowAndColumn(p, i);
       return { i, value: 0, kind: 'fix', level: LEVELS.fix, text: why, cells: [...new Set([...row.cells, ...column.cells])], clues: [] };
     }
@@ -215,7 +215,7 @@
     for (const side of SIDES) for (let k = 0; k < n; k++) {
       if (p.clues[side][k] !== 1 || n < 2) continue;
       const line = lineCells(n, side, k);
-      if (!cells[line[0]]) return { i: line[0], value: n, kind: 'front', level: LEVELS.front, cells: line, clues: [{ side, k }], text: 'One tower is seen from this number, so the tallest, ' + n + ', stands in front.' };
+      if (!cells[line[0]]) return { i: line[0], value: n, kind: 'front', level: LEVELS.front, cells: line, clues: [{ side, k }], text: 'One tower is seen from this number, so the tallest, ' + n + ', stands next to it.' };
     }
     const cand = baseCands(p, cells);
     // A cell with one height left.
@@ -236,7 +236,7 @@
       if (!union) continue;
       for (let j = 0; j < n; j++) {
         const i = line.cells[j];
-        if (!cells[i] && single(union[j])) return { i, value: heightOf(union[j]), kind: 'lineCount', level: LEVELS.lineCount, cells: line.cells, clues: cluesOn(line), text: 'Count what is seen along this ' + line.kind + ': only ' + heightOf(union[j]) + ' fits here.' };
+        if (!cells[i] && single(union[j])) return { i, value: heightOf(union[j]), kind: 'lineCount', level: LEVELS.lineCount, cells: line.cells, clues: cluesOn(line), text: 'Count the towers seen along this ' + line.kind + ': only ' + heightOf(union[j]) + ' fits here.' };
       }
     }
     // The same count, carried across rows and columns until it settles.
@@ -256,12 +256,12 @@
       }
       if (alive.length === 1) {
         const [row, column] = rowAndColumn(p, i);
-        return { i, value: alive[0], kind: 'trial', level: LEVELS.trial, contradiction: true, cells: [...new Set([...row.cells, ...column.cells])], clues: [...cluesOn(row), ...cluesOn(column)], text: 'By trial: every height but ' + alive[0] + ' here soon breaks a rule.' };
+        return { i, value: alive[0], kind: 'trial', level: LEVELS.trial, contradiction: true, cells: [...new Set([...row.cells, ...column.cells])], clues: [...cluesOn(row), ...cluesOn(column)], text: 'Any height here but ' + alive[0] + ' soon breaks a rule.' };
       }
     }
     const answer = solve(p, cells, 1).solutions[0], i = cells.findIndex(v => !v);
     const [row, column] = rowAndColumn(p, i);
-    return { i, value: answer[i], kind: 'search', level: LEVELS.search, contradiction: true, cells: [...new Set([...row.cells, ...column.cells])], clues: [], text: 'By trial and error: only ' + answer[i] + ' here leads to a finished board.' };
+    return { i, value: answer[i], kind: 'search', level: LEVELS.search, contradiction: true, cells: [...new Set([...row.cells, ...column.cells])], clues: [], text: 'Only ' + answer[i] + ' here leads to a finished board.' };
   }
 
   // Solve from the givens with Hint deductions only; report the hardest step used.

@@ -168,8 +168,12 @@ export async function validateProof(request){
     const rulePath=i.game==='bending'?'well.mjs':'engine.js';
     const rules=pin.files.find(f=>f.path===i.game+'/'+rulePath)?.sha256.slice(0,16);
     if(i.rulesVersion!==rules||i.scoringPolicy!==policy)return{valid:false};
-    const modes={slant:['standard','hard'],bridges:['classic','circuits'],notan:['campaign','plus','endless']}[i.game]||['campaign'];
+    // Since game-riffs 57d75298 a New Game+ board after the campaign reports mode 'plus' (Tilt, Tilt · 3D and Cube
+    // Maze's pool, Weaves' optional cloths); such a board is never one of the campaign's own. Weaves' endless cloths
+    // ('endless', made from a seed) are not scored, as Cast's free play is not.
+    const modes={slant:['standard','hard'],bridges:['classic','circuits'],notan:['campaign','plus','endless'],tilt:['campaign','plus'],'tilt-3d':['campaign','plus'],'cube-maze':['campaign','plus'],weaves:['campaign','plus']}[i.game]||['campaign'];
     if(!modes.includes(i.mode))return{valid:false};
+    if(i.mode==='plus'&&i.game!=='notan'&&(i.game==='weaves'?load('weaves','course-data.js').order:load(i.game,'campaign.js')).includes(i.puzzleId))return{valid:false};
     let p,E,value=elapsedMs,puzzleLayout;
     if(i.game==='bending'){
       // Since game-riffs d3d9b9e Bending's stages are the campaign's thirty, then the New Game+ pool, numbered on.

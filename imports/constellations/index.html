@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <script src="./pwa.js?v=ccbd96c0" defer></script><link rel="stylesheet" href="./style.css?v=aa809ec7">
-<script src="./engine.js?v=0266be4f" defer></script><script src="./sky-layout.js?v=86f6a657" defer></script><script src="./boards.js?v=0ad7dbbf" defer></script><script src="./starfield.js?v=b21e55d8" defer></script><script src="./app.js?v=0ccbacaf" defer></script>
+<script src="./engine.js?v=0266be4f" defer></script><script src="./sky-layout.js?v=86f6a657" defer></script><script src="./boards.js?v=0ad7dbbf" defer></script><script src="./starfield.js?v=b21e55d8" defer></script><script src="./app.js?v=5103e8ca" defer></script>
 <link rel="stylesheet" href="./controls.css?v=e9a44e73">
 <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
 <meta name="description" content="Join the stars of twelve real constellations until every star has its threads, then see the sky around them.">
@@ -22,16 +22,16 @@
 <meta property="og:description" content="Join the stars of twelve real constellations until every star has its threads, then see the sky around them.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://lukesteuber.com/games/constellations/">
-<meta property="og:image" content="https://lukesteuber.com/games/constellations/og.png?v=cf17809670d5">
+<meta property="og:image" content="https://lukesteuber.com/games/constellations/og.png?v=443dce5f1323">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:type" content="image/png">
-<meta property="og:image:alt" content="White stars on a black sky in the shape of a familiar constellation, joined by dotted routes with rings to tap; some routes are already drawn as threads.">
+<meta property="og:image:alt" content="Orion drawn in yellow threads between its stars on a starry black sky.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Constellations">
 <meta name="twitter:description" content="Join the stars of twelve real constellations until every star has its threads, then see the sky around them.">
-<meta name="twitter:image" content="https://lukesteuber.com/games/constellations/og.png?v=cf17809670d5">
-<meta name="twitter:image:alt" content="White stars on a black sky in the shape of a familiar constellation, joined by dotted routes with rings to tap; some routes are already drawn as threads.">
+<meta name="twitter:image" content="https://lukesteuber.com/games/constellations/og.png?v=443dce5f1323">
+<meta name="twitter:image:alt" content="Orion drawn in yellow threads between its stars on a starry black sky.">
 </head>
 <body>
 <h1 class="sr-only">Constellations</h1>
@@ -47,7 +47,7 @@
 <div class="sheet-body"><h3 class="group">Display</h3><label class="setting" for="motion">Motion<select id="motion"><option value="system">System</option><option value="still">Reduced</option></select></label>
 <p id="storage-warning" hidden></p>
 <h3 class="group">Boards</h3><div id="boards" role="group" aria-label="Boards"></div></div><footer><a href="https://lukesteuber.com/minimal/" style="color:inherit">All games</a> · <a href="https://lukesteuber.com" style="color:inherit">lukesteuber.com</a></footer></dialog>
-<dialog id="help" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">Constellations</h2><form method="dialog"><button class="icon close" aria-label="Close Help"></button></form></div><div class="sheet-body"><p id="help-stars">Each tick on a star is a thread it still needs; a plain dot has all its threads, and a ring means too many.</p><p>Tap a dotted line to join its two stars with a thread; tap again for a second thread if both stars have a tick left, otherwise to clear it. Threads cannot cross, and separate groups can remain.</p><p>You can also drag from star to star or tap both stars; use arrows to move, Enter or Space to select, Shift + arrow to change a path, and Escape to cancel.</p><p>Hint marks a thread the stars’ needs force, or one that has to go, and says why. Press it again to play it.</p></div><footer><a href="https://lukesteuber.com/minimal/" style="color:inherit">All games</a> · <a href="https://lukesteuber.com" style="color:inherit">lukesteuber.com</a></footer></dialog>
+<dialog id="help" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">Constellations</h2><form method="dialog"><button class="icon close" aria-label="Close Help"></button></form></div><div class="sheet-body"><p id="help-stars">Each tick on a star is a thread it still needs, and you’re done when every star is a plain dot. A ring means a star has too many. Threads can’t cross, and the stars don’t all have to join up.</p><p>Tap a dotted line to put a thread on it. Tap again for a second thread, and a third time to clear it. If either star has no ticks left, the second tap clears it instead.</p><p>You can also drag from star to star, or tap one star and then another. Hold a thread to lock it so taps can’t change it, and hold it again to unlock it. Keys: arrows move between stars, Enter or Space picks one, Shift + arrow changes the line in that direction, L locks or unlocks a star’s threads, Z undoes and Escape lets go.</p><p>Hint marks a line that needs a thread, or one with a thread too many, and says why. Press Hint again to play it.</p></div><footer><a href="https://lukesteuber.com/minimal/" style="color:inherit">All games</a> · <a href="https://lukesteuber.com" style="color:inherit">lukesteuber.com</a></footer></dialog>
 <p id="status" class="sr-only" role="status" aria-live="polite"></p>
 <script defer src="./controls.js?v=515f2f0f"></script>
 </body></html>

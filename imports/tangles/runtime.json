@@ -31,6 +31,7 @@
     "tilings-engine.js",
     "triangles/index.html",
     "access.js",
-    "bridge-client.js"
+    "bridge-client.js",
+    "og.png"
   ]
 }

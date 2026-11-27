@@ -1,4 +1,4 @@
-/** Independent final-state validation for the accepted Hexsweeper pin (80d30e1 since 0.5.10; b8ad354 in 0.5.9 build 30; f4ea5ca in 0.5.9 build 28; e61a79f in 0.5.3 to 0.5.8).
+/** Independent final-state validation for the accepted Hexsweeper pin (435c855 since 0.5.14; 80d30e1 in 0.5.10 to 0.5.13; b8ad354 in 0.5.9 build 30; f4ea5ca in 0.5.9 build 28; e61a79f in 0.5.3 to 0.5.8).
  * Returns { value }; throws on unknown/inconsistent proofs. elapsedMs must be
  * supplied by the service's run clock. This is casual validation, not replay
  * attestation: random mine layouts are bound to identity, not server-seeded.
@@ -9,8 +9,8 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const root = new URL('../imports/hexsweeper/', import.meta.url);
 const pins = {
-  sphere: ['sphere/sphere.js', 'f371eae3f339bb866582e1ecae353e102eb4e899efeb7a970801b55d5132559b'],
-  classic: ['bounded.html', 'a873e10e4cff2de70265462ed4e797873beb4d34a56a3eb67d8cd00d623bcba2'],
+  sphere: ['sphere/sphere.js', '32d12a3fb1483aef198d5582cb8676cf16432a6d24e9d0bc49ffd1d55a31ee47'],
+  classic: ['bounded.html', '2961f841217654894f33f662644292f0947652529077e663a24497088146e87c'],
   infinite: ['infinite.html', 'f7525ccd3e632c615b23ffabae191d90b2adebecebac478ddacdd25f0bb06dc5']
 };
 const graphPath = new URL('sphere/hexasphere.js', root);

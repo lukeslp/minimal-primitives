@@ -1,7 +1,7 @@
 /* Shared Minimal control presentation. Luke Steuber. */
 (function () {
   'use strict';
-  const config = {"id":"bridges","bar":".toolbar","undo":"undo-btn","hint":"hint-btn","settings":"settings-btn","help":"help-btn","restart":"restart-btn","completion":["next-btn"],"required":["undo-btn","hint-btn"],"keys":["arrows","select"]};
+  const config = {"id":"bridges","bar":".toolbar","undo":"undo-btn","hint":"hint-btn","settings":"settings-btn","help":"help-btn","levels":"#campaign","restart":"restart-btn","completion":["next-btn"],"required":["undo-btn","hint-btn"],"keys":["arrows","select"]};
   // Native payloads have their own release/acceptance contract.
   if (window.HEXSWEEPER_SPHERE_APP) return;
   // Where this file was loaded from; an inlined copy (a one-page build) has no
@@ -11,6 +11,95 @@
   const cross = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
   const restart = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a8 8 0 1 1 1 8M4 4v6h6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
   let observer;
+  // The readout (#readout, fixed and centered on the top row) keeps clear of
+  // the controls at the row's left: the restart button and any button a host
+  // page sets beside it (Minimal Primitives puts its Home there). It stays
+  // centered while it fits, moves right only as far as it must, and wraps
+  // before it would run under a control on either side.
+  function clearOfTopLeft(reset, bar) {
+    const read = byId('readout');
+    if (!read) return;
+    const gap = 8;
+    const fit = () => {
+      for (const k of ['margin-left', 'width', 'white-space', 'text-align']) read.style.removeProperty(k);
+      if (!read.getClientRects().length || getComputedStyle(read).position !== 'fixed' || !read.textContent.trim()) return;
+      const row = read.getBoundingClientRect(), mid = innerWidth / 2;
+      const beside = n => { if (n === read || read.contains(n) || !n.getClientRects().length) return null; const q = n.getBoundingClientRect(); return q.bottom > row.top && q.top < row.bottom ? q : null; };
+      let left = 0, right = innerWidth - gap;
+      for (let n = reset; n; n = n.nextElementSibling) { const q = n.matches('button') ? beside(n) : null; if (q && q.left < mid) left = Math.max(left, q.right + gap); }
+      for (const n of bar.querySelectorAll('button')) { const q = beside(n); if (q && q.right > mid) right = Math.min(right, q.left - gap); }
+      if (!left || row.left >= left) return;
+      // Too wide for the room between the controls: it takes that room's width and wraps there.
+      if (row.width > right - left) { read.style.setProperty('width', Math.max(0, right - left) + 'px'); read.style.setProperty('white-space', 'normal'); read.style.setProperty('text-align', 'center'); }
+      const now = read.getBoundingClientRect();
+      if (now.left < left) read.style.setProperty('margin-left', Math.round(left - now.left) + 'px');
+    };
+    let frame = 0;
+    const again = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(fit); };
+    new MutationObserver(again).observe(read, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+    // A host page that adds its own control beside the restart button.
+    if (reset.parentElement) new MutationObserver(again).observe(reset.parentElement, { childList: true });
+    addEventListener('resize', again);
+    if (document.fonts) document.fonts.ready.then(again);
+    again();
+  }
+  // The readout opens the level list. A game that names its list of boards in
+  // games.json (levels: its select, or the list that holds a button per
+  // board) takes a tap, a click, Enter or Space on #readout as a press of its
+  // Settings button, so the game opens and fills its sheet as it always does;
+  // the list is then brought into view and focused (the select itself, or the
+  // current board's button). The readout looks exactly as it did: only the
+  // pointer turns to a hand over it, and a keyboard focus ring shows where
+  // Tab reaches it. Its name stays what it shows (or the game's own label for
+  // it); its description says what a press does ("Choose a board"). An empty
+  // or hidden readout is left out of the Tab order.
+  function readoutOpensLevels() {
+    const read = byId('readout'), opener = byId(config.settings), sheet = byId(config.sheet || 'settings');
+    if (!config.levels || !read || !opener || !sheet || read.dataset.controlReadout || read.closest('button,a,[role="button"]')) return;
+    read.dataset.controlReadout = 'levels';
+    const role0 = read.getAttribute('role'), note = document.createElement('span');
+    note.id = 'control-readout-action'; note.hidden = true; note.textContent = 'Choose a ' + (config.levelsName || 'board');
+    document.body.append(note);
+    const sync = () => {
+      if ((read.getAttribute('aria-label') || read.textContent || '').trim() && !read.hidden) {
+        if (read.getAttribute('role') !== 'button') read.setAttribute('role', 'button');
+        if (read.getAttribute('tabindex') !== '0') read.setAttribute('tabindex', '0');
+        if (read.getAttribute('aria-describedby') !== note.id) read.setAttribute('aria-describedby', note.id);
+      } else {
+        if (role0) { if (read.getAttribute('role') !== role0) read.setAttribute('role', role0); } else read.removeAttribute('role');
+        read.removeAttribute('tabindex'); read.removeAttribute('aria-describedby');
+      }
+    };
+    new MutationObserver(sync).observe(read, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+    sync();
+    const target = () => {
+      const list = sheet.querySelector(config.levels);
+      if (!list) return null;
+      if (list.matches('select,input,button')) return list;
+      return list.querySelector('[aria-current]:not([aria-current="false"])') || list.querySelector('button:not(:disabled),[tabindex="0"]');
+    };
+    const open = detail => {
+      if (read.getAttribute('role') !== 'button' || sheet.open || opener.disabled) return;
+      opener.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window, detail }));
+      // A sheet the game opens a frame later is met there.
+      const show = () => { const n = sheet.open && target(); if (!n) return; n.focus({ preventScroll: true }); n.scrollIntoView({ block: 'center', inline: 'nearest' }); };
+      if (sheet.open) show(); else requestAnimationFrame(show);
+    };
+    read.addEventListener('click', e => { if (read.getAttribute('role') === 'button') open(e.detail || 1); });
+    // Enter acts as it goes down; Space, as on a button, when it comes up, so
+    // the key is not still down on the list it focused.
+    let space = false;
+    read.addEventListener('keydown', e => {
+      if ((e.key !== 'Enter' && e.key !== ' ') || e.ctrlKey || e.metaKey || e.altKey || read.getAttribute('role') !== 'button') return;
+      e.preventDefault(); e.stopPropagation();
+      if (e.key === ' ') space = true; else if (!e.repeat) open(0);
+    });
+    read.addEventListener('keyup', e => {
+      if (e.key !== ' ' || !space) return;
+      space = false; e.preventDefault(); e.stopPropagation(); open(0);
+    });
+    read.addEventListener('blur', () => { space = false; });
+  }
   function apply() {
     if (document.body.dataset.controlFrame === config.id) return true;
     const existing = (config.required || []).map(byId);
@@ -29,6 +118,7 @@
       // Preserve an existing header's input boundary and delegated handlers.
       if(!reset.isConnected || bar.contains(reset))root.prepend(reset);
     }
+    if (reset) clearOfTopLeft(reset, bar);
     const actions=document.createElement('div'),meta=document.createElement('div');
     actions.className='control-actions';actions.setAttribute('role','group');actions.setAttribute('aria-label','Game actions');
     meta.className='control-meta';meta.setAttribute('role','group');meta.setAttribute('aria-label','Settings and help');
@@ -101,6 +191,9 @@
         if(!b||!tools.length)return null;
         const bottom=centre=>Math.max(6,Math.round(innerHeight-centre-size/2));
         if(matchMedia('(max-height:520px) and (min-width:560px)').matches){
+          // A game with nextBelow keeps its disc under the board, centred on
+          // the board, when the room below fits it; otherwise it goes beside.
+          if(config.nextBelow){const under=innerHeight-b.bottom;if(under>=size+20)return {left:Math.round((b.left+b.right)/2),bottom:bottom(b.bottom+under/2)};}
           const side=Math.min(...tools.map(r=>r.left))-b.right,x=side>=clear?b.right+side/2:b.left>=clear?b.left/2:null;
           if(x===null)return null;
           return {left:Math.round(x),bottom:bottom((Math.max(0,b.top)+Math.min(innerHeight,b.bottom))/2)};
@@ -158,6 +251,7 @@
         close.classList.add('control-close');close.innerHTML=cross;
       }
     }
+    readoutOpensLevels();
     // Safari on iOS applies :active, the press band, only beneath a touch listener.
     document.addEventListener('touchstart',()=>{},{passive:true});
     if(config.keys&&here)try{access(completionNodes,nexts,spot,place);}catch(_){}
@@ -305,7 +399,7 @@
     let loading=null;
     function ensure(then){
       if(engine){then(engine);return;}
-      loading=loading||new Promise((done,fail)=>{const n=document.createElement('script');n.src=new URL('./access.js?v=c99b2bd9',here).href;n.onload=()=>window.MinimalAccessEngine?done():fail();n.onerror=fail;document.head.append(n);});
+      loading=loading||new Promise((done,fail)=>{const n=document.createElement('script');n.src=new URL('./access.js?v=7317f8e2',here).href;n.onload=()=>window.MinimalAccessEngine?done():fail();n.onerror=fail;document.head.append(n);});
       loading.then(()=>{loadNote.hidden=true;engine=engine||window.MinimalAccessEngine({config,prefs,save,paintRows,completionNodes,nexts,spot,place,here,SPEEDS,exact});then(engine);},()=>{loading=null;loadNote.hidden=false;document.body.dataset.accessError='load';});
     }
     paintRows();

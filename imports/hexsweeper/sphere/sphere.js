@@ -1160,6 +1160,8 @@
       targetRotY: 0,
       targetRotX: 0.25,
       dragging: false,
+      /** Board sizes (face counts) that take the light Android motion frames. */
+      lightMotionFaces: new Set(),
       dragStart: null,
       flagMode: false,
       hovered: -1,
@@ -1287,6 +1289,8 @@
     const shareWinBtn = document.getElementById("share-win-btn");
     const bannerUndoBtn = document.getElementById("banner-undo-btn");
     const bannerAgainBtn = document.getElementById("banner-again-btn");
+    const lostUndoBtn = document.getElementById("lost-undo-btn");
+    const sphereAnnounce = document.getElementById("sphere-announce");
     const restartBtn = document.getElementById("reset-btn") || document.getElementById("restart-btn");
     const flagToggle = document.getElementById("flag-toggle");
     const sizeBtn = document.getElementById("size-btn");
@@ -3601,8 +3605,29 @@
     }
 
     function showTerminalBanner(won) {
+      if (!won && !variant && lostUndoBtn) {
+        showLossControl();
+        return;
+      }
       const copy = terminalCopy(won);
       showBanner(copy.message, copy);
+    }
+
+    /*
+     * A loss works as the Minimal games' dead end does (Folding, Catch the
+     * Monkey): no card and no words on the board. The sphere stays as it
+     * fell, and one Undo waits where a finished board offers the way on.
+     * Reset in the bar starts a new sphere. The words go to screen readers.
+     */
+    function showLossControl() {
+      hideBanner();
+      const canUndo = !!undoSnapshot;
+      lostUndoBtn.hidden = !canUndo;
+      if (sphereAnnounce) {
+        sphereAnnounce.textContent = canUndo
+          ? "Mine detonated. Undo takes the move back; New sphere starts over."
+          : "Mine detonated. New sphere starts over.";
+      }
     }
 
     function emitRunCompletion(won) {
@@ -3665,6 +3690,7 @@
     }
 
     function hideBanner() {
+      if (lostUndoBtn) lostUndoBtn.hidden = true;
       const el = bannerEl || document.getElementById("sphere-banner");
       if (!el) return;
       el.classList.remove("visible");
@@ -3929,8 +3955,24 @@
       setTimeout(() => URL.revokeObjectURL(href), 2000);
     }
 
+    /*
+     * Theme colors are a few dozen strings, parsed thousands of times a
+     * frame (every skirt, glow and mix). Callers only read the result, so one
+     * shared array per string is safe.
+     */
+    const parsedColors = new Map();
     function parseCssColor(c) {
       if (typeof c !== "string") return [0, 0, 0];
+      let rgb = parsedColors.get(c);
+      if (!rgb) {
+        if (parsedColors.size > 512) parsedColors.clear();
+        rgb = parseCssColorUncached(c);
+        parsedColors.set(c, rgb);
+      }
+      return rgb;
+    }
+
+    function parseCssColorUncached(c) {
       const s = c.trim();
       if (s.charAt(0) === "#") {
         let h = s.slice(1);
@@ -4911,8 +4953,30 @@
       });
     }
 
-    /** Cliff/skirt fill — into black wells vs into white wells. */
+    /*
+     * Cliff/skirt fill — into black wells vs into white wells. A skirt's
+     * shade depends only on its facing (nw) and the theme's well colour, so
+     * shades are kept per 1/1024 of facing: far finer than one 8-bit step.
+     */
+    let skirtShades = new Map();
+    let skirtShadeKey = "";
     function skirtFill(nw) {
+      const T = state.theme || {};
+      const key = `${T.id}|${T.revealedEmpty || T.revealed}|${!!T.reflectionSurface}`;
+      if (key !== skirtShadeKey) {
+        skirtShadeKey = key;
+        skirtShades = new Map();
+      }
+      const step = Math.round(Math.max(0, Math.min(1, nw)) * 1024);
+      let fill = skirtShades.get(step);
+      if (fill === undefined) {
+        fill = skirtFillFor(step / 1024);
+        skirtShades.set(step, fill);
+      }
+      return fill;
+    }
+
+    function skirtFillFor(nw) {
       const well = parseCssColor(
         state.theme.revealedEmpty || state.theme.revealed || "#000000"
       );
@@ -5553,13 +5617,16 @@
       const darkMono =
         !!(state.theme.pureCovered || state.theme.id === "dark");
       const styleId = state.countStyle;
-      const fastInteraction =
-        IS_ANDROID_DEVICE &&
-        state.cells.length >= 642 &&
+      const denseAndroid = IS_ANDROID_DEVICE && state.cells.length >= 642;
+      const moving =
+        denseAndroid &&
         ((state.ambientSpin && !state.reduceMotion) ||
           state.dragging ||
           Math.abs(state.targetRotY - state.rotY) > 0.0008 ||
           Math.abs(state.targetRotX - state.rotX) > 0.0008);
+      const fastInteraction =
+        moving && state.lightMotionFaces.has(state.cells.length);
+      if (denseAndroid) noteMotionFrame(now, moving, fastInteraction);
       const projected = getProjected(fastInteraction);
 
       // Per-tile permanent heights (hover is a temporary fifth offset).
@@ -5771,6 +5838,43 @@
       callVariant("draw", { now, projected });
       drawEndFxOverlay(now);
       ctx.restore();
+    }
+
+    /*
+     * Android used to drop counts, depth skirts and glows from every moving
+     * frame on boards of 642 faces or more, so a Fire tablet held Amazon's
+     * 25 fps floor. Moving frames now keep the full detail everywhere. Only a
+     * device that measurably cannot hold the floor with it, over 16 moving
+     * frames, gets the light frames, and only for that board size until the
+     * app reloads. A gap over 250 ms is a pause (a new gesture, a hidden
+     * page), not a slow frame, so it is not counted.
+     */
+    const MOTION_SAMPLE = 16;
+    const MOTION_FLOOR_MS = 40;
+    const motionGaps = [];
+    let motionFaces = 0;
+    let lastMotionFrameAt = 0;
+    function noteMotionFrame(now, moving, light) {
+      if (motionFaces !== state.cells.length) {
+        motionFaces = state.cells.length;
+        motionGaps.length = 0;
+        lastMotionFrameAt = 0;
+      }
+      if (!moving || light || document.hidden) {
+        lastMotionFrameAt = 0;
+        return;
+      }
+      if (lastMotionFrameAt) {
+        const gap = now - lastMotionFrameAt;
+        if (gap > 0 && gap < 250) motionGaps.push(gap);
+      }
+      lastMotionFrameAt = now;
+      if (motionGaps.length < MOTION_SAMPLE) return;
+      const sorted = motionGaps.slice().sort((a, b) => a - b);
+      motionGaps.length = 0;
+      if (sorted[sorted.length >> 1] > MOTION_FLOOR_MS) {
+        state.lightMotionFaces.add(state.cells.length);
+      }
     }
 
     function frameNeedsPaint(now) {
@@ -6185,6 +6289,11 @@
     if (bannerUndoBtn) {
       bannerUndoBtn.addEventListener("click", hudClick(() => {
         restoreUndo();
+      }));
+    }
+    if (lostUndoBtn) {
+      lostUndoBtn.addEventListener("click", hudClick(() => {
+        if (restoreUndo() && sphereAnnounce) sphereAnnounce.textContent = "Move undone";
       }));
     }
     if (bannerAgainBtn) {

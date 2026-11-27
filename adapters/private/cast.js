@@ -26,14 +26,19 @@ const __minimal=MinimalBridge.install({
     // where free play opens, once all twenty-five are), except that one of the five boards the thirty of 0.5.9 had and
     // the twenty-five do not goes on from the open campaign board nearest it among the thirty. Reached counts in the
     // twenty-five with order 3, in the thirty with order 2 and in the fifty-board order with neither, and every
-    // campaign board a save had open stays open.
+    // campaign board a save had open stays open. Since game-riffs 5fea7b69 board 21 is c27, not c25 (its floor drew a
+    // swastika): a finished c25 also marks c27, a save on c25 opens c27 fresh, and an opened c25 opens c27 (RETIRED, live).
     finished=new Set(d.finished.filter(id=>ALL.some(b=>b.id===id)));prefs.motion=d.motion;
+    for(const id of [...finished])if(RETIRED[id])finished.add(RETIRED[id]);
     const fresh=board=>({board,heights:E.start(board),hits:0,history:[]}),standIn=()=>boards.find(b=>!finished.has(b.id))||boards.at(-1);
+    const retired=!free&&!!RETIRED[puzzle.id];
+    if(retired)({board:puzzle,heights,hits,history}=fresh(ALL.find(b=>b.id===RETIRED[puzzle.id])));
+    if(free&&parked&&RETIRED[parked.board.id])parked=fresh(ALL.find(b=>b.id===RETIRED[parked.board.id]));
     const leftBoard=!free&&!boards.includes(puzzle)&&ORDER_2.includes(puzzle.id)&&!boards.every(b=>finished.has(b.id))?puzzle.id:null;
-    let left=false;
+    let left=retired;
     if(!free&&!boards.includes(puzzle)){({board:puzzle,heights,hits,history}=fresh(standIn()));left=true;}
     if(free&&parked&&!boards.includes(parked.board))parked=fresh(standIn());
-    const was=Math.max(0,Math.min(ALL.length-1,d.reached)),opened=d.order===3?Math.min(boards.length-1,was):Math.max(-1,...(d.order===2?ORDER_2.map(id=>ALL.find(b=>b.id===id)):ALL).slice(0,was+1).map(b=>boards.indexOf(b)));
+    const was=Math.max(0,Math.min(ALL.length-1,d.reached)),opened=d.order===3?Math.min(boards.length-1,was):Math.max(-1,...(d.order===2?ORDER_2.map(id=>ALL.find(b=>b.id===id)):ALL).slice(0,was+1).map(b=>boards.findIndex(x=>x.id===live(b.id))));
     reached=Math.min(boards.length-1,Math.max(0,opened,openedBy(finished),boards.indexOf(free?parked?.board:puzzle)));
     if(leftBoard){const at=ORDER_2.indexOf(leftBoard),far=b=>Math.abs(ORDER_2.indexOf(b.id)-at);({board:puzzle,heights,hits,history}=fresh(boards.slice(0,reached+1).reduce((best,b)=>far(b)<far(best)||(far(b)===far(best)&&ORDER_2.indexOf(b.id)>ORDER_2.indexOf(best.id))?b:best)));}
     hint=left?null:d.hint;focus=left?[0,0]:d.focus.slice();hover=null;

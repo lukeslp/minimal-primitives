@@ -16,7 +16,7 @@ Changes from the 0.5.11 listing:
   out: akari and minesweeper were taken out on November 13, and Picross is a
   trademark.
 
-Unchanged: the name, the subtitle "Twenty-nine offline puzzles" and the
+Unchanged: the name, the subtitle "Twenty-eight offline puzzles" and the
 promotional text.
 
 Note: the November 13 listing fix chose to open with the itch page's intro. This

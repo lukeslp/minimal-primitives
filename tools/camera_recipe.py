@@ -35,8 +35,10 @@ INPUT_ROW = ('<label class="row">Look with <select id="input"><option value="hea
 POINTER_INPUT = ('<label class="row" hidden>Look with <select id="input">'
                  '<option value="pointer">Pointer</option></select></label>')
 CALIBRATION = '<div class="row">{label} <button id="calibrate" class="text-btn" type="button">Calibrate</button></div>'
-PRIVACY = ('<p>Camera frames never leave this device and nothing is stored; '
-           'the camera stops when you leave or choose Pointer.</p>')
+# Since game-riffs #270/#273/#277 (0.5.18) each camera game words its Help in its own way, and Glyph and Shoo keep the
+# camera's privacy sentences at the end of their keys paragraph: the camera-free build takes out those sentences, or
+# the whole paragraph where it holds nothing else, game by game below.
+CAMERA_PRIVACY = ' Camera frames never leave this device and are never saved. The camera stops when you leave the page or choose Pointer.'
 # A Settings group left with only hidden rows (Pursuit's Play: Look with and Calibration) loses its heading too.
 HIDE = ('<style>#camera-btn,#camera-start,#camera{display:none!important}'
         'h3.group:has(+ [hidden] + [hidden] + h3.group){display:none}</style></head>')
@@ -44,35 +46,43 @@ CAMERA_GAMES = {
     'glance': ('Calibration', [
         ('content="A small board of tiles, turned over by looking."',
          'content="A small board of tiles to turn dark."'),
-        ('<p>Look at a tile until its ring fills, or tap it, to turn it and its neighbors over.</p>',
-         '<p>Tap a tile, or rest the pointer on it until its ring fills, to turn it and its neighbors over.</p>'),
+        ('<p>Look at a tile until its ring fills, or tap it. That tile turns over,',
+         '<p>Tap a tile, or rest the pointer on it until its ring fills. That tile turns over,'),
+        ('<p>Camera frames never leave this device and are never saved. The camera stops when you leave the page or choose Pointer.</p>', ''),
     ]),
     'glyph': ('Calibration', [
         ('content="A faint figure on a square of points, traced from corner to corner by looking."',
          'content="A faint figure on a square of points, traced from corner to corner."'),
-        ('<p>Hold your look on a point until its ring fills, or tap it, to set the pen down; then look or drag from point to point.</p>',
-         '<p>Tap a point, or rest the pointer on it until its ring fills, to set the pen down; then drag from point to point.</p>'),
-        ('rest your look off the points, or tap between them, to lift the pen.',
-         'rest the pointer off the points, or tap between them, to lift the pen.'),
+        ('<p>Hold your look on a point until its ring fills, or tap it, to set the pen down. Then look or drag from point to point to ink the lines. '
+         'Rest your look off the points, or tap between them, to lift the pen.</p>',
+         '<p>Tap a point, or rest the pointer on it until its ring fills, to set the pen down. Then drag from point to point to ink the lines. '
+         'Rest the pointer off the points, or tap between them, to lift the pen.</p>'),
+        ('H hints, and Z, U or Backspace undoes.' + CAMERA_PRIVACY + '</p>', 'H hints, and Z, U or Backspace undoes.</p>'),
     ]),
     'shoo': ('Calibration', [
         ('content="Bees flee from wherever you look. Herd them home."',
          'content="Bees hop away from wherever you tap. Herd them home."'),
-        ('<p>Look at a cell until its ring fills, or tap it, and every bee beside it hops one cell away.</p>',
-         '<p>Tap a cell, or rest the pointer on it until its ring fills, and every bee beside it hops one cell away.</p>'),
-        ('in as few looks as you can;', 'in as few moves as you can;'),
+        ('<p>Get every bee into a hive in as few looks as you can. To look at a cell, hold your look on it until its ring fills, or tap it.',
+         '<p>Get every bee into a hive in as few moves as you can. To choose a cell, tap it, or rest the pointer on it until its ring fills.'),
+        ('A look that moves no bee doesn’t count.', 'A choice that moves no bee doesn’t count.'),
+        ('Enter or Space looks at a cell, H hints, and Z, U or Backspace undoes.' + CAMERA_PRIVACY + '</p>',
+         'Enter or Space chooses a cell, H hints, and Z, U or Backspace undoes.</p>'),
     ]),
     'nod': ('Calibration', [
         ('content="Stacked trays, tipped by tilting your head, so the marble drops through the right holes."',
          'content="Stacked trays, tipped with a drag, a swipe or the arrow keys, so the marble drops through the right holes."'),
-        ('<p>Tilt your head toward a side and hold, or drag, swipe or press an arrow, to tip the trays; come back to level before the next tip.</p>',
-         '<p>Drag, swipe or press an arrow to tip the trays.</p>'),
+        ('<p>To tip the trays, tilt your head to one side and hold, then bring it back to level before the next tip; '
+         'you can also drag, swipe, tap beside the marble or press an arrow key.</p>',
+         '<p>To tip the trays, drag, swipe, tap beside the marble or press an arrow key.</p>'),
+        ('<p>Camera frames never leave this device and are never saved, and the camera stops when you leave the page or choose Pointer.</p>', ''),
     ]),
     'pursuit': ('Calibration', [
         ('content="Choose by following: the ring your eyes, head or pointer follows comes to rest in the picture."',
          'content="Choose by following: the ring your pointer follows comes to rest in the picture."'),
-        ('<p>Follow a ring with your eyes, your head or a pointer until its trail fills, and it comes to rest in the picture.</p>',
-         '<p>Follow a ring with a pointer until its trail fills, and it comes to rest in the picture.</p>'),
+        ('<p>Follow a hollow ring with your eyes, your head or a pointer.', '<p>Follow a hollow ring with a pointer.'),
+        (' With the camera on, the Undo icon circles, so you can follow it instead.', ''),
+        ('<p>Camera frames never leave this device, and no image is saved. The camera stops when you leave the page, '
+         'choose Pointer, or press the camera button.</p>', ''),
     ]),
 }
 POLICY = re.compile(r'(<meta http-equiv="Content-Security-Policy" content=")([^"]*)(")', re.I)
@@ -165,6 +175,6 @@ def transform(game, path, text):
         calibration = CALIBRATION.format(label=label)
         for old, new in [(INPUT_ROW, POINTER_INPUT),
                          (calibration, calibration.replace('<div class="row">', '<div class="row" hidden>', 1)),
-                         (PRIVACY, ''), ('</head>', HIDE), *wording]:
+                         ('</head>', HIDE), *wording]:
             text = once(text, old, new, path)
     return text

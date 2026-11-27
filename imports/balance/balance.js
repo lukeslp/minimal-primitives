@@ -1,11 +1,12 @@
 /* Balance: the page. Rules live in engine.js; only Hint reads the answer, to pick a mark to change. */
 (function () {
   'use strict';
-  const E = Balance, L = BalanceLevels, $ = s => document.querySelector(s);
-  const K = { current: 'balance.current.v1', progress: 'balance.progress.v1', settings: 'balance.settings.v1', opening: 'balance.opening.v1' };
+  const E = Balance, G = BalanceEndless, L = BalanceLevels, $ = s => document.querySelector(s);
+  const K = { current: 'balance.current.v1', progress: 'balance.progress.v1', settings: 'balance.settings.v1', opening: 'balance.opening.v1', generated: 'balance.generated.v1', plus: 'balance.plus.v1' };
   const campaign = L.campaign, opening = L.opening, TOTAL = campaign.length;
   const ids = new Set(campaign.map(p => p.id));
-  const board = id => campaign.find(p => p.id === id) || opening.find(p => p.id === id);
+  let gen = null, genPuzzle = null;
+  const board = id => id === 'generated' ? genPuzzle : campaign.find(p => p.id === id) || opening.find(p => p.id === id);
   const openingAt = id => opening.findIndex(p => p.id === id);
   const campaignAt = id => campaign.findIndex(p => p.id === id);
 
@@ -39,16 +40,35 @@
   // Marks saved on a board whose givens have since changed no longer fit it; they are dropped, the rest kept.
   for (const id of Object.keys(store.boards)) if (!ids.has(id) || !E.stateValid(board(id), store.boards[id])) delete store.boards[id];
 
+  // The generator version belongs to this new key; campaign keys retain their exact old shapes.
+  gen = read(K.generated, v => {
+    if (!plain(v) || Object.keys(v).length !== 5 || v.version !== 1 || typeof v.playing !== 'boolean') return false;
+    const p = G.fromSeed(v.seed, v.n);
+    if (!p || !E.stateValid(p, v.marks)) return false;
+    genPuzzle = p;
+    return true;
+  }, null);
+  const plus = read(K.plus, v => plain(v) && Object.keys(v).length === 3 && v.version === 1 && Number.isSafeInteger(v.wins) && v.wins >= 0 && typeof v.held === 'string' && v.held.length <= 96, { version: 1, wins: 0, held: '' });
+  const solvedCount = () => progress.completed.length + (plus.wins ? ' + ' + plus.wins : '') + ' ✓';
+  function countPlus() {
+    if (at !== 'generated' || !allDone()) return;
+    const key = G.identity(genPuzzle);
+    if (plus.held === key) return;
+    plus.held = key; plus.wins++; write(K.plus, plus);
+  }
+  const resumeAt = () => gen && gen.playing ? 'generated' : store.at;
+  const cellsOf = id => (id === 'generated' ? gen.marks : store.boards[id]) || E.start(board(id));
+
   const query = new URLSearchParams(location.search);
   let firstVisit = false;
   try { firstVisit = localStorage.getItem(K.opening) === null; } catch (_) {}
-  let at = firstVisit ? opening[0].id : store.at;
+  let at = firstVisit ? opening[0].id : resumeAt();
   if (query.has('level')) {
     const n = Number(query.get('level'));
     if (Number.isInteger(n) && n >= 1 && n <= TOTAL) at = campaign[n - 1].id;
   }
   let puzzle = board(at);
-  const S = { cells: (store.boards[at] || E.start(puzzle)).slice(), undo: [], focus: 0, hint: null, solved: false, keyboard: false, refused: -1 };
+  const S = { cells: cellsOf(at).slice(), undo: [], focus: 0, hint: null, solved: false, keyboard: false, refused: -1 };
 
   // ---- icons ----
   const paths = { reset: 'M5 7a8 8 0 1 1-1 9M5 3v5h5', undo: 'M9 5 4 10l5 5M4 10h9a6 6 0 0 1 0 12', hint: 'M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0l-1 4H9Z', next: 'M5 12h14M13 6l6 6-6 6', replay: 'M4 11V9a3 3 0 0 1 3-3h12m-3-3 3 3-3 3M20 13v2a3 3 0 0 1-3 3H5m3 3-3-3 3-3', settings: 'M4 7h16M4 17h16M8 4v6M16 14v6', help: 'M9 8a3 3 0 1 1 4 3l-1 2M12 17v.2' };
@@ -59,7 +79,18 @@
   marks.className = 'marks';
   marks.setAttribute('aria-hidden', 'true');
   root.after(marks);
-  function say(text) { $('#feedback').textContent = text; }
+  // The status line. A hint is shown with "this square" and "the dashed squares", which point at what is
+  // drawn; read aloud it names the squares by row and column instead (engine.js, `spoken`).
+  function say(text, spoken) {
+    const line = $('#feedback');
+    if (!spoken || spoken === text) { line.textContent = text; return; }
+    const shown = document.createElement('span'), aloud = document.createElement('span');
+    shown.setAttribute('aria-hidden', 'true');
+    shown.textContent = text;
+    aloud.className = 'sr-only';
+    aloud.textContent = spoken;
+    line.replaceChildren(shown, aloud);
+  }
 
   // ---- drawing ----
   function build() {
@@ -165,20 +196,22 @@
       return mark;
     }));
     const k = campaignAt(at);
-    $('#readout').textContent = k < 0 ? '' : (k + 1) + ' / ' + TOTAL + ' · ' + progress.completed.length + ' ✓';
+    $('#readout').textContent = at === 'generated' ? puzzle.n + ' × ' + puzzle.n + ' · ' + solvedCount() : k < 0 ? '' : (k + 1) + ' / ' + TOTAL + ' · ' + solvedCount();
     $('#undo-btn').disabled = !S.undo.length;
     $('#completion').hidden = !S.solved;
-    // Next is the frame's disc, there from the solve on while the tiles grow. With every board solved, the line
-    // above it says so on a campaign board, and the last board's Next replays from board 1.
-    const ended = S.solved && k >= 0 && allDone(), replay = ended && k === TOTAL - 1, next = $('#next-btn'), glyph = replay ? 'replay' : 'next';
+    // Next stays on the page: after the last campaign board it starts New Game+, then deals again.
+    const ended = S.solved && k >= 0 && allDone(), fresh = S.solved && nextTarget() === 'new', next = $('#next-btn');
     $('#ending').hidden = !ended; $('#ending').textContent = ended ? ENDING : '';
     next.hidden = !S.solved;
-    next.setAttribute('aria-label', replay ? 'Replay from board 1' : 'Next puzzle');
-    if ((next.dataset.icon || 'next') !== glyph) { next.dataset.icon = glyph; next.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + paths[glyph] + '"/></svg>'; }
-    $('#feedback').classList.toggle('sr-only', S.solved);
+    next.setAttribute('aria-label', fresh ? (at === 'generated' ? 'Next board' : 'Start New Game+') : 'Next puzzle');
+    $('#feedback').classList.toggle('sr-only', S.solved && !generationFailed);
+    $('#free-row').hidden = !allDone();
+    $('#free-label').textContent = 'Endless · ' + plus.wins + ' ✓';
+    $('#plus-locked').hidden = allDone();
+    $('#plus-locked').textContent = 'Complete all ' + TOTAL + ' to unlock New Game+.';
     $('#previous').disabled = k <= 0;
     $('#following').disabled = k < 0 || k === TOTAL - 1;
-    $('#replay-opening').textContent = replaying && openingAt(at) >= 0 ? 'Back to board ' + (campaignAt(store.at) + 1) : REPLAY;
+    $('#replay-opening').textContent = replaying && openingAt(at) >= 0 ? (resumeAt() === 'generated' ? 'Back to New Game+' : 'Back to board ' + (campaignAt(store.at) + 1)) : REPLAY;
   }
   function fit() {
     const shell = $('#board-shell'), n = puzzle.n;
@@ -193,7 +226,9 @@
 
   // ---- play ----
   function save() {
-    if (!ids.has(at)) return;
+    if (openingAt(at) >= 0) return;
+    if (at === 'generated') { gen.marks = S.cells.slice(); gen.playing = true; write(K.generated, gen); return; }
+    if (gen && gen.playing) { gen.playing = false; write(K.generated, gen); }
     store.at = at;
     store.boards[at] = S.cells.slice();
     write(K.current, store);
@@ -204,11 +239,13 @@
     const was = S.solved;
     S.solved = E.inspect(puzzle, S.cells).solved;
     if (S.solved && !was) {
+      if (announce) countPlus();
       if (ids.has(at) && !progress.completed.includes(at)) progress.completed.push(at);
       if (announce) say(ids.has(at) && allDone() ? ENDING : 'Solved.');
     }
   }
   function commit(before, text) {
+    generationFailed = false;
     if (before.some((v, i) => v !== S.cells[i])) S.undo.push(before);
     S.hint = null;
     say(text || '');
@@ -264,7 +301,7 @@
     if (!m || m.fault || m.value !== (E.answer(puzzle) || [])[m.i]) m = E.fix(puzzle, S.cells, m, recent()) || m;
     if (!m) { say('Nothing to deduce from these marks.'); return; }
     S.hint = m;
-    say(m.text);
+    say(m.text, m.spoken);
     render();
   }
   // Squares in the order they last changed, newest first, from the undo history.
@@ -275,12 +312,13 @@
     }
     return out;
   }
-  function switchBoard(id) {
-    save();
+  function switchBoard(id, alreadySaved) {
+    if (!alreadySaved) save();
+    generationFailed = false;
     at = id;
     puzzle = board(id);
     if (openingAt(id) < 0) replaying = false;
-    S.cells = (store.boards[id] || E.start(puzzle)).slice();
+    S.cells = cellsOf(id).slice();
     S.undo = [];
     S.focus = 0;
     S.hint = null;
@@ -297,17 +335,41 @@
   // Help's replay button takes a player back from the opening boards it brought them to.
   let replaying = false;
   const REPLAY = 'Play the opening boards again';
+  function nextTarget() {
+    const o = openingAt(at), k = campaignAt(at);
+    if (o >= 0) return o < opening.length - 1 ? opening[o + 1].id : resumeAt();
+    if (k >= 0 && k < TOTAL - 1) return campaign[k + 1].id;
+    const open = campaign.find(p => !progress.completed.includes(p.id));
+    return open ? open.id : 'new';
+  }
+  let generationFailed = false;
+  // Seeds advance even if the random source repeats. Keep dealt identities for the whole visit, plus
+  // the saved board and held win on reload. Never overwrite the current board on generation failure.
+  const dealt = new Set([plus.held, ...(gen ? [G.identity(genPuzzle)] : [])]);
+  let seed = gen ? (gen.seed + 1) >>> 0 : crypto.getRandomValues(new Uint32Array(1))[0];
+  function newGenerated() {
+    if (!allDone()) return false;
+    save();
+    const p = G.deal(seed, dealt);
+    seed = (p ? p.seed + 1 : seed + 2 * G.TRIES) >>> 0;
+    if (!p) {
+      generationFailed = true;
+      say('Could not make a new board. Try Next again.');
+      render();
+      return false;
+    }
+    dealt.add(G.identity(p));
+    genPuzzle = p;
+    gen = { version: 1, n: p.n, seed: p.seed, marks: E.start(p), playing: true };
+    switchBoard('generated', true);
+    return true;
+  }
   function advance(event) {
     if (!S.solved) return;
-    const byKey = !event || event.detail === 0, o = openingAt(at), k = campaignAt(at);
-    if (o >= 0) {
-      if (o === opening.length - 1) write(K.opening, 1);
-      switchBoard(o < opening.length - 1 ? opening[o + 1].id : store.at);
-    } else if (k < TOTAL - 1) switchBoard(campaign[k + 1].id);
-    else {
-      const open = campaign.find(p => !progress.completed.includes(p.id));
-      switchBoard(open ? open.id : campaign[0].id);
-    }
+    const byKey = !event || event.detail === 0, target = nextTarget();
+    if (openingAt(at) === opening.length - 1) write(K.opening, 1);
+    if (target === 'new') { if (!newGenerated()) return; }
+    else switchBoard(target);
     if (byKey) focusCell(0, true);
   }
 
@@ -363,7 +425,7 @@
       // An opening board is listed as what it is, at the head of the list: the list no longer shows a campaign
       // board's number and size over one. Choosing a campaign board from it leaves the opening boards as before.
       const o = openingAt(at);
-      if (o >= 0) { const intro = document.createElement('option'); intro.value = at; intro.dataset.opening = ''; intro.textContent = 'Opening board ' + (o + 1) + ' of ' + opening.length; $('#campaign').prepend(intro); }
+      if (o >= 0 || at === 'generated') { const intro = document.createElement('option'); intro.value = at; intro.dataset.opening = ''; intro.textContent = o >= 0 ? 'Opening ' + (o + 1) + ' of ' + opening.length : 'New Game+ board'; $('#campaign').prepend(intro); }
       $('#campaign').value = at;
     }
     $('#' + id).showModal();
@@ -372,7 +434,7 @@
     $('#' + id + '-btn').addEventListener('click', () => openSheet(id, $('#' + id + '-btn')));
     $('#' + id).addEventListener('close', () => { if (!document.activeElement.closest('.board,dialog[open]') && invoker) invoker.focus({ preventScroll: true }); });
   }
-  $('#campaign').addEventListener('change', e => { if (openingAt(e.target.value) < 0) switchBoard(e.target.value); $('#settings').close(); });
+  $('#campaign').addEventListener('change', e => { if (ids.has(e.target.value)) switchBoard(e.target.value); $('#settings').close(); });
   for (const [id, step] of [['previous', -1], ['following', 1]]) {
     $('#' + id).addEventListener('click', () => {
       const k = campaignAt(at) + step;
@@ -380,12 +442,13 @@
       $('#settings').close();
     });
   }
+  $('#new-game').addEventListener('click', () => { $('#settings').close(); newGenerated(); });
   $('#reset').addEventListener('click', () => { restart(); $('#settings').close(); });
   // From a campaign board the button replays the opening boards; from an opening board it reached that way, it goes
   // back to the board the player was on. Finishing the opening boards, or a reload, goes back there too.
   $('#replay-opening').addEventListener('click', () => {
     $('#help').close();
-    if (replaying && openingAt(at) >= 0) { switchBoard(store.at); return; }
+    if (replaying && openingAt(at) >= 0) { switchBoard(resumeAt()); return; }
     replaying = true; switchBoard(opening[0].id);
   });
   function applyPrefs() {
@@ -406,5 +469,5 @@
   render();
   save();
   if (notice) say(notice);
-  window.__balance = { S, get puzzle() { return puzzle; }, get at() { return at; }, get progress() { return progress; }, keys: K };
+  window.__balance = { S, get puzzle() { return puzzle; }, get at() { return at; }, get progress() { return progress; }, get generated() { return gen; }, get plus() { return plus; }, keys: K };
 })();

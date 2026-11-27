@@ -8,7 +8,7 @@
     ["if (item.kind === 'undo') { if (!history.length) return; history.pop();", "if (item.kind === 'undo') { if (!history.length) return; window.MinimalAdapter?.undo(); history.pop();"],
     ["function restart() { queue = [];", "function restart() { window.MinimalAdapter?.restart(); queue = [];"],
     ["function pressHint() {\n  if (state.out || busy()) return;\n", "function pressHint() {\n  if (state.out || busy()) return;\n  window.MinimalAdapter?.assist();\n"],
-    ["if (move === 'undo') { announce('Undo is the way back.'); return; }", "if (move === 'undo') { announce('Undo is the way back.'); window.MinimalAdapter?.changed(); return; }"],
-    ["  announce('Hint shown; press Hint again to play it.'); kick();\n}", "  announce('Hint shown; press Hint again to play it.'); kick(); window.MinimalAdapter?.changed();\n}"]
+    ["if (move === 'undo') { announce('Undo a move first. Press Hint again to undo it.'); return; }", "if (move === 'undo') { announce('Undo a move first. Press Hint again to undo it.'); window.MinimalAdapter?.changed(); return; }"],
+    ["  announce('Hint: ' + (move[0] === 'tip' ? 'roll ' + sideWord(worldDir(move[1], orient)) : 'turn ' + turnWords(move)) + '. Press Hint again to play it.'); kick();\n}", "  announce('Hint: ' + (move[0] === 'tip' ? 'roll ' + sideWord(worldDir(move[1], orient)) : 'turn ' + turnWords(move)) + '. Press Hint again to play it.'); kick(); window.MinimalAdapter?.changed();\n}"]
   ]
 }

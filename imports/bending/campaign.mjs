@@ -188,9 +188,11 @@ export function restore(current, older, boards, pool = []) {
 }
 
 // The next New Game+ board: each comes once, in a shuffled order, before any
-// comes again, and a new round never opens with the board just played. It
-// starts empty. Returns its place in the record, or -1 when there is no pool.
-export function draw(record, boards, pool, random = Math.random) {
+// comes again, and a new round never opens with the board just played. While
+// some boards are not in `solved` (the names New Game+ has seen solved), one of
+// those comes first, the round's next if it holds any. It starts empty.
+// Returns its place in the record, or -1 when there is no pool.
+export function draw(record, boards, pool, random = Math.random, solved = null) {
   if (!pool.length) return -1;
   const ids = pool.map(fingerprint);
   const current = record.board >= boards.length ? ids[record.board - boards.length] : null;
@@ -204,7 +206,10 @@ export function draw(record, boards, pool, random = Math.random) {
     if (order.length > 1 && order[0] === current) [order[0], order[order.length - 1]] = [order[order.length - 1], order[0]];
     record.bag = order;
   }
-  const index = boards.length + ids.indexOf(record.bag.shift());
+  const unsolved = solved ? ids.filter(id => !solved.includes(id) && id !== current) : [];
+  const id = unsolved.length ? record.bag.find(other => unsolved.includes(other)) ?? unsolved[Math.floor(random() * unsolved.length)] : record.bag[0];
+  record.bag = record.bag.filter(other => other !== id);
+  const index = boards.length + ids.indexOf(id);
   record.stages[index] = blank(pool[index - boards.length]);
   return index;
 }

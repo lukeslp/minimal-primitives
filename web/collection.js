@@ -120,7 +120,7 @@
       const also = spec.also.map(link => { const other = find(link.game, link.mode); return {label: link.label, aria: resume(link.aria, other.game, other.mode), key: keyFor(other.game, other.mode?.id), run: () => launch(other.game, other.mode)}; });
       const tile = tileFor({...spec, label: resume(spec.label, game, mode), also}, keyFor(game, mode?.id), () => launch(game, mode));
       tile.dataset.game = game.id; if (mode) tile.dataset.mode = mode.id;
-      tile._set = spec.set || null; tile._pictures = spec.solved || null;
+      tile._set = spec.set || null; tile._pictures = spec.solved || null; tile._done = spec.done || null;
       $('tiles').append(tile);
     }
     for (const game of catalog.filter(accessible)) {
@@ -142,8 +142,12 @@
   // A tile is finished when every id of its game's current main campaign is in that game's own record: the index's
   // set is [storage key, field, campaign ids], read from the games (luke-portfolio minimal/campaigns.cjs). Most games
   // keep a list of finished ids; Notan keeps a map of board to best time. Boards outside the campaign (optional, New
-  // Game+, boards a campaign has dropped) and repeats never make up for a missing one.
+  // Game+, boards a campaign has dropped) and repeats never make up for a missing one. A set whose field is null reads
+  // the whole record as a map of id to {seconds}: Hexsweeper's best time for each sphere size, which counts once it
+  // holds a time, as the game's own readBestTimes() reads it.
   const finishedIds = (value, field) => {
+    if (field === null) return value && typeof value === 'object' && !Array.isArray(value)
+      ? Object.keys(value).filter(id => { const s = value[id] && value[id].seconds; return typeof s === 'number' && Number.isFinite(s) && s >= 0; }) : [];
     const list = value && typeof value === 'object' ? value[field] : null;
     return Array.isArray(list) ? list.filter(id => typeof id === 'string')
       : list && typeof list === 'object' ? Object.keys(list).filter(id => typeof list[id] === 'number') : [];
@@ -195,7 +199,7 @@
       tile.classList.toggle('won', won); picture(tile);
       // As on the index: the card's line says it in words (the link is described by that line); the corner check is CSS.
       const line = tile.querySelector('.more .line'); let done = line?.querySelector('.done');
-      if (won && line && !done) { done = document.createElement('span'); done.className = 'done'; done.textContent = ' All boards finished.'; line.append(done); }
+      if (won && line && !done) { done = document.createElement('span'); done.className = 'done'; done.textContent = ' ' + (tile._done || 'All boards finished.'); line.append(done); }
       if (!won && done) done.remove();
     }
   }

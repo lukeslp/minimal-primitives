@@ -15,11 +15,13 @@
 <meta property="og:title" content="Notan">
 <meta property="og:description" content="A quiet black-and-white nonogram that starts at two by two and eases up to fifteen.">
 <meta property="og:url" content="https://playnotan.com/">
-<meta property="og:image" content="https://playnotan.com/og.png?v=3">
+<meta property="og:image" content="https://playnotan.com/og.png?v=79dec54ec81f">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="A Notan puzzle in progress: a three-by-three grid in white on black, its row and column numbers above and to the left, five squares filled.">
+<meta property="og:image:alt" content="A finished Notan picture of a vase, its squares coloured yellow, magenta and blue on white.">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://playnotan.com/og.png?v=79dec54ec81f">
+<meta name="twitter:image:alt" content="A finished Notan picture of a vase, its squares coloured yellow, magenta and blue on white.">
 <link rel="preload" href="./fonts/IBMPlexMono-500.woff2" as="font" type="font/woff2" crossorigin>
 <script>
 // Apply saved appearance before the stylesheet or body can paint.
@@ -29,7 +31,7 @@ try {
   if ([100, 115, 130, 150].includes(appearance.zoom)) document.documentElement.style.setProperty('--zoom', appearance.zoom / 100);
 } catch (_) { /* Defaults also work when storage is unavailable. */ }
 </script>
-<link rel="stylesheet" href="./notan.css?v=37ba8f01">
+<link rel="stylesheet" href="./notan.css?v=984ae5b4">
 <link rel="stylesheet" href="./controls.css?v=e9a44e73">
 </head>
 <body>
@@ -54,7 +56,7 @@ try {
     <div class="hint" aria-hidden="true"></div>
     <div class="grid" id="grid" role="grid" aria-describedby="grid-keys"></div>
   </div>
-  <p id="grid-keys" class="sr-only">Arrow keys move. Space fills a square, X marks it empty, Delete clears it, Z undoes. Hold Shift with an arrow to paint. L locks or unlocks the row; Shift+L the column.</p>
+  <p id="grid-keys" class="sr-only">Arrow keys move. Space or Enter fills a square, X marks it empty, Delete clears it, and Z undoes. Hold Shift with an arrow to paint as you move. L locks or unlocks the row, and Shift+L the column. A locked line can’t change.</p>
 
   <div class="caption" id="caption" hidden>
     <p id="cap-name"></p>
@@ -63,7 +65,7 @@ try {
     <button type="button" class="ib" id="next-btn" aria-label="Next level" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
     </button>
-    <button type="button" class="foot-btn share-btn" id="share-btn" hidden>Share blank</button>
+    <button type="button" class="foot-btn share-btn" id="share-btn" hidden>Share puzzle</button>
   </div>
 
   <div class="bar">
@@ -92,7 +94,7 @@ try {
 </main>
 
 <dialog class="sheet" id="help" aria-labelledby="help-title"><div class="sheet-in"><header class="sheet-head"><h2 id="help-title">How to play</h2><form method="dialog"><button class="sheet-x" aria-label="Close" autofocus><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></header><div class="sheet-body">
-<p>Fill squares to match every row and column. Each number is one run.</p>
+<p>Fill squares so every row and column matches its numbers. Each number is a run of filled squares, in order, with at least one empty square between runs. Marking empty squares is optional.</p>
 <section class="lesson" aria-labelledby="lesson-title">
   <div class="lesson-heading"><h3 id="lesson-title"></h3><span id="lesson-count" aria-label="Lesson"></span></div>
   <p id="lesson-task"></p>
@@ -114,8 +116,8 @@ try {
 </section>
 <dl class="controls" id="practice-controls">
   <div><dt>Tap</dt><dd>fills or clears</dd></div>
-  <div><dt>Drag</dt><dd>fills a line</dd></div>
-  <div><dt>Double-tap, hold, right-click</dt><dd>marks a square empty</dd></div>
+  <div><dt>Drag</dt><dd>does the same along a line</dd></div>
+  <div><dt>Double-tap, hold or right-click</dt><dd>marks a square empty, or clears the mark</dd></div>
 </dl>
 <div class="sheet-foot"><a class="foot-btn" href="https://lukesteuber.com/">lukesteuber.com</a></div>
 </div></div></dialog>
@@ -129,6 +131,7 @@ try {
 <section aria-labelledby="levels-quick-title"><h3 id="levels-quick-title">New puzzle</h3><div class="sizes" id="sizes" role="group" aria-labelledby="levels-quick-title"></div></section></div></div></dialog>
 
 <dialog class="sheet" id="settings" aria-labelledby="settings-title"><div class="sheet-in"><header class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="sheet-x" aria-label="Close" autofocus><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></header><div class="sheet-body">
+<section aria-labelledby="settings-levels-title"><h3 id="settings-levels-title">Levels</h3><div class="practice-tools"><button type="button" class="text-action" id="settings-levels" aria-haspopup="dialog">Choose a level…</button></div></section>
 <section aria-labelledby="settings-quick-title"><h3 id="settings-quick-title">New puzzle</h3>
 <div class="sizes" id="settings-sizes" role="group" aria-labelledby="settings-quick-title"></div></section>
 <section aria-labelledby="appearance-title"><h3 id="appearance-title">Appearance</h3>
@@ -143,8 +146,8 @@ try {
 <script src="./levels.js?v=4e9118b8"></script>
 <script src="./plus-levels.js?v=4f48e40f"></script>
 <script src="./paint-input.js?v=5bb412f7"></script>
-<script src="./notan.js?v=7a26646d"></script>
-<script src="./practice.js?v=292120d0"></script>
+<script src="./notan.js?v=73fe7ca0"></script>
+<script src="./practice.js?v=2eb19b68"></script>
 <script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script>
 <script defer src="./controls.js?v=56545027"></script>
 </body>

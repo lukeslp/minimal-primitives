@@ -303,7 +303,7 @@
   function tilt(dir) {
     if (!NAMES[dir] || solved || phase === 'calibrating' || phase === 'starting') return false;
     finishMotion();
-    const result = E.slide(current, place, dir), where = r => `Tray ${r.level + 1}, row ${r.row + 1}, column ${r.col + 1}.`;
+    const result = E.slide(current, place, dir), where = r => `tray ${r.level + 1}, row ${r.row + 1}, column ${r.col + 1}.`;
     hint = null;
     if (!result.moved) { announce(NAMES[dir] + '. The marble stays.'); refresh(); nudge(dir); return false; }
     history.push({ ...place, hits });
@@ -313,8 +313,8 @@
     save();
     const drops = result.path.some(c => c.drop);
     pending = { level: place.level, row: place.row, col: place.col, drop: drops, solved, step: hits - 1 };
-    if (solved) announce(`${NAMES[dir]}. ${drops ? 'Drops. ' : ''}Finished in ${hits}, par ${par}. ${allSolved() ? ENDING : 'Next board is ready.'}`);
-    else announce(`${NAMES[dir]}. ${drops ? 'Drops to ' : ''}${where(result)}`);
+    if (solved) announce(`${NAMES[dir]}. ${drops ? 'Drops. ' : ''}Finished in ${hits} ${hits === 1 ? 'tip' : 'tips'}, par ${par}. ${allSolved() ? ENDING : 'Next board is ready.'}`);
+    else announce(`${NAMES[dir]}. ${drops ? 'Drops to' : 'Now on'} ${where(result)}`);
     refresh(); animate(from, result.path);
     return true;
   }
@@ -351,8 +351,8 @@
     if (solved) return false;
     if (hint) { const dir = hint; hint = null; return tilt(dir); }
     const moves = E.solve(current, place);
-    if (!moves || !moves.length) { announce('No way on from here.'); return false; }
-    hint = moves[0]; announce(`Hint: ${NAMES[hint]}. Hint again tips it.`); refresh();
+    if (!moves || !moves.length) { announce('The marble can’t reach the exit from here. Undo or restart.'); return false; }
+    hint = moves[0]; announce(`Hint: ${NAMES[hint].toLowerCase()}. Press Hint again to tip it.`); refresh();
     return true;
   }
 
@@ -488,7 +488,7 @@
   function beginCalibration(full, base) {
     full = full && !base;
     calib = { full, base: base || null, mode: prefs.input, spots: full ? [0, 1, 2, 3, 4] : [0], step: 0, window: [], captured: [], progress: 0, last: null, dotAt: null };
-    setPhase('calibrating'); announce(base ? 'Calibration did not take. One dot instead: look at it and hold still.' : full ? 'Look at each dot in turn and hold still.' : 'Look at the dot and hold still.');
+    setPhase('calibrating'); announce(base ? 'Calibration didn’t work. Try one dot instead: look at it and hold still.' : full ? 'Look at each dot in turn and hold still.' : 'Look at the dot and hold still.');
   }
   function calibrate(t, f) {
     const dt = calib.last === null ? 0 : clamp(t - calib.last, 0, 120), head = calib.mode === 'head';
@@ -522,9 +522,9 @@
   // pointer. Nobody is kept in calibration for ever.
   function calibrationFailed() {
     const mode = calib.mode;
-    if (calib.base) { calFails = 0; T.stop(); virtual = false; showLive(false); calib = null; setPhase('pointer'); announce('Calibration did not take. Play by pointer; the camera button tries again.'); return; }
+    if (calib.base) { calFails = 0; T.stop(); virtual = false; showLive(false); calib = null; setPhase('pointer'); announce('Calibration didn’t work, so you’re playing by pointer. Press the camera button to try again.'); return; }
     if (++calFails >= 2) { calFails = 0; beginCalibration(false, G.current(calibration[mode]) ? calibration[mode] : G.typical(mode)); return; }
-    beginCalibration(true); announce('Again: look at each dot and hold still.');
+    beginCalibration(true); announce('Calibration didn’t work. Look at each dot again and hold still.');
   }
   function finishCalibration() {
     const { mode, full, captured } = calib, made = calib.base ? G.recentre(calib.base, captured[0]) : full ? (mode === 'head' ? G.headCalibration(captured) : G.eyesCalibration(captured)) : G.recentre(calibration[mode], captured[0]);
@@ -532,7 +532,7 @@
     calFails = 0;
     calibration[mode] = made; calib = null; save();
     [fx, fy] = filters(); gesture.reset(true); setPhase('camera');
-    announce(mode === 'head' ? 'Camera ready. Tilt your head toward a side and hold to tip; come back to level between tips.' : 'Camera ready. Look beside the marble, on its tray, and hold to tip.');
+    announce(mode === 'head' ? 'Camera ready. Tilt your head to one side and hold to tip, then come back to level before the next tip.' : 'Camera ready. Look beside the marble, on its tray, and hold to tip.');
   }
   const permission = async () => { try { return (await navigator.permissions.query({ name: 'camera' })).state; } catch (_) { return 'unknown'; } };
   // Start the camera for head or eyes. Refused or unavailable, play goes on by pointer.
@@ -548,11 +548,11 @@
   }
   // The camera lost mid-play: play goes on by pointer, and the player's choice
   // of camera is kept, so the camera button or the next visit picks it up.
-  T.onLost = () => { if (phase !== 'camera' && phase !== 'calibrating') return; virtual = false; showLive(false); calib = null; setPhase('pointer'); announce('The camera stopped. Play by pointer; the camera button tries again.'); };
+  T.onLost = () => { if (phase !== 'camera' && phase !== 'calibrating') return; virtual = false; showLive(false); calib = null; setPhase('pointer'); announce('The camera stopped, so you’re playing by pointer. Press the camera button to try again.'); };
   let calFails = 0;
   function fallback(error) {
     T.stop(); virtual = false; showLive(false); calib = null; prefs.input = 'pointer'; save(); setPhase('pointer');
-    announce(error && error.code === 'vendor-missing' ? 'This site does not have the camera files. Play by pointer or keys; the camera button tries again.' : 'Camera unavailable. Play by pointer or keys; the camera button tries again.');
+    announce(error && error.code === 'vendor-missing' ? 'This site doesn’t have the camera files, so you’re playing by pointer and keys. Press the camera button to try again.' : 'The camera isn’t available, so you’re playing by pointer and keys. Press the camera button to try again.');
   }
   function stopCamera() {
     T.stop(); virtual = false; showLive(false); calib = null; resumeOnShow = false;
@@ -687,7 +687,7 @@
   // trackpad swipe or the wheel tips the way the fingers go; arrows and W A S D
   // tip. A release counts wherever it lands, and capture lost with no button
   // held is a release.
-  const control = t => !!(t && t.closest && t.closest('button,a,select,input,textarea,label,summary,dialog'));
+  const control = t => !!(t && t.closest && t.closest('button,[role="button"],a,select,input,textarea,label,summary,dialog'));
   const way = (dx, dy) => Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 'R' : 'L') : (dy > 0 ? 'D' : 'U');
   function handTip(dir) {
     if (sheet() || phase === 'calibrating' || phase === 'starting') return false;
@@ -788,7 +788,7 @@
     $('meta[name="theme-color"]').content = dark() ? '#000000' : '#ffffff';
     if (reduced()) finishMotion();
   }
-  $('#rewards').onchange = e => { prefs.rewards = e.target.value; if (prefs.rewards === 'calm') unpaint(); save(); announce(prefs.rewards === 'calm' ? 'Rewards calm: paper and ink only.' : 'Rewards in color.'); };
+  $('#rewards').onchange = e => { prefs.rewards = e.target.value; if (prefs.rewards === 'calm') unpaint(); save(); announce(prefs.rewards === 'calm' ? 'Calm rewards: no color.' : 'Rewards in color.'); };
   // The AudioContext is made here, in the player's own gesture, and never before Sound is on.
   $('#sound').onchange = e => { prefs.sound = e.target.value; if (prefs.sound === 'on') audio.wake(); save(); announce(prefs.sound === 'on' ? 'Sound on.' : 'Sound off.'); };
   for (const id of ['theme', 'motion']) $('#' + id).onchange = e => { prefs[id] = e.target.value; applyPrefs(); save(); refresh(); announce(id === 'theme' ? 'Theme changed.' : 'Motion setting changed.'); };

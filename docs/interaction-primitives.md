@@ -38,7 +38,7 @@ descriptions, the download page and this document.
 | --- | --- | --- |
 | get | take, lift, uncover, pick out, follow | Hexsweeper, Pursuit, Sweep |
 | put | place, drop, stack, mark | Hexsweeper, Akari, Bending, Horologist, Towers, Tents, Cast |
-| push | push, repel, strike, step | Shoo · Minimal, Shoo, Delve |
+| push | push, repel, strike, step | Shoo · Minimal, Shoo |
 | turn | turn, spin, tilt, flip | Slant, Tilt, Tilt · 3D, Cube Maze, Horologist, Tangles, Glance, Nod |
 | join | connect, trace from point to point | Bridges, Constellations, Tangles, Glyph |
 | split | divide, separate | Spiral Galaxies |

@@ -7,12 +7,18 @@ const E = globalThis.CastEngine, R = globalThis.CastReason, ALL = globalThis.Cas
 const KEY = 'cast-3d.v1', NS = 'http://www.w3.org/2000/svg';
 // From November 16 to 17, 2026 the campaign was these thirty, and reached (order 2) counted in their order.
 const ORDER_2 = ['c01', 'c02', 'c04', 'c03', 'c05', 'c06', 'c07', 'c08', 'c09', 'c10', 'c13', 'c12', 'c11', 'c16', 'c17', 'c18', 'c42', 'c19', 'c38', 'c22', 'c21', 'c20', 'c35', 'c25', 'c36', 'c29', 'c43', 'c48', 'c41', 'c50'];
+// Board 21 was c25 until November 19, 2026. Its floor outline, the pinwheel, drew a swastika, so it left the campaign and
+// c27, its near twin, took its place. A save on c25 opens c27 fresh, a finished c25 also marks c27 finished, and a save
+// that had c25 open has c27 open. c25 stays in boards.js so its marks still load, but nothing serves it.
+const RETIRED = {c25: 'c27'}, live = id => RETIRED[id] || id;
 const board = $('#board'), canvas = $('#scene'), marks = $('#marks'), reducedQuery = matchMedia('(prefers-reduced-motion:reduce)'), forcedColors = matchMedia('(forced-colors:active)');
 // Room proportions in cube units: wall thickness, the cube's bevel and the carried cube's lift. The room
 // stands flush on the page, which is the ground plane. The camera is truly isometric. Shadow maps are
 // 1024 square: under a fifth of a pixel per texel at desk sizes, so every shadow edge lands on its
 // square boundary to well within a pixel.
 // MAX_CUBES bounds the tray and stack buffers; boards hold at most 26 cubes.
+// A count with its noun, singular for one: "1 cube", "2 cubes".
+const nOf = (n, noun) => `${n} ${noun}${n === 1 ? '' : 's'}`;
 const MAX_CUBES = 32, WALL = .1, BEVEL = .03, LIFT = .045, ELEV = Math.atan(Math.SQRT1_2), MAX_PIXELS = 4.6e6, SHADOW_MAP = 1024;
 // The view rests. Front is the true isometric view from the room's open corner. Left and right swing
 // the camera VIEW_SWING round the room's upright axis and lift it to VIEW_LIFT, to look over and round a
@@ -95,6 +101,8 @@ try {
 } catch (_) { preserveSave = true; }
 let puzzle = ALL.find(b => b.id === saved?.board) || boards[0], heights = saved ? copy(saved.heights) : E.start(puzzle), hits = saved?.hits || 0;
 let history = saved?.history || [], finished = new Set(saved?.finished || []), prefs = {motion: saved?.motion || 'system'};
+for (const id of [...finished]) if (RETIRED[id]) finished.add(RETIRED[id]);
+if (RETIRED[puzzle.id]) { puzzle = ALL.find(b => b.id === RETIRED[puzzle.id]); heights = E.start(puzzle); hits = 0; history = []; }
 // A player last on a board left out of the campaign goes on from the first campaign board not finished, or, with all
 // twenty-five finished, from the last, where free play opens. One of the five boards that left on November 17, 2026
 // goes on from the open campaign board nearest it among the thirty (placed once `reached` is known, below).
@@ -113,7 +121,7 @@ const openedBy = done => Math.max(-1, ...[...done].map(id => boards.findIndex(b 
 // Before November 16, 2026 the campaign was all fifty, in boards.js's order, and reached counted in that order; until
 // November 17 it was the thirty of ORDER_2 (order 2); now order 3 counts in campaign.js. Every campaign board a save had
 // open stays open.
-const fromSave = saved ? (saved.campaign === 2 ? saved.reached : 11) : 0, opened = saved?.order === 3 ? fromSave : Math.max(-1, ...(saved?.order === 2 ? ORDER_2.map(id => ALL.find(b => b.id === id)) : ALL).slice(0, fromSave + 1).map(b => boards.indexOf(b)));
+const fromSave = saved ? (saved.campaign === 2 ? saved.reached : 11) : 0, opened = saved?.order === 3 ? fromSave : Math.max(-1, ...(saved?.order === 2 ? ORDER_2.map(id => ALL.find(b => b.id === id)) : ALL).slice(0, fromSave + 1).map(b => boards.findIndex(x => x.id === live(b.id))));
 let reached = Math.min(boards.length - 1, Math.max(opened, openedBy(finished), saved ? boards.indexOf(isFree() ? parked.board : puzzle) : 0));
 if (leftBoard && !isFree()) { const at = ORDER_2.indexOf(leftBoard), far = b => Math.abs(ORDER_2.indexOf(b.id) - at); puzzle = boards.slice(0, reached + 1).reduce((best, b) => far(b) < far(best) || (far(b) === far(best) && ORDER_2.indexOf(b.id) > ORDER_2.indexOf(best.id)) ? b : best); heights = E.start(puzzle); }
 let hint = null, focus = [0, 0], keyboard = false, hover = null, gesture = null, carry = null, wheel = null;
@@ -126,6 +134,25 @@ const reduced = () => prefs.motion === 'reduce' || reducedQuery.matches;
 const solvedNow = () => E.solved(puzzle, heights);
 const wallHeight = () => puzzle.maxH + .25;
 function announce(message) { $('#announcement').textContent = message; }
+// Wins after the campaign: free boards solved by a move with the campaign finished, counted from 2026-11-19 on (no
+// earlier save records them). `held` names the board counted last ('free:' and its seed), so Undo and the same move,
+// Restart, or a reload of that board count nothing more. A key of its own: the main save keeps its fields.
+const PLUS_STORE = 'cast-3d.plus.v1';
+let plus = {version: 1, wins: 0, held: ''}, plusBlocked = false;
+try {
+  const raw = localStorage.getItem(PLUS_STORE);
+  if (raw !== null) {
+    const v = JSON.parse(raw);
+    if (!v || v.version !== 1 || !Number.isInteger(v.wins) || v.wins < 0 || typeof v.held !== 'string') throw new Error('Invalid save');
+    plus = {version: 1, wins: v.wins, held: v.held};
+  }
+} catch (_) { plusBlocked = true; }
+function countPlus() {
+  const id = 'free:' + puzzle.seed;
+  if (!isFree() || !complete() || plus.held === id) return;
+  plus.wins++; plus.held = id;
+  if (!plusBlocked) try { localStorage.setItem(PLUS_STORE, JSON.stringify(plus)); } catch (_) {}
+}
 function save() {
   if (preserveSave) return;
   const here = {board: puzzle, heights, hits, history}, camp = isFree() ? parked : here, free = isFree() ? here : parked;
@@ -827,7 +854,7 @@ function rings() {
     else el('polygon', {points: pts(topSquare(refusal.r, refusal.c, heights[refusal.r][refusal.c] + .006, .04)), class: 'refused-ring'}, g);
   }
   const v = E.views(heights), m = E.compare(puzzle, heights), status = solved ? ' Solved.' : '';
-  board.setAttribute('aria-label', `${boardName()}, ${puzzle.n} by ${puzzle.n}. Heights by row: ${heights.map(row => row.join(', ')).join('; ')}. Left shadows ${v.left.join(', ')}; targets ${puzzle.left.join(', ')}. Right shadows ${v.right.join(', ')}; targets ${puzzle.right.join(', ')}. Footprints by row: ${puzzle.plan.map(row => row.join(', ')).join('; ')}. ${m.tray} cubes in tray. ${hits} hits, par ${E.par(puzzle)}. Focus row ${focus[0] + 1}, column ${focus[1] + 1}, height ${heights[focus[0]][focus[1]]}. View from the ${RESTS[viewRest].name}.${carry ? ' Carrying one cube. Arrows carry, Space drops, Escape cancels.' : ''}${status}`);
+  board.setAttribute('aria-label', `${boardName()}, ${puzzle.n} by ${puzzle.n}. Heights by row: ${heights.map(row => row.join(', ')).join('; ')}. Left wall shadows ${v.left.join(', ')}; outlines ${puzzle.left.join(', ')}. Right wall shadows ${v.right.join(', ')}; outlines ${puzzle.right.join(', ')}. Floor outline by row: ${puzzle.plan.map(row => row.join(', ')).join('; ')}. ${nOf(m.tray, 'cube')} in the tray. ${nOf(hits, 'move')}, par ${E.par(puzzle)}. Row ${focus[0] + 1}, column ${focus[1] + 1} selected, height ${heights[focus[0]][focus[1]]}. View from the ${RESTS[viewRest].name}.${carry ? ' Carrying a cube. Arrows move it, Space drops it, Escape puts it back.' : ''}${status}`);
   board.dataset.carrying = String(!!carry);
 }
 // The board's name, and where the next arrow leads once it is solved: the next board; after the last board,
@@ -846,9 +873,10 @@ function sync() {
   const solved = solvedNow(), next = onward();
   board.dataset.busy = String(busy); board.dataset.solved = String(solved); board.dataset.mode = mode; board.dataset.end = String(theEnd());
   // The readout names the board: its number, ∞ in free play, and the last board, once all thirty are finished, the end.
+  // Free play adds the campaign's count and the wins after it.
   const name = isFree() ? '∞' : theEnd() ? 'The end' : `${boards.indexOf(puzzle) + 1} / ${boards.length}`;
-  $('#readout').textContent = `${name} · ${hits} / ${E.par(puzzle)}`;
-  $('#readout').setAttribute('aria-label', `${theEnd() ? 'The end. ' : ''}${boardName()}; ${hits} hits; par ${E.par(puzzle)}`);
+  $('#readout').textContent = `${name} · ${hits} / ${E.par(puzzle)}${isFree() ? ` · ${boards.length}${plus.wins ? ` + ${plus.wins}` : ''} ✓` : ''}`;
+  $('#readout').setAttribute('aria-label', `${theEnd() ? 'The end. ' : ''}${boardName()}; ${nOf(hits, 'move')}; par ${E.par(puzzle)}${isFree() ? `; ${boards.length} boards solved${plus.wins ? ` and ${nOf(plus.wins, 'New Game+ board')}` : ''}` : ''}`);
   $('#next-btn').hidden = !(!carry && solved); $('#next-btn').setAttribute('aria-label', next.label);
   // At the end one line stands above the arrow.
   $('#end-line').textContent = `All ${boards.length} boards solved.`; $('#end-line').hidden = $('#next-btn').hidden || !theEnd();
@@ -872,7 +900,7 @@ function tween(duration, frame) {
 async function refuse(r, c, to) {
   const tray = to > heights[r][c] && to <= puzzle.maxH && E.compare(puzzle, heights).tray === 0;
   refusal = {kind: tray ? 'tray' : 'column', r, c, shake: 0}; rings();
-  announce(tray ? 'The tray is empty. Remove a cube first.' : `Height refused at row ${r + 1}, column ${c + 1}. Maximum height ${puzzle.maxH}.`);
+  announce(tray ? 'The tray is empty. Remove a cube first.' : to < 0 ? `Row ${r + 1}, column ${c + 1} has no cube to take off.` : `Row ${r + 1}, column ${c + 1} is full at ${puzzle.maxH} cubes.`);
   await tween(200, t => { if (refusal) { refusal.shake = Math.sin(t * Math.PI * 4) * (1 - t) * 5; rings(); } });
   // With reduced motion the heavier mark stays until the next action.
   if (!reduced()) { refusal = null; rings(); }
@@ -890,7 +918,7 @@ async function perform(action) {
     if (solvedNow()) return;
     if (hint) { const h = hint; hint = null; return perform({type: 'set', r: h.r, c: h.c, to: h.to}); }
     hint = R.hint(puzzle, heights); sync();
-    if (hint) announce(`Hint: row ${hint.r + 1}, column ${hint.c + 1}, height ${hint.to}. ${R.words(puzzle, hint)}${hint.reason ? ' ' : ''}Press Hint again to place it.`);
+    if (hint) announce(`Hint: row ${hint.r + 1}, column ${hint.c + 1} should be ${hint.to ? `${hint.to} high` : 'empty'}. ${R.words(puzzle, hint)}${hint.reason ? ' ' : ''}Press Hint again to set it.`);
     return;
   }
   const {r, c} = action, validCell = (r, c) => Number.isInteger(r) && Number.isInteger(c) && r >= 0 && c >= 0 && r < puzzle.n && c < puzzle.n;
@@ -922,12 +950,14 @@ async function perform(action) {
   history.push({heights: copy(heights), hits}); heights = next; hits++; hint = null; hover = null; focus = target;
   const solved = solvedNow(); tint = 0;
   if (solved && !isFree()) { finished.add(puzzle.id); reached = Math.min(boards.length - 1, Math.max(reached, boards.indexOf(puzzle) + 1)); }
+  if (solved) countPlus();
   sync(); save();
   if (E.compare(puzzle, heights).tray > before) await returnToTray(returnFrom, before);
   if (run !== epoch) return;
   if (solved) {
     // The next arrow is already showing and usable; the color carries the moment, and nothing else moves.
-    announce(`All shadows match. Board solved in ${hits} hits. Par ${E.par(puzzle)}. ${theEnd() ? 'The end. New Game+ is open in Settings and behind the next arrow.' : `${onward().label} is next.`}`);
+    const after = onward().label;
+    announce(`Every shadow fills its outline. Board solved in ${nOf(hits, 'move')}. Par ${E.par(puzzle)}. ${theEnd() ? 'The end. New Game+ is open. Start it with the next arrow or from Settings.' : after === 'Next board' ? 'The next board is ready.' : `${after} is next. You haven’t solved it yet.`}`);
     const finish = tween(FINISH_MS, t => { tint = t * t * (3 - 2 * t); updateLight(); requestRender(); });
     if (grew) settleCube(...target, action.carried ? LIFT : .06);
     await finish;
@@ -937,7 +967,7 @@ async function perform(action) {
     await settleCube(...target, action.carried ? LIFT : .06); if (run !== epoch) return;
   }
   if (!solved) {
-    announce(`${action.type === 'move' ? `Cube moved from row ${r + 1}, column ${c + 1} to row ${focus[0] + 1}, column ${focus[1] + 1}.` : `Row ${r + 1}, column ${c + 1}, height ${to}.`} ${E.compare(puzzle, heights).tray} cubes in the tray. ${hits} hits.`);
+    announce(`${action.type === 'move' ? `Cube moved from row ${r + 1}, column ${c + 1} to row ${focus[0] + 1}, column ${focus[1] + 1}.` : `Row ${r + 1}, column ${c + 1} is now ${to ? `${to} high` : 'empty'}.`} ${nOf(E.compare(puzzle, heights).tray, 'cube')} in the tray. ${nOf(hits, 'move')}.`);
   }
 }
 async function returnToTray(from, slot) {
@@ -969,7 +999,7 @@ function clearPending() {
 }
 function undo() {
   clearPending(); const previous = history.pop();
-  if (previous) { heights = copy(previous.heights); hits = previous.hits; announce(`Move undone. ${hits} hits. ${E.compare(puzzle, heights).tray} cubes in the tray.`); }
+  if (previous) { heights = copy(previous.heights); hits = previous.hits; announce(`Undone. ${nOf(hits, 'move')}. ${nOf(E.compare(puzzle, heights).tray, 'cube')} in the tray.`); }
   hint = null; hover = null; tint = solvedNow() ? 1 : 0; sync(); save();
 }
 function restart() { clearPending(); heights = E.start(puzzle); hits = 0; history = []; hint = null; hover = null; tint = 0; sync(); save(); announce('Board restarted.'); }
@@ -1000,7 +1030,7 @@ function startFree(fresh) {
   mode = 'free';
   if (resume) open(kept.board, copy(kept.heights), kept.hits, kept.history);
   else { recent = [...recent, drawn.seed].slice(-RECENT); open(drawn, E.start(drawn), 0, []); }
-  announce(`New Game+ board, ${puzzle.cubes} cubes.`);
+  announce(`New Game+ board, ${nOf(puzzle.cubes, 'cube')}.`);
   return true;
 }
 const set = (r, c, to) => enqueue({type: 'set', r, c, to}), add = (r, c) => enqueue({type: 'step', r, c, delta: 1});
@@ -1172,14 +1202,14 @@ document.addEventListener('keydown', e => {
   if (!ready || e.ctrlKey || e.metaKey || e.altKey || $('dialog[open]') || e.target.matches('select,input,textarea')) return;
   const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   if (['z', 'u', 'Backspace'].includes(key)) { e.preventDefault(); undo(); return; }
-  if (key === 'Escape' && carry) { e.preventDefault(); cancelCarry(); announce('Cube returned to its source.'); return; }
+  if (key === 'Escape' && carry) { e.preventDefault(); cancelCarry(); announce('Cube put back where it was.'); return; }
   if (key === 'h' && !carry) { e.preventDefault(); enqueue({type: 'hint'}); return; }
   if ((key === '[' || key === ']') && !gesture) { e.preventDefault(); goView(viewRest + (key === ']' ? 1 : -1), true); return; }
   const delta = {ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0]}[key];
   if (delta) {
     e.preventDefault(); focus = focus.map((v, i) => Math.max(0, Math.min(puzzle.n - 1, v + delta[i]))); keyboard = true; hover = null; board.focus({preventScroll: true});
     if (carry) { carry.target = focus.slice(); updateScene(); }
-    rings(); announce(`${carry ? 'Carrying cube. ' : ''}Row ${focus[0] + 1}, column ${focus[1] + 1}, height ${heights[focus[0]][focus[1]]}.`);
+    rings(); announce(`${carry ? 'Carrying a cube. ' : ''}Row ${focus[0] + 1}, column ${focus[1] + 1}, height ${heights[focus[0]][focus[1]]}.`);
   }
   if (key === 'Enter' && e.target === board && !carry) { e.preventDefault(); enqueue({type: 'step', r: focus[0], c: focus[1], delta: e.shiftKey ? -1 : 1}); }
   if (key === 'Delete' && !carry) { e.preventDefault(); if (heights[focus[0]][focus[1]]) enqueue({type: 'step', r: focus[0], c: focus[1], delta: -1}); }
@@ -1187,7 +1217,7 @@ document.addEventListener('keydown', e => {
     e.preventDefault(); if (e.repeat || gesture || queue.length) return;
     finishAnimations();
     if (carry) { const source = carry.source, target = focus.slice(); carry = null; sync(); enqueue({type: 'move', r: source[0], c: source[1], r2: target[0], c2: target[1], carried: true}); }
-    else if (heights[focus[0]][focus[1]]) { carry = {source: focus.slice(), target: focus.slice(), pointer: null}; hint = null; sync(); announce(`Top cube lifted from row ${focus[0] + 1}, column ${focus[1] + 1}. Arrows carry; Space drops; Escape cancels.`); }
+    else if (heights[focus[0]][focus[1]]) { carry = {source: focus.slice(), target: focus.slice(), pointer: null}; hint = null; sync(); announce(`Picked up the top cube from row ${focus[0] + 1}, column ${focus[1] + 1}. Use the arrows to move it, Space to drop it and Escape to put it back.`); }
   }
 });
 for (const name of ['selectstart', 'dragstart', 'contextmenu']) board.addEventListener(name, e => e.preventDefault());
@@ -1285,7 +1315,7 @@ function poolPoints() {
 function hookup() {
   window.__cast3d = {
     boards, get board() { return puzzle.id; }, get state() { return snapshot(); }, set, add, undo, restart, go, move, remove, free: startFree,
-    get mode() { return mode; }, get puzzle() { return {...puzzle}; }, get complete() { return complete(); }, get finished() { return [...finished]; },
+    get mode() { return mode; }, get puzzle() { return {...puzzle}; }, get complete() { return complete(); }, get finished() { return [...finished]; }, get plus() { return {...plus}; },
     trayPoint() { const s = trayView.slots[0]; return client(s); },
     squarePoint(r, c) { return client(toView(c + .5, 0, r + .5)); },
     columnTop(r, c) { return client(toView(c + .5, heights[r][c], r + .5)); },

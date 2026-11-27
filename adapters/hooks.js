@@ -47,7 +47,13 @@
       const scores = document.createElement('button'); scores.type='button'; scores.textContent='Collection scores';
       scores.className=settings.id==='help-panel-settings'?'help-pack is-text':'text-action'; scores.dataset.minimalCollection='scores'; scores.addEventListener('click',()=>bridge.emit('scores'));
       // Slant and Bridges find their own "Scores for this puzzle" row as the sheet body's last .row: it stays last.
-      const own=settings.lastElementChild;if(own&&own.matches('.row')&&own.querySelector('button')?.textContent==='Scores for this puzzle')own.before(scores);else settings.append(scores);
+      const footer=bridge.config.game==='hexsweeper'&&settings.matches('#modal-overlay .modal-content')&&settings.querySelector(':scope > .menu-links');
+      const own=settings.lastElementChild;
+      if(footer){
+        const row=document.createElement('div');row.className='modal-row';
+        row.style.marginTop=getComputedStyle(settings.querySelector('.modal-row')).marginBottom;
+        row.style.justifyContent='center';row.append(scores);footer.before(row);
+      }else if(own&&own.matches('.row')&&own.querySelector('button')?.textContent==='Scores for this puzzle')own.before(scores);else settings.append(scores);
       // Games whose stylesheet has no .text-action rule would show the browser's gray button. :where() adds no
       // specificity, so a game's own rule still wins.
       // max-width and wrapping keep the label inside the sheet at any text size.

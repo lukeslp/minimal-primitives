@@ -25,8 +25,8 @@
     // completed mark stays, since the player did finish it. Every other board and record loads as saved.
     if(store.revision!==2){delete store.records['canis-minor'];store.revision=2;}
    }catch(_){
-    try{const recovery=KEY+'.recovery.'+Date.now()+'.'+crypto.randomUUID();localStorage.setItem(recovery,raw);if(localStorage.getItem(recovery)!==raw)throw Error();warning='An unreadable save was kept in recovery.';}
-    catch(_){blocked=true;warning='The unreadable save is protected. This session will not replace it.';}
+    try{const recovery=KEY+'.recovery.'+Date.now()+'.'+crypto.randomUUID();localStorage.setItem(recovery,raw);if(localStorage.getItem(recovery)!==raw)throw Error();warning='Your save couldn’t be read, so a copy was set aside and the game started fresh.';}
+    catch(_){blocked=true;warning='Your save couldn’t be read or copied, so this session won’t save over it.';}
    }
   }
  }catch(_){blocked=true;warning='Storage is unavailable. You can play without saving.';}
@@ -329,7 +329,7 @@
  // A route crossing a thread cannot be used; trying it is refused like any other refused move.
  function cycle(e){if(!t.edges[e])return;if(barred(e)&&!E.inspect(p,s.weights).solved){refuse([t.edges[e].a,t.edges[e].b],'That route crosses a thread.');return;}commit(e,nextCount(e));}
  function refuse(stars,message){refused=new Set(stars);clearTimeout(refusalTimer);render();say(message);refusalTimer=setTimeout(()=>{refused.clear();render();},650);}
- function pair(a,b){const e=t.edges.findIndex(e=>e.a===a&&e.b===b||e.a===b&&e.b===a);if(e<0){refuse([a,b],'Choose one of this star’s visible paths.');return;}cycle(e);}
+ function pair(a,b){const e=t.edges.findIndex(e=>e.a===a&&e.b===b||e.a===b&&e.b===a);if(e<0){refuse([a,b],'There’s no line between those stars.');return;}cycle(e);}
  function tap(i){if(E.inspect(p,s.weights).solved)return;if(s.selected===null){s.selected=i;s.hint=null;render();}else if(s.selected===i){s.selected=null;render();}else pair(s.selected,i);}
  function undo(){cancel();const previous=s.undo.pop();if(previous){Object.assign(s,previous);s.selected=null;s.hint=null;render();save();say('Undone.');}}
  function lock(e){if(!s.weights[e])return;s.undo.push(snapshot());if(s.undo.length>200)s.undo.shift();s.locks[e]=!s.locks[e];render();save();say(s.locks[e]?'Thread locked.':'Thread unlocked.');}
@@ -341,10 +341,10 @@
   const next=E.hint(p,s.weights,s.locks),step=h=>h?(h.error?h.fix:h):null,was=step(s.hint),now=step(next);
   if(was&&now&&!!s.hint.error===!!next.error&&was.edge===now.edge&&was.count===now.count){if(next.error)commit(now.edge,s.weights[now.edge]-1);else cycle(now.edge);return;}
   s.hint=next;
-  if(!next)say('No step follows from the stars’ needs yet.');
-  else if(next.fix){const why={degree:'a star has too many threads',crossing:'threads cross'}[next.error.rule]||'the stars’ needs rule it out';say(`One thread between the marked stars has to go: ${why}.${s.locks[next.fix.edge]?' It is locked; hold it to unlock.':' Press Hint again to take it off.'}`);}
-  else if(next.error){refuse(next.error.stars,'These marks conflict. Try Undo.');return;}
-  else say(`This route needs ${next.count} ${next.count===1?'thread':'threads'}. The marked star’s need forces it.${s.locks[next.edge]?' It is locked; hold it to unlock.':' Press Hint again to add one.'}`);
+  if(!next)say('No thread is forced yet.');
+  else if(next.fix){const why={degree:'a star has too many threads',crossing:'threads cross'}[next.error.rule]||'the board can’t be finished with it';say(`One thread between the marked stars has to go, because ${why}.${s.locks[next.fix.edge]?' It’s locked. Hold it to unlock it first.':' Press Hint again to take it off.'}`);}
+  else if(next.error){refuse(next.error.stars,'These threads can’t all stay. Try Undo.');return;}
+  else say(`This line needs ${next.count} ${next.count===1?'thread':'threads'}. One of its stars can’t get all its threads otherwise.${s.locks[next.edge]?' It’s locked. Hold it to unlock it first.':' Press Hint again to add one.'}`);
   render();
  }
  function cancel(){if(drag)clearTimeout(drag.timer);drag=null;preview=null;hover=null;}

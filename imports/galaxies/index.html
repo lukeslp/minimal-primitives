@@ -6,23 +6,23 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<script src="./pwa.js?v=b1ad0419bb51" defer></script><link rel="stylesheet" href="./galaxies.css?v=35c803b8">
+<script src="./pwa.js?v=b1ad0419bb51" defer></script><link rel="stylesheet" href="./galaxies.css?v=9ab236f6">
 <meta name="description" content="Build a shape around each center that matches after a half-turn.">
 <meta property="og:title" content="Spiral Galaxies">
 <meta property="og:description" content="Build a shape around each center that matches after a half-turn.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://lukesteuber.com/games/galaxies/">
-<meta property="og:image" content="https://lukesteuber.com/games/galaxies/gameplay-b74c1b5ed1fb.png">
+<meta property="og:image" content="https://lukesteuber.com/games/galaxies/og.png?v=8b0b6eb8882a">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:type" content="image/png">
-<meta property="og:image:alt" content="Spiral Galaxies gameplay with white borders and diamond centers over a star field on a partly filled board.">
+<meta property="og:image:alt" content="A spiral galaxy among stars on a black sky, the picture a finished Spiral Galaxies board uncovers.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Spiral Galaxies">
 <meta name="twitter:description" content="Build a shape around each center that matches after a half-turn.">
-<meta name="twitter:image" content="https://lukesteuber.com/games/galaxies/gameplay-b74c1b5ed1fb.png">
-<meta name="twitter:image:alt" content="Spiral Galaxies gameplay with white borders and diamond centers over a star field on a partly filled board.">
-<link rel="stylesheet" href="./controls.css?v=e9a44e73">
+<meta name="twitter:image" content="https://lukesteuber.com/games/galaxies/og.png?v=8b0b6eb8882a">
+<meta name="twitter:image:alt" content="A spiral galaxy among stars on a black sky, the picture a finished Spiral Galaxies board uncovers.">
+<link rel="stylesheet" href="./controls.css?v=ca42b497">
 </head>
 <body><header><button id="restart-btn" class="ib" aria-label="Restart puzzle"></button><h1 class="sr-only">Spiral Galaxies</h1><div id="readout" class="readout"></div></header><p id="notice" role="status"></p><main id="board-shell" aria-label="Spiral Galaxies puzzle"><div class="board-stage"><div id="board" class="board" role="grid" aria-label="Galaxies board"></div><div id="completion" class="completion" hidden><button id="share-btn" class="ib" aria-label="Share this puzzle" title="Share this puzzle"></button><button id="next-btn" class="ib" type="button" aria-label="Next puzzle" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button><p id="milestone" class="milestone control-end-line" hidden></p></div></div></main><p id="feedback" role="status" aria-live="polite"></p>
 <p id="share-status" class="sr-only" role="status"></p>
@@ -34,11 +34,11 @@
 <h3 class="group">Display</h3><label class="row">Board size <select id="zoom"><option value="fit">Fit</option><option value="large">Enlarge</option></select></label><label class="row">Motion <select id="motion"><option value="system">System</option><option value="reduce">Reduced</option></select></label>
 <h3 class="group">Share</h3><div class="row"><span>This puzzle</span><button id="share">Copy link</button><button id="share-picture" hidden>Share</button></div><p id="settings-feedback" role="status"></p></div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
 <dialog id="help" class="sheet" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">How to play</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
-<p>Fill every square with a galaxy centered on one diamond. Each galaxy stays connected and looks the same after a half-turn around its diamond.</p>
+<p>Split the board into galaxies, one for each diamond. Every square goes in one galaxy. A galaxy must be in one piece, and it must look the same after a half-turn around its diamond.</p>
 <p><button id="replay-opening" class="text-action">Play the opening boards again</button></p>
 <section class="lesson" aria-labelledby="lesson-title"><div class="lesson-heading"><h3 id="lesson-title"></h3><span id="lesson-count" aria-label="Lesson"></span></div><p id="lesson-task"></p><div class="practice-stage"><div id="practice" class="board practice" role="grid" aria-label="Practice board"></div></div><div class="practice-controls" role="group" aria-label="Practice tools"><button id="practice-undo" class="text-action" aria-label="Undo practice">Undo</button><button id="practice-select" class="text-action">Deselect</button><button id="practice-reset" class="text-action" aria-label="Reset practice">Reset</button></div><p id="practice-feedback" role="status" aria-live="polite"></p><nav class="lesson-nav" aria-label="Lessons"><button id="lesson-prev" class="text-action" aria-label="Previous lesson">Back</button><button id="lesson-next" class="text-action" aria-label="Next lesson">Next</button></nav></section>
-<div class="controls"><p>Tap a diamond, or any square of its galaxy, to select it. Tap the diamond again to fill or clear the squares touching it.</p><p>Tap or drag across squares to fill opposite pairs, or drag out from a diamond. Tap a square of the selected galaxy to clear its pair.</p><p>Stars show a connected, symmetric shape with one diamond. It may still need to grow.</p></div>
-<details class="help-more"><summary>More controls</summary><p>Shapes cannot overlap. Dotted outlines preview the pair; dashed squares mark a problem. A gray square is not joined to its diamond yet.</p><p>Hint previews a move. Tap it again to apply.</p><p>Arrows move between squares; Enter or Space fills or clears a pair. C selects the next diamond; Delete clears a pair. Z undoes. Escape cancels a gesture.</p><p>For a larger board, choose Enlarge, then Pan in Settings.</p></details>
+<div class="controls"><p>Tap a diamond, or any square of its galaxy, to select it. Tap the diamond again to fill or clear the squares touching it.</p><p>Then tap or drag across squares to add them. Each square brings its opposite across the diamond with it. You can also drag out from a diamond. Tap a square of the selected galaxy to clear it and its opposite.</p><p>A galaxy fills with stars once it is in one piece and matches its half-turn. It may still need more squares.</p></div>
+<details class="help-more"><summary>More controls</summary><p>A square holds one galaxy at a time. Painting over another galaxy’s square takes it. A dotted outline shows the square you are aiming at and its opposite. Gray squares belong to a galaxy that isn’t finished. A dashed square breaks a rule.</p><p>Hint rings the squares to fill and outlines the diamond they belong to. Press Hint again to fill them.</p><p>Keys: arrows move between squares, Home and End jump to the ends of a row, and C selects the next diamond. Enter or Space fills a square and its opposite, or clears them. Delete or Backspace clears them. Z undoes, and Escape cancels a drag. With a mouse, right-click or right-drag clears.</p><p>To make the board bigger, set Board size to Enlarge in Settings. Set Input to Pan to drag the board around, and back to Paint to play.</p></details>
 </div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
-<script src="./engine.js?v=e6e0b39f"></script><script src="./levels.js?v=490b8040"></script><script src="./campaign.js?v=eb847d8b"></script><script src="./paint-input.js?v=81bf29d2"></script><script src="./sky.js?v=68473356"></script><script src="./galaxies.js?v=31f6fb3d"></script><script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script><script defer src="./controls.js?v=084080ac"></script>
+<script src="./engine.js?v=cf0936f4"></script><script src="./levels.js?v=490b8040"></script><script src="./campaign.js?v=eb847d8b"></script><script src="./paint-input.js?v=81bf29d2"></script><script src="./sky.js?v=c96b8c0c"></script><script src="./galaxies.js?v=51bbb218"></script><script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script><script defer src="./controls.js?v=79f1ac60"></script>
 </body></html>

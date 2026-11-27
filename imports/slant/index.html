@@ -6,23 +6,23 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<script src="./pwa.js?v=ccbd96c0" defer></script><link rel="stylesheet" href="./slant.css?v=6cbaaa05">
+<script src="./pwa.js?v=ccbd96c0" defer></script><link rel="stylesheet" href="./slant.css?v=278755aa">
 <meta name="description" content="Draw a diagonal in every square. Match the numbers without forming a loop.">
 <meta property="og:title" content="Slant">
 <meta property="og:description" content="Draw a diagonal in every square. Match the numbers without forming a loop.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://lukesteuber.com/games/slant/">
-<meta property="og:image" content="https://lukesteuber.com/games/slant/og.png?v=board-20261009">
+<meta property="og:image" content="https://lukesteuber.com/games/slant/og.png?v=b5df9e40435d">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:type" content="image/png">
-<meta property="og:image:alt" content="A Slant board with diagonal lines and red and blue number clues.">
+<meta property="og:image:alt" content="A finished Slant board: diagonal lines divide the square into bands of yellow, magenta, orange and blue.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Slant">
 <meta name="twitter:description" content="Draw a diagonal in every square. Match the numbers without forming a loop.">
-<meta name="twitter:image" content="https://lukesteuber.com/games/slant/og.png?v=board-20261009">
-<meta name="twitter:image:alt" content="A Slant board with diagonal lines and red and blue number clues.">
-<link rel="stylesheet" href="./controls.css?v=e9a44e73">
+<meta name="twitter:image" content="https://lukesteuber.com/games/slant/og.png?v=b5df9e40435d">
+<meta name="twitter:image:alt" content="A finished Slant board: diagonal lines divide the square into bands of yellow, magenta, orange and blue.">
+<link rel="stylesheet" href="./controls.css?v=ca42b497">
 </head>
 <body><header><button id="restart-btn" class="ib" aria-label="Restart puzzle"></button><h1 class="sr-only">Slant</h1><div id="readout" class="readout"></div><div id="free-bar" class="readout free-bar" hidden><span>Free draw</span><select id="free-size" aria-label="Free draw size"><option value="6">6 × 6</option><option value="8">8 × 8</option><option value="10">10 × 10</option><option value="12">12 × 12</option><option value="16">16 × 16</option></select></div></header><main id="board-shell" aria-label="Slant puzzle"><div class="board-stage"><div id="board" class="board" role="grid" aria-label="Slant board"></div><div id="completion" class="completion" hidden><button id="share-btn" class="ib control-icon" aria-label="Share this puzzle" title="Share this puzzle"></button><button id="download-btn" class="ib control-icon" aria-label="Download colored puzzle" title="Download colored puzzle"></button><button id="next-btn" class="ib" type="button" aria-label="Next board" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button><p id="milestone" class="milestone control-end-line" hidden></p></div></div></main><p id="feedback" role="status" aria-live="polite"></p>
 <p id="share-status" class="sr-only" role="status"></p>
@@ -35,12 +35,12 @@
 <h3 class="group">Share</h3><div class="row"><span>This puzzle</span><button id="share">Copy link</button><button id="share-picture" hidden>Share</button></div><div class="row"><span>Colored puzzle</span><button id="download">Download</button></div>
 <p id="settings-feedback" role="status"></p></div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
 <dialog id="help" class="sheet" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">How to play</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div><div class="sheet-body">
-<p>Draw one diagonal per square. Each number counts touching lines. No loops.</p>
-<p>Free draw, the pencil beside Settings, is a blank board with no numbers or rules: every closed section fills with color, loops included. Its size is chosen at the top, up to 16 × 16.</p>
+<p>Draw a diagonal line in every square. Each number sits on a corner and says how many lines touch it. The lines can't form a closed loop.</p>
+<p>The pencil button opens Free draw: a blank board with no numbers and no rules. Every closed section fills with color, loops included. Pick the size at the top, up to 16 × 16.</p>
 <p><button id="replay-opening" class="text-action">Play the opening boards again</button></p>
 <section class="lesson" aria-labelledby="lesson-title"><div class="lesson-heading"><h3 id="lesson-title"></h3><span id="lesson-count" aria-label="Lesson"></span></div><p id="lesson-task"></p><div class="practice-stage"><div id="practice" class="board practice" role="grid" aria-label="Practice board"></div></div><div class="practice-controls" role="group" aria-label="Practice tools"><button id="practice-undo" class="text-action" aria-label="Undo practice">Undo</button><button id="practice-mark" class="text-action" aria-pressed="false">Backslash</button><button id="practice-reset" class="text-action" aria-label="Reset practice">Reset</button></div><p id="practice-feedback" role="status" aria-live="polite"></p><nav class="lesson-nav" aria-label="Lessons"><button id="lesson-prev" class="text-action" aria-label="Previous lesson">Back</button><button id="lesson-next" class="text-action" aria-label="Next lesson">Next</button></nav></section>
-<div class="controls"><p class="region-note" hidden>Color fills closed sections when their touching numbers match.</p><p class="tap-note">Tap — turn or clear a diagonal.</p><p>Drag — paint a line of diagonals.</p><p class="lock-note">Right-click or hold a drawn diagonal to lock or unlock it.</p><p>Blue numbers match; red numbers need attention.</p></div>
-<details class="help-more"><summary>More controls</summary><p>Choose Slash or Backslash in Settings to paint one direction. Hint outlines a diagonal and the clues or path that force it.</p><p>Hint previews a move. Tap it again to apply.</p><p>Arrows move; Enter or Space cycles. / and \ draw; Delete clears. Shift + arrows paints. L locks or unlocks a drawn diagonal. Z undoes. Escape cancels a gesture.</p><p>For a larger board, choose Enlarge, then Pan in Settings.</p></details>
+<div class="controls"><p class="region-note" hidden>A closed section fills with color once its lines are right. Those lines then can't change.</p><p class="tap-note">Tap a square to draw a line. Tap again to turn it, and once more to clear it.</p><p>Drag across squares to paint the same line in each.</p><p class="lock-note">Hold a drawn line, or right-click it, to lock it so it can't change. Do it again to unlock.</p><p>A number turns blue when exactly that many lines touch it. Until then it is red.</p></div>
+<details class="help-more"><summary>More controls</summary><p>Set Input to Slash or Backslash in Settings to draw only that line. Hint marks a square and the numbers or lines that decide it. Press Hint again to make the move.</p><p>Keys: arrows move. Enter or Space changes the square. / and \ draw that line, and Delete or Backspace clears it. Hold Shift while you press arrows to paint. L locks or unlocks a drawn line. Z undoes. Escape cancels a drag.</p><p>For a bigger board, set Board size to Enlarge in Settings. Then set Input to Pan to drag the board around without drawing.</p></details>
 </div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
-<script src="./engine.js?v=5ced9350"></script><script src="./levels.js?v=b8cc3835"></script><script src="./paint-input.js?v=b0385841"></script><script src="./regions.js?v=b2d903f9"></script><script src="./score-clock.js?v=7317dd36"></script><script src="./scores.js?v=7617cacb"></script><script src="./slant.js?v=16d5797c"></script><script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script><script defer src="./controls.js?v=330a74f6"></script>
+<script src="./engine.js?v=5ced9350"></script><script src="./levels.js?v=b8cc3835"></script><script src="./paint-input.js?v=b0385841"></script><script src="./regions.js?v=b2d903f9"></script><script src="./score-clock.js?v=7317dd36"></script><script src="./scores.js?v=7617cacb"></script><script src="./slant.js?v=cb981ca3"></script><script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script><script defer src="./controls.js?v=c9a3b8b0"></script>
 </body></html>

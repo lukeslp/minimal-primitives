@@ -6,7 +6,7 @@ I think the purpose of technology is to reduce the latency between intent and ou
 
 Interaction primitives are to doing what [simple machines](https://en.wikipedia.org/wiki/Simple_machine) are to building: get, put, push, turn, join, split, bend, switch. Each game here is built on one or two of them.
 
-Twenty-nine small puzzle games in black and white.
+Twenty-eight small puzzle games in black and white.
 
 **Hexsweeper.** Find the mines on hex tiles: on a sphere, on a classic board, or on a board with no end.
 **Notan.** Fill the squares each row and column asks for, and a small picture appears.
@@ -28,7 +28,6 @@ Twenty-nine small puzzle games in black and white.
 **Cube Maze.** Tip a glass cube and turn its slices until the marble rolls out of the spout.
 **Tangles.** Turn tiles until every line closes into a loop, on hexagons and six other tilings.
 **Weaves.** Pass each thread over or under. None may float past two crossings.
-**Delve.** Descend through a dungeon of squares. Dodge attacks, fight and find the stairs.
 
 The last tile opens eight Motor Accessibility Puzzles, made for one switch, your eyes or a tilt of the head:
 
@@ -47,7 +46,7 @@ Progress stays in your browser. No account.
 
 More on the web:
 - [Android download](https://lukesteuber.com/downloads/apps/minimal-primitives/)
-- [The Minimal board](https://lukesteuber.com/minimal/), with [Harmonies](https://datapoems.io/datavis/poems/music.html) and [Simple Machines](https://lukesteuber.com/games/simplemachines-minimal/)
+- [The Minimal board](https://lukesteuber.com/minimal/), with [Simple Machines](https://lukesteuber.com/games/simplemachines-minimal/)
 
 ---
 
@@ -110,7 +109,6 @@ rewrites this list.
 21. `21-balance.png`: Balance, phone (1170x2532)
 22. `22-cast.png`: Cast, phone (1170x2532)
 23. `23-tilt-3d.png`: Tilt · 3D, phone (1170x2532)
-24. `24-delve.png`: Delve, phone (1170x2532)
 25. `25-glance.png`: Glance, phone (1170x2532)
 26. `26-glyph.png`: Glyph, phone (1170x2532)
 27. `27-pursuit.png`: Pursuit, phone (1170x2532)

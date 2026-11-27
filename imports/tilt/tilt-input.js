@@ -10,7 +10,7 @@
 (function () {
   'use strict';
   const game = () => window.__tiltLevels;
-  const control = t => !!(t && t.closest && t.closest('button,a,select,input,textarea,label,summary,dialog'));
+  const control = t => !!(t && t.closest && t.closest('button,[role="button"],a,select,input,textarea,label,summary,dialog'));
   const sheet = () => document.querySelector('dialog[open]');
   const way = (dx, dy) => Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 'R' : 'L') : (dy > 0 ? 'D' : 'U');
   const marble = () => {

@@ -90,13 +90,13 @@
     if (r.kind === 'floor') return 'The floor shows no shadow there.';
     if (r.kind === 'cap') return `${wall(w)} is one cube high, so it caps this stack at one.`;
     if (r.kind === 'wall') return `${wall(w)} is ${x.to} high, and only this square can reach it.`;
-    if (r.kind === 'tray') return 'The cubes in the tray leave this one height.';
+    if (r.kind === 'tray') return 'Any other height here would use too many or too few of the cubes in the tray.';
     if (r.kind === 'trial') {
-      const tried = `Height ${r.tried} here`;
-      if (r.broke === 'wall') return `${tried} leaves ${wall(w).replace(/^R/, 'r').replace(/^C/, 'c')} out of reach, so it is ${x.to}.`;
-      if (r.broke === 'tray') return `${tried} makes the tray count impossible, so it is ${x.to}.`;
+      const tried = r.tried ? `If this stack were ${r.tried} high` : 'If this square were empty';
+      if (r.broke === 'wall') return `${tried}, ${wall(w).replace(/^R/, 'r').replace(/^C/, 'c')} couldn’t fill its outline, so it must be ${x.to} high.`;
+      if (r.broke === 'tray') return `${tried}, you couldn’t use exactly the cubes in the tray, so it must be ${x.to} high.`;
       const s = r.marks[0];
-      return `${tried} leaves row ${s.r + 1}, column ${s.c + 1} no height that fits, so it is ${x.to}.`;
+      return `${tried}, row ${s.r + 1}, column ${s.c + 1} would have no height that works, so it must be ${x.to} high.`;
     }
     return '';
   }

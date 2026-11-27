@@ -19,6 +19,14 @@ body[data-control-frame] .control-icon:not([aria-pressed="true"]):not(.is-armed)
 body[data-control-frame] .control-icon svg,body[data-control-frame] .control-close svg {width:24px!important;height:24px!important;}
 body[data-control-frame] .control-icon svg [stroke],body[data-control-frame] .control-icon svg [stroke-width],body[data-control-frame] .control-icon svg,body[data-control-frame] .control-close svg {stroke-width:1.6px!important;}
 body[data-control-frame] .control-icon:focus-visible,body[data-control-frame] .control-close:focus-visible {outline:2px solid currentColor!important;outline-offset:2px!important;box-shadow:none!important;}
+/* The readout that opens the level list (readoutOpensLevels in frame.js) keeps its look: it takes a press where it stands, the pointer turns to a hand over it, and only a keyboard focus shows a ring. */
+body[data-control-frame] #readout[data-control-readout][role="button"] {pointer-events:auto!important;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+/* While it is a button it also stands above the board, so a press reaches it where the board's box runs under it. On an iPhone the top safe-area inset moves a fixed readout down into the space taken by a board shell placed at a fixed top (Akari and its classic look, Slant, Bridges, Folding, Towers, Tents, Balance, Probe, Shoo · Minimal) or by a drawing (Tilt's tray, Horologist's works, the Cast, Cast 3D, Weaves and Planish stages). Where this raises the readout, only the board's box or the edge of its frame lies under it, never a cell. :where() keeps the rule at no specificity: a game that sets its own z-index (Spiral Galaxies, Tangles, Cube Maze, Noon and others) keeps it, and a readout in the page's flow (Light, Push, Stack, Cut, Courier) is not moved. Only on a touch screen, where the inset is: a desktop's layers stay as they were (raising the readout changes how Chromium layers the Weaves and Cast stages, and so their edge pixels, though nothing moves). */
+@media (pointer:coarse) {:where(body[data-control-frame] #readout[data-control-readout][role="button"]) {z-index:1;}}
+body[data-control-frame] #readout[data-control-readout]:focus:not(:focus-visible) {outline:none!important;}
+body[data-control-frame] #readout[data-control-readout]:focus-visible {outline:2px solid currentColor!important;outline-offset:4px!important;}
+/* Pearls held sideways sets its board's frame over the readout's corner (none of the board is drawn there); the readout stands above it so a press reaches it. */
+body[data-control-frame="pearls"] #readout[data-control-readout] {z-index:1;}
 /* Hover only where a pointer really hovers: a touch screen keeps :hover on the last button tapped. */
 @media(hover:hover) and (pointer:fine) {
   body[data-control-frame] .control-icon:hover:not(:disabled) {opacity:1;}
@@ -92,7 +100,7 @@ body[data-control-frame] .control-toolbar [hidden],body[data-control-frame] .con
   body[data-control-frame="notan"] #app {padding-right:64px;}
 }
 @media(forced-colors:active) {
-  body[data-control-frame] .control-icon:focus-visible,body[data-control-frame] .control-close:focus-visible {outline-color:Highlight!important;}
+  body[data-control-frame] .control-icon:focus-visible,body[data-control-frame] .control-close:focus-visible,body[data-control-frame] #readout[data-control-readout]:focus-visible {outline-color:Highlight!important;}
 }
 
 /* Akari keeps completion within reach beside its finished board. */

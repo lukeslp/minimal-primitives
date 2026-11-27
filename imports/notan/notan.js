@@ -117,6 +117,44 @@
   });
   const RAMP = puzzles(LEVELS), PLUS = puzzles(PLUS_LEVELS, true);
   const sequence = (p) => p.plus ? PLUS : RAMP;
+  /* Wins after the campaign, counted from 2026-11-19 on (no earlier save records them): fresh solves of New Game+
+   * levels and of Quick play boards once level 53 is solved (New Game+ open). `set` holds the New Game+ levels
+   * solved since; the Levels sheet marks them from here, not from `solved`, so the twenty start fresh. `held` is
+   * the last board counted (a level id, or a Quick play board's size and seed), so solving it again counts nothing.
+   * A New Game+ address opened before level 53 plays as before and counts nothing. An unreadable value starts
+   * over, as `ink.v1` does. */
+  const PLUS_KEY = 'ink.plus.v1', plusIds = new Set(PLUS.map((q) => q.id));
+  function readPlus() {
+    try {
+      const v = JSON.parse(localStorage.getItem(PLUS_KEY) || 'null');
+      if (v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 4 && v.version === 1 && Number.isSafeInteger(v.wins) && v.wins >= 0 &&
+        typeof v.held === 'string' && v.held.length <= 96 && Array.isArray(v.set) && v.set.every((id) => plusIds.has(id)) && new Set(v.set).size === v.set.length) return v;
+    } catch (e) { /* starts over */ }
+    return { version: 1, wins: 0, held: '', set: [] };
+  }
+  let plus = readPlus();
+  function persistPlus() {
+    try { localStorage.setItem(PLUS_KEY, JSON.stringify(plus)); } catch (e) { /* storage blocked: play on */ }
+  }
+  const plusDone = () => plus.set.length, rampDone = () => RAMP.every((q) => typeof save.solved[q.id] === 'number');
+  const after = (p) => save.plusUnlocked && (p.plus || p.endless);
+  // A fresh solve of a New Game+ level or a Quick play board once New Game+ is open counts once.
+  function countPlus(p) {
+    if (!after(p)) return;
+    plus = readPlus();
+    const key = p.endless ? 'endless:' + p.size + ':' + p.seed : p.id;
+    if (plus.held === key) return;
+    plus.wins++; plus.held = key;
+    if (p.plus && !plus.set.includes(p.id)) plus.set.push(p.id);
+    persistPlus();
+  }
+  // Past a New Game+ level once it is open: the next level not yet solved since, round to the first; null once all are.
+  function dealPlus(p) {
+    if (!save.plusUnlocked) return null;
+    const from = p && p.plus ? p.index + 1 : 0;
+    for (let j = 0; j < PLUS.length; j++) { const q = PLUS[(from + j) % PLUS.length]; if (q !== p && !plus.set.includes(q.id)) return q; }
+    return null;
+  }
   function newSeed() { return E.FREE_SEED + Math.floor(Math.random() * 900000); }
   function endless(size, seed) {
     for (let s = seed, tries = 0; tries < 20; s++, tries++) {
@@ -421,8 +459,12 @@
   }
   function hud() {
     const p = S.puz;
-    lvlText.textContent = p.endless ? '∞ ' + p.size : (p.plus ? '+' : '') + String(p.index + 1);
-    lvlBtn.setAttribute('aria-label', (p.endless ? 'Endless, ' + p.size + ' by ' + p.size : label(p) + ' of ' + sequence(p).length) + '. Choose a level');
+    // Once New Game+ is open, its levels read how many of the twenty are solved since, `+7 / 20`, until all are and
+    // this one is not, then `+n`. The wins since (`53 + 12 ✓`) are in the Levels sheet: beside the clock they would
+    // run under the restart button on a 320 px phone.
+    const counted = after(p) && p.plus && (plusDone() < PLUS.length || S.solved);
+    lvlText.textContent = p.endless ? '∞ ' + p.size : counted ? '+' + plusDone() + ' / ' + PLUS.length : (p.plus ? '+' : '') + String(p.index + 1);
+    lvlBtn.setAttribute('aria-label', (p.endless ? 'Endless, ' + p.size + ' by ' + p.size : label(p) + ' of ' + sequence(p).length) + (counted ? ', ' + plusDone() + ' of ' + PLUS.length + ' solved' : '') + '. Choose a level');
     clock.textContent = fmt(S.time);
     undoBtn.setAttribute('aria-disabled', S.undo.length && !S.solved ? 'false' : 'true');
     hintBtn.setAttribute('aria-disabled', S.solved ? 'true' : 'false');
@@ -624,7 +666,7 @@
       if (S.cells[S.hint.i] !== to) { act(S.hint.i, to); return; }
     }
     const hint = findHint();
-    if (!hint) { announce('No hint: every square is already settled'); return; }
+    if (!hint) { announce('No hint: there’s nothing left to work out'); return; }
     clearHint();
     S.hint = hint;
     S.hinted = true;
@@ -638,9 +680,9 @@
     hintEl.classList.add('on');
     setFocus(hint.i, true);
     const w = S.puz.w, r = Math.floor(hint.i / w) + 1, c = hint.i % w + 1;
-    const again = { [INK]: ' Hint again fills it.', [MARK]: ' Hint again marks it.', [BLANK]: ' Hint again clears it.' }[hintMove(hint)];
-    announce('Hint: row ' + r + ', column ' + c + (hint.wrong ? ' is wrong' : hint.fill ? ' can be filled' : ' stays empty') +
-      (isLocked(hint.i) ? ', and its line is locked.' : '.' + again));
+    const again = { [INK]: ' Press Hint again to fill it.', [MARK]: ' Press Hint again to mark it.', [BLANK]: ' Press Hint again to clear it.' }[hintMove(hint)];
+    announce('Hint: row ' + r + ', column ' + c + (hint.wrong ? ' is wrong' : hint.fill ? ' should be filled' : ' should stay empty') +
+      (isLocked(hint.i) ? '. Its line is locked.' : '.' + again));
   }
 
   /* ---------- solved ---------- */
@@ -653,7 +695,9 @@
     stopClock();
     const p = S.puz;
     // Every level and New Game+ level solved: said once, on the solve that does it.
-    const all = RAMP.length + PLUS.length, solvedCount = () => RAMP.concat(PLUS).filter((q) => typeof save.solved[q.id] === 'number').length, had = solvedCount();
+    // It counts the New Game+ levels solved since the campaign (`ink.plus.v1`), so the twenty start fresh.
+    const all = RAMP.length + PLUS.length, whole = () => rampDone() && plusDone() === PLUS.length, had = whole();
+    if (!quiet) countPlus(p);
     if (p.endless) {
       save.endless = { size: p.size, seed: newSeed(), c: '', t: 0 };
     } else {
@@ -667,7 +711,7 @@
       }
       delete save.boards[p.id];
       if (!p.plus && p.index === RAMP.length - 1) save.plusUnlocked = true;
-      const nx = sequence(p)[p.index + 1] || (!p.plus ? PLUS[0] : null);
+      const nx = (p.plus && dealPlus(p)) || sequence(p)[p.index + 1] || (!p.plus ? dealPlus(null) || PLUS[0] : null);
       save.at = nx ? nx.id : p.id;
     }
     persist();
@@ -675,16 +719,16 @@
     placeCursor();
     board.classList.add('solved');
     capName.textContent = p.name;
-    const allDone = !quiet && !p.endless && had < all && solvedCount() === all;
+    const allDone = !quiet && !had && whole();
     // The caption keeps the name and the New Game+ notice; the end of everything is the end line above Next.
     unlockNotice.textContent = 'New Game+ unlocked';
     unlockNotice.hidden = allDone || p.endless || p.plus || p.index !== RAMP.length - 1;
     endLine.textContent = 'All ' + all + ' boards solved.';
     endLine.hidden = !allDone;
     shareBtn.hidden = !p.endless;
-    shareBtn.textContent = 'Share blank';
-    const replay = !p.endless && !(p.index + 1 < sequence(p).length) && !(!p.plus && save.plusUnlocked) && !firstUnsolved();
-    nextBtn.setAttribute('aria-label', p.endless ? 'Next board' : !p.plus && p.index === RAMP.length - 1 ? 'Start New Game+' : p.index + 1 < sequence(p).length ? 'Next level' : !replay ? 'First unsolved level' : 'Replay from board 1');
+    shareBtn.textContent = 'Share puzzle';
+    const dealt = p.plus && dealPlus(p), replay = !p.endless && !dealt && !(p.index + 1 < sequence(p).length) && !(!p.plus && save.plusUnlocked) && !firstUnsolved();
+    nextBtn.setAttribute('aria-label', p.endless ? 'Next board' : !p.plus && p.index === RAMP.length - 1 ? 'Start New Game+' : dealt || p.index + 1 < sequence(p).length ? 'Next level' : !replay ? 'First unsolved level' : 'Replay from board 1');
     nextBtn.querySelector('path').setAttribute('d', replay ? REPLAY_ICON : NEXT_ICON);
     caption.hidden = false;
     layout();
@@ -701,9 +745,10 @@
   function next() {
     const p = S.puz;
     if (p.endless) open(endless(p.size, save.endless ? save.endless.seed : newSeed()));
+    else if (p.plus && dealPlus(p)) open(dealPlus(p));
     else if (p.index + 1 < sequence(p).length) open(sequence(p)[p.index + 1]);
     else if (!p.plus && save.plusUnlocked) {
-      open(PLUS[0]);
+      open(dealPlus(null) || PLUS[0]);
       announce('New Game+ unlocked. ' + label(S.puz) + ', ' + S.puz.w + ' by ' + S.puz.h);
       return;
     }
@@ -923,10 +968,12 @@
     } catch (_) {
       shareBtn.textContent = 'Copy failed';
     }
-    setTimeout(() => { shareBtn.textContent = 'Share blank'; }, 2500);
+    setTimeout(() => { shareBtn.textContent = 'Share puzzle'; }, 2500);
   });
   helpBtn.addEventListener('click', openHelp);
   lvlBtn.addEventListener('click', () => openLevels(false));
+  // Settings names the Levels sheet too: the level number at the top is the other way in, and reads as a label.
+  $('#settings-levels').addEventListener('click', () => { settings.close(); openLevels(false); });
 
   /* ---------- sheets ---------- */
   function showSheet(dlg, opener) {
@@ -970,6 +1017,7 @@
   $('#confirm-reset').addEventListener('click', () => {
     save.solved = {}; save.boards = {}; save.hinted = {}; save.endless = null; save.at = null; save.plusUnlocked = false;
     persist();
+    plus = { version: 1, wins: 0, held: '', set: [] }; persistPlus();
     resetConfirm.close();
     settings.close();
     open(RAMP[0]);
@@ -1032,13 +1080,16 @@
     lvGrid.textContent = '';
     plusGrid.textContent = '';
     plusSection.hidden = !save.plusUnlocked;
+    // New Game+'s twenty are marked from the levels solved in it since the campaign, and its heading counts them.
+    plus = readPlus();
+    $('#plus-title').textContent = 'New Game+ · ' + plusDone() + ' / ' + PLUS.length;
     let solved = 0;
     [...RAMP, ...(save.plusUnlocked ? PLUS : [])].forEach((p) => {
       const i = p.index;
       const li = el('li');
       const b = el('button', 'lv');
       b.type = 'button';
-      const done = typeof save.solved[p.id] === 'number';
+      const done = p.plus ? plus.set.includes(p.id) : typeof save.solved[p.id] === 'number';
       b.textContent = String(i + 1);
       if (done) { solved++; b.classList.add('done'); }
       b.setAttribute('aria-label', label(p) + ', ' + (done ? p.name + ', solved' : p.w + ' by ' + p.h));
@@ -1047,7 +1098,15 @@
       li.append(b);
       (p.plus ? plusGrid : lvGrid).append(li);
     });
-    lvMeta.textContent = solved + ' of ' + (RAMP.length + (save.plusUnlocked ? PLUS.length : 0)) + ' solved';
+    // Once New Game+ is open the sheet shows the levels with the wins since, `53 + 12 ✓`; before, a screen reader hears how many are solved.
+    lvMeta.textContent = '';
+    lvMeta.className = save.plusUnlocked ? '' : 'sr-only';
+    if (save.plusUnlocked) {
+      const seen = el('span'), said = el('span', 'sr-only');
+      seen.setAttribute('aria-hidden', 'true'); seen.textContent = RAMP.length + (plus.wins ? ' + ' + plus.wins : '') + ' ✓';
+      said.textContent = RAMP.length + ' levels' + (plus.wins ? ' and ' + plus.wins + (plus.wins === 1 ? ' more board' : ' more boards') : '') + ' solved';
+      lvMeta.append(seen, said);
+    } else lvMeta.textContent = solved + ' of ' + RAMP.length + ' solved';
     showSheet(levels, atEnd ? nextBtn : lvlBtn);
     (levels.querySelector('[aria-current="true"]') || lvGrid.querySelector('button'))?.focus({ preventScroll: true });
 

@@ -1,0 +1,1 @@
+Balance's hint now says "1 black square" instead of "1 black squares". Saved boards and progress are kept. Still no camera input and no camera permission in this build.

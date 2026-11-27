@@ -35,7 +35,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PIN = '95debc8'
+PIN = '298f3e8'
 PAGE = 'minimal/index.html'
 
 # Where each index link leads inside the package: (game id, Hexsweeper mode). A tile's own
@@ -46,6 +46,9 @@ OPENS = {
     'https://dr.eamer.dev/games/hexsweeper/sphere/': ('hexsweeper', 'sphere'),
     'https://lukesteuber.com/games/hexsweeper/bounded.html': ('hexsweeper', 'classic'),
     'https://dr.eamer.dev/games/hexsweeper/infinite.html': ('hexsweeper', 'infinite'),
+    # Since the index at b3323f7 (luke-portfolio PR 46) the Hexsweeper tile and its Endless link are on lukesteuber.com.
+    'https://lukesteuber.com/games/hexsweeper/sphere/': ('hexsweeper', 'sphere'),
+    'https://lukesteuber.com/games/hexsweeper/infinite.html': ('hexsweeper', 'infinite'),
     'https://lukesteuber.com/games/bridges/': ('bridges', None),
     'https://lukesteuber.com/games/akari/?look=dark': ('akari', None),
     'https://lukesteuber.com/games/galaxies/': ('galaxies', None),
@@ -89,8 +92,20 @@ NOT_BUNDLED = {
 # folder carries for the app (on black, on white, the share of the tile's side filled). Notan keeps a map of board to
 # best time under ink.v1 (`solved`). Its main campaign is the ramp in levels.js, read from the bundled source at
 # import; its New Game+ boards (plus-levels.js) never finish the tile.
+# Hexsweeper's set has been the index's own since b3323f7: ["hexsweeper-sphere-best-v1", null, the five sizes], a null
+# field meaning the whole record is the map of size to {seconds, at}; collection.js reads it that way.
 APP_LIFE = {
     'notan': {'set': ['ink.v1', 'solved', 'levels.js'], 'solved': ['notan-solved-7725aca98610.webp', 'notan-solved-light-535dc40e3591.webp', 0.68]},
+}
+# Where a game lists its campaign in play order, when that is not the last list of ids in its campaign.js. Tangles'
+# campaign.js holds board data (the thirty-eight campaign boards); its twenty-five-board course is course.js.
+ORDER_FILES = {'tangles': 'course.js'}
+# Games whose campaign ids are worked out by the game rather than written in its source. Bending keeps each finished
+# stage under the board's own name, a hash of the board (campaign.mjs `fingerprint`), so its ids are those names for
+# the boards of boards.mjs, in order, computed by the bundled modules themselves.
+COMPUTED_IDS = {
+    'bending': "const {boards}=await import(url('boards.mjs')),{fingerprint}=await import(url('campaign.mjs'));"
+               "console.log(JSON.stringify(boards.map(fingerprint)));",
 }
 # A finished tile needs every id of the game's current main campaign, from the index's `sets` table (written from
 # game-riffs by minimal/campaigns.cjs). The package plays the games pinned in sources.json, which can trail the
@@ -99,18 +114,36 @@ APP_LIFE = {
 STALE_SETS = {}  # Weaves left it in 0.5.10, when its game moved to game-riffs 29b29ad and its sixteen-board course.
 
 
+def computed_ids(game):
+    """The campaign ids the bundled game works out itself (COMPUTED_IDS), by running its own modules."""
+    folder = (ROOT / 'imports' / game).as_uri() + '/'
+    script = f"const url=f=>new URL(f,{json.dumps(folder)}).href;(async()=>{{{COMPUTED_IDS[game]}}})().catch(e=>{{console.error(e);process.exit(1);}});"
+    return json.loads(subprocess.check_output(['node', '--input-type=module', '-e', script]))
+
+
 def unbundled(game, campaign):
     """The storage key and campaign ids of a set that the bundled game's own scripts never name."""
-    text = '\n'.join(p.read_text() for p in sorted((ROOT / 'imports' / game).glob('*.js')))
+    folder = ROOT / 'imports' / game
+    # Scripts and ES modules (Bending is .mjs), and those in a game's subfolders (Hexsweeper's sphere/).
+    text = '\n'.join(p.read_text() for p in sorted([*folder.rglob('*.js'), *folder.rglob('*.mjs')]))
     key, _field, ids = campaign
     quoted = lambda word: re.search(r'[\'"]%s[\'"]' % re.escape(word), text)
-    missing = [w for w in [key] + ids if not quoted(w)]
-    # A game that plays a chosen part of its boards lists it in campaign.js, in play order: that list must be the set.
-    order = ROOT / 'imports' / game / 'campaign.js'
+    if not quoted(key):
+        return [key]
+    if game in COMPUTED_IDS:
+        # The game's own names for its campaign, in play order, must be the set.
+        return [] if computed_ids(game) == ids else [f'the campaign {game} works out (a different list or order)']
+    missing = [w for w in ids if not quoted(w)]
+    # A game that plays a chosen part of its boards lists it in play order, in campaign.js or the file ORDER_FILES
+    # names: that list must be the set. Since the index at 298f3e8 a set follows the game's own finish rule, and a game
+    # that counts its campaign done once its last board closes (Tangles' beaten()) has that one board as its set.
+    name = ORDER_FILES.get(game, 'campaign.js')
+    order = folder / name
     if not missing and order.exists():
         lists = re.findall(r"\[((?:\s*'[\w-]+'\s*,?)+)\s*\]", order.read_text())
-        if not lists or re.findall(r"'([\w-]+)'", lists[-1]) != ids:
-            missing = ['the campaign in campaign.js (a different list or order)']
+        course = re.findall(r"'([\w-]+)'", lists[-1]) if lists else []
+        if ids != course and ids != course[-1:]:
+            missing = [f'the campaign in {name}, or its last board (a different list or order)']
     return missing
 
 
@@ -158,6 +191,9 @@ def parse(html):
         key, field, source = extra['set']
         ids = re.findall(r"\{ id: '([\w-]+)'", (ROOT / 'imports' / name / source).read_text())
         life['sets'][name], life['solved'][name] = [key, field, ids], extra['solved']
+    # The card's words for a finished tile where a game has its own, by tile class, as the page's script picks them
+    # (name === 'hexsweeper' ? ' Every size cleared.' : ' All boards finished.').
+    life['done'] = dict(re.findall(r"name === '([\w-]+)' \? ' ([^']+)'", html))
     return style, tiles, lines, opening, header, settings, life
 
 
@@ -210,6 +246,10 @@ def main():
         drawing = next((lines[c] for c in tile['classes'] if c in lines), None)
         tile['lines'] = f'art/{drawing}-lines.svg' if drawing else None
         tile['set'] = next((life['sets'][c] for c in tile['classes'] if c in life['sets']), None)
+        # The card's words for a finished tile where the game has its own (the page's script); otherwise "All boards finished.".
+        done = next((life['done'][c] for c in tile['classes'] if c in life['done']), None)
+        if done:
+            tile['done'] = done
         if tile['set']:
             if not (isinstance(tile['set'], list) and len(tile['set']) == 3 and all(isinstance(i, str) for i in tile['set'][2]) and tile['set'][2]):
                 sys.exit(f'{tile["name"]!r}: the index set {tile["set"]!r} is not [key, field, campaign ids]; re-import from an index with minimal/campaigns.json.')

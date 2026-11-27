@@ -3056,7 +3056,8 @@ classicGame = Hexsweeper.boot({
   difficulty: classicSize,
   theme: {
     bg: "#e0e5ec", shadowLight: "#ffffff", shadowDark: "#a3b1c6",
-    covered: "#e0e5ec", revealed: "#e0e5ec", flag: "#ef4444",
+    covered: "#e0e5ec", revealed: "#fbfcfd", flag: "#ef4444",
+    // Opened cells are near white so the dug area reads apart from the raised grey ones (2026-11-18).
     text: {1:"#3b82f6",2:"#10b981",3:"#ef4444",4:"#8b5cf6",5:"#f59e0b",6:"#ec4899",mine:"#333"}
   },
   hooks: {

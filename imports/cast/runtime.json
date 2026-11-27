@@ -21,6 +21,7 @@
     "vendor/three.core.min.js",
     "vendor/three.module.min.js",
     "access.js",
-    "bridge-client.js"
+    "bridge-client.js",
+    "og.png"
   ]
 }

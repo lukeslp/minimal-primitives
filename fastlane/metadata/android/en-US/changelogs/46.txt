@@ -1,0 +1,1 @@
+The library marks four more finished games: Tangles once its last board is solved, Horologist and Hexsweeper with a picture of the finished board, and Bending in color. Tilt and Shoo have more room under the board for the Next button. Tapping the board number at the top of a game opens its board list. Saved boards and progress are kept.

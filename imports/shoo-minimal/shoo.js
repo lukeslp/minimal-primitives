@@ -12,7 +12,7 @@
   const $ = s => document.querySelector(s), NS = 'http://www.w3.org/2000/svg';
   // Version 2 of the board and progress saves holds bees; version 1 held the
   // stones of an earlier rule and is left alone, unread.
-  const K = { current: 'shoo-minimal.current.v2', progress: 'shoo-minimal.progress.v2', settings: 'shoo-minimal.settings.v1' };
+  const K = { current: 'shoo-minimal.current.v2', progress: 'shoo-minimal.progress.v2', settings: 'shoo-minimal.settings.v1', plus: 'shoo-minimal.plus.v1' };
   const SQ = Math.sqrt(3) / 2, RAD = 1 / Math.sqrt(3);
   // Screen angles of the six directions, east first, as the engine orders them.
   const ANGLE = [0, -60, -120, 180, 120, 60], COMPASS = ['east', 'north-east', 'north-west', 'west', 'south-west', 'south-east'];
@@ -45,6 +45,12 @@
   const store = read(K.current, v => isObject(v) && v.version === 2 && known.has(v.at) && isObject(v.boards) && Object.keys(v.boards).every(id => known.has(id) && boardValid(id, v.boards[id])), { version: 2, at: boards[0].id, boards: {} });
   // Every campaign board done: the game is finished and New Game+ is open (as in Slant).
   const unlocked = () => boards.every(b => progress.completed.includes(b.id));
+  // Wins after the campaign, counted from 2026-11-19 on (no earlier save records them): solves of pool boards once
+  // the campaign is finished. `set` lists the pool boards solved since then, started fresh (store.pool is boards
+  // dealt this round, not solved). `held` is the last board counted, so undoing and redoing its last tap, or
+  // restarting it, does not count it twice.
+  const plus = read(K.plus, v => isObject(v) && Object.keys(v).length === 4 && v.version === 1 && Number.isSafeInteger(v.wins) && v.wins >= 0 && typeof v.held === 'string' && v.held.length <= 96 && Array.isArray(v.set) && v.set.every((id, i) => poolIds.has(id) && v.set.indexOf(id) === i), { version: 1, wins: 0, held: '', set: [] });
+  const setDone = () => plus.set.length === pool.length, endText = () => `All ${boards.length + (setDone() ? pool.length : 0)} boards solved.`;
   // The pool boards New Game+ has dealt this round, in order; none comes again until all fifty-five have.
   store.pool = Array.isArray(store.pool) ? [...new Set(store.pool.filter(id => poolIds.has(id)))] : [];
   // A player last on a board outside the campaign stays there once the game is finished (a New Game+
@@ -58,7 +64,7 @@
 
   let board = boardOf(store.at), L = E.layout(board), bees = E.start(board), homes = hivesOf(board).map(() => 0), hits = 0, history = [];
   let hint = null, focus = 0, keyboard = false, hover = null, press = null, washOrigin = null;
-  let busy = false, queue = [], animation = null, epoch = 0, finale = false;
+  let busy = false, queue = [], animation = null, epoch = 0, finale = false, setFinale = false;
   const reduced = () => prefs.motion === 'reduce' || motionQuery.matches;
   const dark = () => prefs.theme === 'dark' || (prefs.theme === 'system' && darkQuery.matches);
   const solved = () => E.solved(bees), home = () => homes.reduce((s, n) => s + n, 0);
@@ -66,6 +72,7 @@
   const indexOfBoard = () => boards.indexOf(board);
   // A New Game+ board has no place in the campaign and shows no id: the id means nothing to a player.
   const boardName = () => indexOfBoard() < 0 ? 'New Game+ board' : 'Board ' + (indexOfBoard() + 1);
+  // #feedback is the visible line only; #live speaks, so a screen reader hears each message once.
   const say = text => { $('#feedback').textContent = text; };
   const announce = text => { $('#live').textContent = text; };
   function svg(tag, attrs, parent) {
@@ -283,21 +290,23 @@
       `${hits} ${hits === 1 ? 'tap' : 'taps'}, par ${board.par}.`];
     root.setAttribute('aria-label', parts.filter(Boolean).join(' '));
     root.querySelectorAll('.cell').forEach(c => { const i = +c.dataset.i; c.tabIndex = i === focus ? 0 : -1; c.setAttribute('aria-label', cellWords(i)); });
-    // A New Game+ board shows taps and par alone, where a campaign board also has its place.
-    $('#readout').textContent = `${n < 0 ? '' : `${n + 1} / ${boards.length} · `}${hits} / ${board.par}`;
-    $('#readout').setAttribute('aria-label', `${n < 0 ? boardName() : `Board ${n + 1} of ${boards.length}`}; ${hits} ${hits === 1 ? 'tap' : 'taps'}; par ${board.par}`);
+    // A New Game+ board shows its place in the set (boards of it solved, out of fifty-five) until the set is done, its
+    // taps and par, and the count: the campaign's twenty-five, plus wins after it. A campaign board shows its place.
+    const k = plus.set.length, inSet = n < 0 && (!setDone() || done), count = n < 0 && unlocked();
+    $('#readout').textContent = `${n < 0 ? (inSet ? `+${k} / ${pool.length} · ` : '') : `${n + 1} / ${boards.length} · `}${hits} / ${board.par}${count ? ` · ${boards.length}${plus.wins ? ` + ${plus.wins}` : ''} ✓` : ''}`;
+    $('#readout').setAttribute('aria-label', `${n < 0 ? boardName() + (inSet ? `, ${k} of ${pool.length} solved` : '') : `Board ${n + 1} of ${boards.length}`}; ${hits} ${hits === 1 ? 'tap' : 'taps'}; par ${board.par}${count ? `; ${boards.length} boards solved${plus.wins ? `, and ${plus.wins} more` : ''}` : ''}`);
     $('#undo-btn').disabled = history.length === 0;
     $('#hint-btn').disabled = done;
     const frozen = !done && L.cells.every((_, x) => E.step(board, bees, x) === bees);
     $('#undo-btn').classList.toggle('wanted', frozen && history.length > 0);
     // Next comes at the solve, while the last bees still fly home; on the last board with others open it goes to the
     // first of them, and with every board done it starts New Game+ under one line that says so. It never opens a sheet.
-    const end = done && (finale || (n === boards.length - 1 && unlocked()));
+    const end = done && (finale || setFinale || (n === boards.length - 1 && unlocked()));
     $('#completion').hidden = !done;
     $('#next-btn').hidden = !done;
-    $('#end-line').textContent = end ? `All ${boards.length} boards solved.` : '';
+    $('#end-line').textContent = end ? endText() : '';
     $('#end-line').hidden = !end;
-    $('#next-btn').setAttribute('aria-label', end ? 'Start New Game+' : n === boards.length - 1 ? 'First unfinished board' : 'Next board');
+    $('#next-btn').setAttribute('aria-label', end && n >= 0 ? 'Start New Game+' : n === boards.length - 1 ? 'First unfinished board' : 'Next board');
     $('#feedback').classList.toggle('sr-only', done);
     $('#campaign').value = n < 0 ? '' : board.id;
     $('#previous').disabled = n <= 0; $('#following').disabled = n < 0 || n === boards.length - 1;
@@ -467,6 +476,7 @@
     // The move is saved before any motion, so leaving the page cannot lose it.
     // Only campaign boards count as progress. The solve that does the last of them is the finale.
     if (solved() && ids.has(board.id) && !progress.completed.includes(board.id)) { const had = unlocked(); progress.completed.push(board.id); if (!had && unlocked()) finale = true; }
+    if (solved() && poolIds.has(board.id) && unlocked() && plus.held !== board.id) { const had = setDone(); plus.held = board.id; plus.wins++; if (!plus.set.includes(board.id)) plus.set.push(board.id); if (!had && setDone()) setFinale = true; write(K.plus, plus); }
     save();
     const hops = [...res.moved.map(m => [...m, false]), ...res.home.map(m => [...m, true])].map(([n, t, d, inside]) => ({ b: beeNodes.get(n), t, from: center(n), to: center(t), d, home: inside }));
     const flinch = res.blocked.map(([n, d]) => ({ b: beeNodes.get(n), d }));
@@ -494,7 +504,7 @@
     const hopped = res.moved.length, went = res.home.length;
     if (solved()) {
       stats.solves++; draw(); paintWash(res.home.length ? res.home[0][1] : hivesOf(board)[0], true);
-      announce(`Every bee is home in ${hits} ${hits === 1 ? 'tap' : 'taps'}. Par ${board.par}. ${finale ? `All ${boards.length} boards solved.` : indexOfBoard() === boards.length - 1 ? 'That was the last board.' : 'Next board is open.'}`);
+      announce(`Every bee is home in ${hits} ${hits === 1 ? 'tap' : 'taps'}. Par ${board.par}. ${finale || setFinale ? endText() : indexOfBoard() === boards.length - 1 ? 'That was the last board.' : 'Next board is open.'}`);
     } else if (held) announce(`${held}${word(hopped + went)} ${hopped + went === 1 ? 'bee' : 'bees'} fled${went ? `, ${word(went)} into the hive` : ''}${res.blocked.length ? `; ${word(res.blocked.length)} could not move` : ''}. ${home()} of ${beeCount(board)} home, ${hits} ${hits === 1 ? 'tap' : 'taps'}.`);
     else announce(`${hopped ? `${Word(hopped)} ${hopped === 1 ? 'bee' : 'bees'} hopped away` : ''}${hopped && went ? '; ' : ''}${went ? `${word(went)} went home` : ''}${res.blocked.length ? `; ${word(res.blocked.length)} could not move` : ''}. ${home()} of ${beeCount(board)} home, ${hits} ${hits === 1 ? 'tap' : 'taps'}.`.replace(/^./, c => c.toUpperCase()));
   }
@@ -537,9 +547,9 @@
       const r = await findHint();
       if (!r || token !== epoch) return;
       hint = r.stuck ? { look: -1, stuck: true } : { look: r.look, moves: r.moves };
-      if (hint.stuck) { say('No way home for every bee from here. Hint again to undo.'); announce('No way home for every bee from here. Undo, or Hint again to undo.'); }
-      else if (E.has(bees, hint.look)) { focus = hint.look; say('Tap the bee in the dashed ring; it dodges and stays. Hint again plays it.'); announce(`Hint: tap the bee at ${placeOf(hint.look)}; it dodges and stays, and the bees beside it flee. Hint again plays it.`); }
-      else { focus = hint.look; say('Tap the dashed ring. Hint again plays it.'); announce(`Hint: tap ${placeOf(hint.look)}. Hint again plays it.`); }
+      if (hint.stuck) { say('Not every bee can get home from here. Press Hint again to undo.'); announce('Not every bee can get home from here. Press Undo, or press Hint again to undo.'); }
+      else if (E.has(bees, hint.look)) { focus = hint.look; say('Tap the bee in the dashed ring. It stays put. Press Hint again to play it.'); announce(`Hint: tap the bee at ${placeOf(hint.look)}. It stays put, and the bees beside it hop away. Press Hint again to play it.`); }
+      else { focus = hint.look; say('Tap the dashed ring. Press Hint again to play it.'); announce(`Hint: tap ${placeOf(hint.look)}. Press Hint again to play it.`); }
       draw(); chrome();
       // A keyboard player's focus goes to the hinted cell, so Enter plays it there too.
       if (keyboard && !hint.stuck && !$('dialog[open]')) root.querySelector(`.cell[data-i="${focus}"]`)?.focus({ preventScroll: true });
@@ -550,10 +560,10 @@
       if (bees === E.start(board) && hits === 0) return;
       history.push({ bees, homes: homes.slice(), hits });
       reset({ bees: E.start(board), homes: hivesOf(board).map(() => 0), hits: 0 }); rest(); save();
-      say('Board set up again. Undo brings it back.'); announce('Board restarted. Undo brings it back.');
+      say('Board restarted. Undo brings it back.'); announce('Board restarted. Undo brings it back.');
     } else if (action.type === 'go') {
       const next = boardOf(action.id); if (!next) return;
-      board = next; L = E.layout(board); finale = false;
+      board = next; L = E.layout(board); finale = false; setFinale = false;
       const saved = store.boards[board.id], kept = saved && boardValid(board.id, saved);
       history = kept ? saved.undo.map(u => ({ bees: u.bees, homes: u.homes.slice(), hits: u.hits })) : [];
       hover = null; press = null; keyboard = !!action.keyboard; focus = 0; say('');
@@ -579,7 +589,7 @@
   // on the board goes on too.
   function afterMove() {
     const frozen = chrome();
-    if (frozen && !$('#feedback').textContent) say('No bee can move. Undo or restart.');
+    if (frozen && !$('#feedback').textContent) { say('No bee can move. Undo or restart.'); announce('No bee can move. Undo or restart.'); }
   }
   // A tap is marked the moment it lands, even while an earlier hop is still
   // in the air; that hop is cut to its end so play keeps up with the taps.
@@ -590,16 +600,20 @@
   };
   const undo = () => enqueue({ type: 'undo' }, true), restart = () => enqueue({ type: 'restart' }, true), askHint = () => enqueue({ type: 'hint' });
   const go = (id, opts = {}) => ids.has(id) || (unlocked() && poolIds.has(id)) ? enqueue({ type: 'go', id, ...opts }, true).then(() => true) : Promise.resolve(false);
-  // New Game+: a pool board at random, one not yet dealt this round (a new round starts once all fifty-five
-  // have been, and never with the board just played). A board already solved before starts fresh.
+  // New Game+: a pool board at random, one not yet dealt this round (a new round starts once all have been, and never
+  // with the board just played). Until all fifty-five are solved (plus.set), rounds deal only boards not yet solved.
+  // A board already solved before starts fresh.
   function newGame(opts = {}) {
     if (!unlocked()) return Promise.resolve(false);
-    let left = pool.filter(b => !store.pool.includes(b.id) && b !== board);
+    const open = b => b !== board && !plus.set.includes(b.id);
+    let left = pool.filter(b => open(b) && !store.pool.includes(b.id));
+    if (!left.length && pool.some(open)) { store.pool = []; left = pool.filter(open); }
+    if (!left.length) left = pool.filter(b => !store.pool.includes(b.id) && b !== board);
     if (!left.length) { store.pool = []; left = pool.filter(b => b !== board); }
     let r = Math.random();
     try { r = crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296; } catch (_) {}
     const next = left[Math.floor(r * left.length)];
-    store.pool.push(next.id);
+    if (!store.pool.includes(next.id)) store.pool.push(next.id);
     const saved = store.boards[next.id];
     if (saved && (!boardValid(next.id, saved) || E.solved(saved.bees))) delete store.boards[next.id];
     return go(next.id, opts);
@@ -725,6 +739,7 @@
     get state() { return { at: board.id, bees: freeCells(bees).map(rc), mask: bees, homes: homes.slice(), home: home(), total: beeCount(board), solved: solved(), hits, par: board.par, undo: history.length, hint: hint && (hint.stuck ? { stuck: true } : { r: L.cells[hint.look].r, c: L.cells[hint.look].c }), focus: rc(focus), keyboard, busy, done: progress.completed.slice() }; },
     shoo: (r, c) => at(r, c) >= 0 ? shooAt(at(r, c)) : Promise.resolve(), undo, restart, go, next: () => advance(), hint: askHint, newGame: () => newGame(),
     get pool() { return { dealt: store.pool.slice(), size: pool.length, unlocked: unlocked(), finale }; },
+    get plus() { return JSON.parse(JSON.stringify(plus)); },
     index: (r, c) => at(r, c),
     center(r, c) { const n = root.querySelector(`.cell[data-i="${at(r, c)}"]`); if (!n) return null; const b = n.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2, size: b.width }; },
     bees() { return [...beeNodes.values()].map(b => ({ r: L.cells[b.at].r, c: L.cells[b.at].c, angle: +(b.turn.getAttribute('transform') || '').replace(/[^\d.-]/g, ''), transform: b.g.getAttribute('transform'), dodge: b.g.getAttribute('data-dodge'), wing: b.wings[0].getAttribute('transform'), drift: b.buzz.style.animationPlayState || 'running' })); },

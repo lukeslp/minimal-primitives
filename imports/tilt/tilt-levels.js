@@ -82,6 +82,35 @@
   // The boards of the pool served since it was last used up.
   let played = saved ? saved.pool : [];
   const campaignDone = () => Boards.every(board => done.has(board.id));
+  // Wins after the campaign: pool boards solved by a tilt with the campaign finished, counted from 2026-11-19 on (no
+  // earlier save records them). `set` names the pool boards solved at least once; `held` is the board counted last,
+  // so Undo and the same tilt, Restart, or a reload of that board count nothing more. A key of its own: the main
+  // save is rebuilt from a fixed list of fields.
+  const PLUS_KEY = 'tilt-levels-grok.plus.v1';
+  let plusBlocked = false;
+  const plus = (() => {
+    const fresh = { version: 1, wins: 0, held: '', set: [] };
+    let raw;
+    try { raw = localStorage.getItem(PLUS_KEY); } catch (error) { plusBlocked = true; return fresh; }
+    if (!raw) return fresh;
+    try {
+      const data = JSON.parse(raw);
+      if (!data || data.version !== 1 || !Number.isInteger(data.wins) || data.wins < 0 || typeof data.held !== 'string' || !Array.isArray(data.set)) throw new Error('Invalid save');
+      return { version: 1, wins: data.wins, held: data.held, set: [...new Set(data.set.filter(id => Pool.some(item => item.id === id)))] };
+    } catch (error) {
+      plusBlocked = true;
+      return fresh;
+    }
+  })();
+  const setDone = () => plus.set.length >= Pool.length;
+  function countPlus() {
+    if (!inPool() || !campaignDone() || plus.held === current.id) return;
+    plus.wins += 1;
+    plus.held = current.id;
+    if (!plus.set.includes(current.id)) plus.set.push(current.id);
+    if (plusBlocked) return;
+    try { localStorage.setItem(PLUS_KEY, JSON.stringify(plus)); } catch (error) {}
+  }
   let current = All.find(board => board.id === (saved && saved.board)) || Boards[0];
   // A player last on a board left out of the campaign goes on from the open campaign board nearest it in the campaign
   // it was saved under (the first not finished, for a board left out before that); with the campaign finished, that
@@ -313,11 +342,14 @@
   // finished, and Next draws a board from the pool, one not served since the
   // pool was last used up. Replay from board 1 is left for an empty pool.
   const allDone = campaignDone;
-  const endLine = 'All ' + Boards.length + ' boards solved.';
+  // Once every pool board has been solved too, the line counts all fifty.
+  const endLine = () => 'All ' + (setDone() ? Boards.length + Pool.length : Boards.length) + ' boards solved.';
   let drawn = null;
   function drawPool() {
     if (drawn && drawn !== current) return drawn;
-    let left = Pool.filter(board => board !== current && !played.includes(board.id));
+    // Pool boards not yet solved come first, while any are left.
+    let left = Pool.filter(board => board !== current && !plus.set.includes(board.id));
+    if (!left.length) left = Pool.filter(board => board !== current && !played.includes(board.id));
     if (!left.length) left = Pool.filter(board => board !== current);
     drawn = left[Math.floor(Math.random() * left.length)] || null;
     return drawn;
@@ -340,14 +372,16 @@
       button.innerHTML = icon(mode);
     }
     button.setAttribute('aria-label', mode === 'replay' ? 'Replay from board 1' : !inPool() && target && !Boards.includes(target) ? 'Start New Game+' : 'Next board');
-    $('end-line').textContent = endLine;
+    $('end-line').textContent = endLine();
     $('end-line').hidden = !(solved && allDone());
   }
 
   function refresh() {
     const index = Boards.findIndex(board => board.id === current.id) + 1;
-    // A pool board shows the infinity sign where a campaign board shows its number, as Cast's free play does.
-    $('readout').textContent = (inPool() ? '∞' : index + ' / ' + Boards.length) + ' · ' + moves + '/' + par;
+    // A pool board shows +k / 25, the pool boards solved, where a campaign board shows its number; once all are, the
+    // infinity sign, as Cast's free play does (+25 / 25 still on a solved board). Pool boards add the campaign and wins.
+    $('readout').textContent = (inPool() ? (!setDone() || solved ? '+' + plus.set.length + ' / ' + Pool.length : '∞') : index + ' / ' + Boards.length) + ' · ' + moves + '/' + par +
+      (inPool() ? ' · ' + Boards.length + (plus.wins ? ' + ' + plus.wins : '') + ' ✓' : '');
     $('board').setAttribute('aria-label', describe());
     showNext();
     $('previous').disabled = index <= 1;
@@ -425,7 +459,7 @@
   function announce(dir, result) {
     const where = 'Level ' + (result.level + 1) + ', row ' + (result.row + 1) + ', column ' + (result.col + 1) + '.';
     if (!result.moved) say(NAMES[dir] + '. The marble stays.');
-    else if (result.solved) say(NAMES[dir] + '. ' + (result.path.some(cell => cell.drop) ? 'Drops. ' : '') + where + ' Finished in ' + moves + '.' + (allDone() ? ' ' + endLine : ''));
+    else if (result.solved) say(NAMES[dir] + '. ' + (result.path.some(cell => cell.drop) ? 'Drops. ' : '') + where + ' Solved in ' + moves + (moves === 1 ? ' tilt.' : ' tilts.') + (allDone() ? ' ' + endLine() : ''));
     else if (result.path.some(cell => cell.drop)) say(NAMES[dir] + '. Drops to ' + where);
     else say(NAMES[dir] + '. ' + where);
   }
@@ -449,6 +483,7 @@
       done.add(current.id);
       reached = Math.max(reached, Math.min(Boards.length - 1, Boards.indexOf(current) + 1));
     }
+    if (solved) countPlus();
     writeSave();
     announce(dir, result);
     refresh();
@@ -518,16 +553,16 @@
     if (!moveset || !moveset.length) {
       // No tilt finishes from here: the hint is Undo, and a second press takes the last tilt back.
       if (!undoStack.length) {
-        say('No way on from here.');
+        say('You can’t finish from here.');
         return;
       }
       hint = 'undo';
-      say('No way on from here. Undo.');
+      say('You can’t finish from here. Press Hint again to undo.');
       showHint();
       return;
     }
     hint = moveset[0];
-    say(NAMES[hint] + '.');
+    say('Tilt ' + NAMES[hint].toLowerCase() + '. Press Hint again to tilt.');
     showHint();
   }
 
@@ -621,6 +656,7 @@
     boards: Boards,
     pool: Pool,
     get played() { return played.slice(); },
+    get plus() { return JSON.parse(JSON.stringify(plus)); },
     get board() { return current.id; },
     get state() {
       return { level: place.level, row: place.row, col: place.col, moves: moves, par: par, solved: solved };

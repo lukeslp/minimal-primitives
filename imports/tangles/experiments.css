@@ -65,3 +65,5 @@ h2{font:500 16px/1.3 var(--mono);margin:0}.sheet-head form{margin:0}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 :root[data-motion=reduce] *,:root[data-motion=reduce] *::before,:root[data-motion=reduce] *::after{animation:none!important;transition:none!important}
 @media(forced-colors:active){:root{--bg:Canvas;--ink:CanvasText;--text:CanvasText;--sub:CanvasText;--line:GrayText;--rim:GrayText}}
+/* On a narrow phone the readout, which carries the count after the campaign, centers in the room right of the restart button rather than across the page, so the two never overlap. */
+@media(orientation:portrait) and (max-width:360px){.readout{left:max(56px,calc(env(safe-area-inset-left) + 56px));right:max(8px,env(safe-area-inset-right));transform:none;text-align:center}}

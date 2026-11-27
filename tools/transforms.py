@@ -310,7 +310,10 @@ def transform(game, path, text):
     if path == 'akari/akari.js':
         text = replace_or_absorbed(text, "const firstVisit=!location.search&&", "const firstVisit=!['puzzle','seed','level'].some(key=>new URLSearchParams(location.search).has(key))&&", path)
     if path == 'akari/akari.css':
-        text = replace_or_absorbed(text, 'box-shadow:0 0 4px 2px #fff,0 0 14px 5px #ffffff66,0 0 32px 9px #ffffff20', 'box-shadow:0 0 2px 1px #fff,0 0 8px 2px #ffffff66,0 0 16px 4px #ffffff14', path)
+        # Since game-riffs PR 218 (in 57d75298) a bulb is the game's own ringed white disc, legible on the brightest
+        # floor; the tight halo above was for the older small bulb and is left out for the new one.
+        if '.lamp{width:32%;min-width:10px;aspect-ratio:1;border-radius:50%;background:#fff;box-shadow:0 0 0 2px #000,' not in text:
+            text = replace_or_absorbed(text, 'box-shadow:0 0 4px 2px #fff,0 0 14px 5px #ffffff66,0 0 32px 9px #ffffff20', 'box-shadow:0 0 2px 1px #fff,0 0 8px 2px #ffffff66,0 0 16px 4px #ffffff14', path)
         text = replace_or_absorbed(text, 'background:repeating-linear-gradient(135deg,transparent 0 7px,#ffffff28 7px 8px),#0003', 'background:#484848cc', path)
         # The Next fade (next-reveal) left with the continue disc (game-riffs PR 204): the frame shows the disc at the solve.
         if 'next-reveal' in text:
@@ -320,8 +323,10 @@ def transform(game, path, text):
         # Visual midpoint of the .31 and .96 versions after gamma encoding.
         text = replace_or_absorbed(text, 'const mapped=.31*(1-Math.exp(-e*.7))', 'const mapped=.585*(1-Math.exp(-e*.7))', path)
     # Upstream now keeps Akari's Next beside its board (controls config completionRoot), so these two apply only to older pins.
-    # Its light edition's config does not name the board stage yet, so it gets the same placement here.
-    if path == 'akari-light/controls.js' and 'config.completionRoot' in text and '"completionRoot"' not in text:
+    # Its light edition's config did not name the board stage, so it got the same placement here; since game-riffs PR 261
+    # (8fe53efb) Akari Classic finishes as the lit look does (Next, completion ["next-btn"], placed by the control frame
+    # from __minimalize.bounds), and its Next stands where the web's does.
+    if path == 'akari-light/controls.js' and 'config.completionRoot' in text and '"completionRoot"' not in text and '"completion":["completion"]' in text:
         text = replace_once(text, '{"id":"akari-light",', '{"id":"akari-light","completionRoot":"board-stage",', path)
     if game['id'] == 'akari' and path.endswith('/controls.js') and 'config.completionRoot' not in text:
         text = replace_once(text, "node.classList.add('control-completion');root.append(node);", "node.classList.add('control-completion');(byId('board-stage')||root).append(node);", path)
@@ -342,9 +347,12 @@ def transform(game, path, text):
         text = replace_once(text, HINT_WORKER, HINT_WORKER_GUARDED, path)
     if path == 'tangles/loop.js' and "location.href = './experiments.html?plus'" in text:
         # Since game-riffs PR 205 the last board's continue disc goes to New Game+ by script, not by a link the
-        # collection's click handler sees, so the handshake is handed on here and Home keeps answering there.
-        text = replace_once(text, "location.href = './experiments.html?plus'",
-                            "location.href = './experiments.html?plus' + (window.MinimalBridge && MinimalBridge.nonce ? '&minimal=' + MinimalBridge.nonce : '')", path)
+        # collection's click handler sees, so the handshake is handed on here and Home keeps answering there. Since
+        # PR 250 (57d75298) Settings' New Game+ row opens it by script too: both places, and only those two.
+        plus_go = "location.href = './experiments.html?plus';"
+        if text.count(plus_go) != 2:
+            raise ValueError(f'Anchor drift in {path}: expected two {plus_go!r}, found {text.count(plus_go)}')
+        text = text.replace(plus_go, "location.href = './experiments.html?plus' + (window.MinimalBridge && MinimalBridge.nonce ? '&minimal=' + MinimalBridge.nonce : '');")
     if path == 'tangles/experiments.js':
         # Experiments and New Game+ lead back to Tangles by its folder ('./'). The package names the page, since a
         # host need not serve a folder's index.html, and hands on the collection's handshake so Home works there.

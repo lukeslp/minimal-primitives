@@ -6,6 +6,7 @@
     "controls.css",
     "controls.js",
     "engine.js",
+    "generate.js",
     "favicon.svg",
     "fonts/IBMPlexMono-500.woff2",
     "fonts/IBMPlexSans-400.woff2",
@@ -16,6 +17,7 @@
     "access.js",
     "bridge-client.js",
     "course-data.js",
-    "course.js"
+    "course.js",
+    "og.png"
   ]
 }

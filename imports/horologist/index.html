@@ -7,7 +7,21 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<script src="./pwa.js?v=b1ad0419" defer></script><link rel="stylesheet" href="./plate.css?v=8d433ea1"><link rel="stylesheet" href="./controls.css?v=e9a44e73">
+<script src="./pwa.js?v=b1ad0419" defer></script><link rel="stylesheet" href="./plate.css?v=22511855"><link rel="stylesheet" href="./controls.css?v=ca42b497">
+<meta property="og:title" content="Horologist">
+<meta property="og:description" content="Put wheels in the holes so every clock runs forwards.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://lukesteuber.com/games/horologist/">
+<meta property="og:image" content="https://lukesteuber.com/games/horologist/og.png?v=4d1e6cb510d3">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="A finished movement: a spring barrel driving a train of toothed wheels, three of them clock faces.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Horologist">
+<meta name="twitter:description" content="Put wheels in the holes so every clock runs forwards.">
+<meta name="twitter:image" content="https://lukesteuber.com/games/horologist/og.png?v=4d1e6cb510d3">
+<meta name="twitter:image:alt" content="A finished movement: a spring barrel driving a train of toothed wheels, three of them clock faces.">
 </head>
 <body><header><button id="restart-btn" class="ib" aria-label="Restart"></button><h1 class="sr-only">Horologist</h1><div id="readout" class="readout"></div></header>
 <main id="board" aria-label="0 wheels placed; 0 clocks run forwards"><svg id="works" aria-hidden="true"></svg><div id="targets"></div><button id="next-btn" class="ib" type="button" aria-label="Next board" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button><p id="end-line" class="end-line control-end-line" hidden></p></main>
@@ -15,6 +29,7 @@
 <nav class="toolbar" aria-label="Game controls"><div><button id="undo-btn" class="ib" aria-label="Undo"></button><button id="hint-btn" class="ib" aria-label="Hint"></button></div><div><button id="settings-btn" class="ib" aria-label="Settings"></button><button id="help-btn" class="ib" aria-label="Help"></button></div></nav>
 <dialog id="settings" class="sheet" aria-labelledby="settings-title"><div class="sheet-head"><h2 id="settings-title">Settings</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Settings">×</button></form></div><div class="sheet-body"><h3 class="group">This board</h3><div class="row"><button id="previous">Previous</button><span id="board-number"></span><button id="following">Next</button></div>
 <h3 class="group">Display</h3><label class="row">Theme <select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label class="row">Motion <select id="motion"><option value="system">System</option><option value="reduce">Reduced</option></select></label><section aria-labelledby="catalog-title"><h3 id="catalog-title" class="group">Boards</h3><ol id="level-catalog" class="campaign-catalog"></ol></section></div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
-<dialog id="help" class="sheet" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">Help</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Help">×</button></form></div><div class="sheet-body"><p>Put wheels in the holes so every clock runs forwards: only errors use color, with broken red rings for backwards clocks and heavy red edges for jams.</p><p>Tap a hole to place a wheel, or a loose wheel to lift it.</p><p>Drag to move; arrows and Enter place, 1–3 choose a size, and Z undoes.</p></div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
-<script src="./engine.js?v=bce32cee"></script><script src="./boards.js?v=09e42d9b"></script><script src="./campaign.js?v=3afa6e0b"></script><script src="./plate.js?v=ee75668c"></script><script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script><script defer src="./controls.js?v=f2b52e9d"></script>
+<dialog id="help" class="sheet" aria-labelledby="help-title"><div class="sheet-head"><h2 id="help-title">Help</h2><form method="dialog"><button class="ib sheet-x" aria-label="Close Help">×</button></form></div><div class="sheet-body"><p>Place wheels so every clock runs forwards.</p><p>Tap a hole to place a wheel, and tap a wheel you placed to take it out or drag it to another hole.</p><p>Keys: arrows pick a hole, Enter places or lifts a wheel, 1, 2 and 3 pick the size (smallest first), and Z undoes.</p><p><button id="replay-opening" class="text-action" type="button">Play the opening boards again</button></p></div><footer class="sheet-foot"><a href="https://lukesteuber.com/minimal/">All games</a> · <a href="https://lukesteuber.com">lukesteuber.com</a></footer></dialog>
+<script src="./engine.js?v=bce32cee"></script><script src="./boards.js?v=09e42d9b"></script><script src="./campaign.js?v=3afa6e0b"></script><script src="./opening.js?v=c7cdb59a"></script>
+<script src="./plate.js?v=667560b5"></script><script data-goatcounter="https://stats.dr.eamer.dev/count" async src="https://stats.dr.eamer.dev/count.js"></script><script defer src="./controls.js?v=2c79f892"></script>
 </body></html>

@@ -88,3 +88,16 @@ Full acceptance also runs the real isolated HTTP/SQLite service and actual-ZIP
 embed tests through `npm test`. See `release/verification.json` for the accepted
 artifact and final counts. Initial failures and intermediate evidence were kept
 outside Git.
+
+## Hexsweeper flat menu · November 25, 2026
+
+The packaged `games/hexsweeper/bounded.html` differs from the pinned source in four ways, all applied at build time:
+
+- The Menu's footer links read lukesteuber.com and datapoems.io (hrefs unchanged).
+- The instruction line follows the input type with CSS: "Tap to reveal · hold to flag" on touch, "Click to reveal · right-click or Ctrl-click to flag" otherwise.
+- The Menu takes focus on its Close button when it opens, keeps Tab and Shift+Tab inside, closes on Escape and returns focus to its opener. While closed it is inert. The script watches the `open` class, so a menu reopened by the resume helper is handled too.
+- `adapters/hooks.js` puts Collection scores in its own row before the footer links, for this menu only.
+
+`tools/hex_recipe.py` holds the first three. Each anchor fails on drift and is skipped when its exact replacement is already present. Hexsweeper's own repository has the same fixes on a later commit with different markup, so when the pin moves past them these transforms should be removed, not adapted. Infinite and Sphere use a different sheet and are untouched. Imported files, `sources.json`, validator rule ids and proof fixtures are unchanged: they describe the imported source, not the built text.
+
+Tests: `tests/test_build.py` (built text, drift, already-fixed input), `tests/hex.test.cjs` ("flat menu instructions"), `tests/shell-review.test.cjs` ("Hexsweeper flat Menu": focus, Escape, Tab, outside tap, restored `open` class, scores row before the footer).

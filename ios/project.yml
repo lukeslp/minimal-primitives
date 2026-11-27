@@ -10,8 +10,8 @@ settings:
     DEVELOPMENT_TEAM: 596T7J7FB6
     SWIFT_VERSION: "5.9"
     CODE_SIGN_STYLE: Automatic
-    MARKETING_VERSION: "0.5.12"
-    CURRENT_PROJECT_VERSION: "32"
+    MARKETING_VERSION: "0.5.21"
+    CURRENT_PROJECT_VERSION: "41"
 targets:
   MinimalPrimitives:
     type: application
@@ -49,6 +49,8 @@ targets:
           UIApplicationSupportsMultipleScenes: false
         UIStatusBarHidden: true
         UIViewControllerBasedStatusBarAppearance: true
+        # Phones are held in portrait by CollectionViewController (a screen under 600 pt on its shorter side); the landscape
+        # orientations stay listed so the iPhone Duo's open inner screen can still turn.
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         NSCameraUsageDescription: "Use the front camera to move the game pointer with your head or eyes. Camera images are processed on this device and are never saved or sent."

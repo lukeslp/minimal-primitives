@@ -64,6 +64,30 @@ function save() {
   if (corrupt) return;
   try { localStorage.setItem(KEY, JSON.stringify({ version: 1, board: boardId, moves: history, completed, settings: prefs, pool: played })); } catch (_) {}
 }
+// Wins after the campaign: New Game+ boards solved by a move with the campaign finished, counted from 2026-11-19 on
+// (no earlier save records them). `set` names the pool boards solved at least once; `held` is the board counted last,
+// so Undo and the same move, Restart, or a reload of that board count nothing more. A key of its own: the main save
+// is read field by field.
+const PLUS_STORE = 'cube-maze.plus.v1';
+let plus = { version: 1, wins: 0, held: '', set: [] }, plusBlocked = false, setEnd = false;
+{
+  let raw = null;
+  try { raw = localStorage.getItem(PLUS_STORE); } catch (_) { plusBlocked = true; }
+  if (raw !== null) try {
+    const v = JSON.parse(raw);
+    if (!v || v.version !== 1 || !Number.isInteger(v.wins) || v.wins < 0 || typeof v.held !== 'string' || !Array.isArray(v.set)) throw Error('Unreadable');
+    plus = { version: 1, wins: v.wins, held: v.held, set: [...new Set(v.set.filter(id => POOL.some(b => b.id === id)))] };
+  } catch (_) { plusBlocked = true; }
+}
+const setDone = () => plus.set.length >= POOL.length;
+function countPlus() {
+  if (!inPool() || !campaignDone() || plus.held === boardId) return;
+  const had = setDone();
+  plus.wins++; plus.held = boardId;
+  if (!plus.set.includes(boardId)) plus.set.push(boardId);
+  if (!had && setDone()) setEnd = true;
+  if (!plusBlocked) try { localStorage.setItem(PLUS_STORE, JSON.stringify(plus)); } catch (_) {}
+}
 const reduced = () => prefs.motion === 'reduce' || matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ---------- Orientation: the cube's own axes in the world ----------
@@ -674,7 +698,7 @@ function drain() {
   updateUI();
 }
 function run(item) {
-  if (item.kind === 'undo') { if (!history.length) return; history.pop(); clearHint(); syncAll(); save(); announce('Undo, ' + movesWord(history.length) + '.'); return; }
+  if (item.kind === 'undo') { if (!history.length) return; history.pop(); clearHint(); syncAll(); save(); announce('Undone. ' + movesWord(history.length) + '.'); return; }
   if (state.out) return;
   let move = null;
   if (item.kind === 'tip') { const d = item.dir !== undefined ? item.dir : cubeDir(item.world, orient); move = ['tip', d]; }
@@ -688,6 +712,7 @@ function startMove(move, from, lean) {
   state = r.state; history.push(move.slice());
   // Only campaign boards count as solved; a New Game+ board is played for itself.
   if (state.out && !inPool() && !completed.includes(boardId)) { completed.push(boardId); if (campaignDone()) finale = true; }
+  if (state.out) countPlus();
   // The next arrow comes with the solving move, while the marble still falls and the light washes through.
   if (state.out) { lookHintDue = null; endLookHint(); showNext = hasNext(); }
   clearHint(); save(); updateUI(); announceMove(move, r.trace); if (history.length === 3) lookHintDue = boardId;
@@ -715,7 +740,7 @@ function go(id) {
   drawn = null;
   // A round ends once every pool board has been dealt; opening the board in hand again deals nothing new.
   if (POOL.some(b => b.id === id)) { const dealt = played.filter(x => x !== id).concat(id); played = dealt.length >= POOL.length ? [] : dealt; }
-  finale = false; queue = []; anim = null; drag = null; gesture = null; lookHintDue = null; endLookHint(); clearHint(); clearSel(); endLayer(); boardId = id; history = []; resetLook(true); buildBoard(); syncAll(); save(); arrival();
+  finale = false; setEnd = false; queue = []; anim = null; drag = null; gesture = null; lookHintDue = null; endLookHint(); clearHint(); clearSel(); endLayer(); boardId = id; history = []; resetLook(true); buildBoard(); syncAll(); save(); arrival();
   // The status line belongs to the board on screen: a new board replaces the last one's result.
   announce(boardName() + '. Par ' + board.par + '.');
   return true;
@@ -731,7 +756,9 @@ function nextOf() {
 let drawn = null;
 function drawPool() {
   if (drawn && drawn.id !== boardId) return drawn;
-  let left = POOL.filter(b => b.id !== boardId && !played.includes(b.id));
+  // Pool boards not yet solved come first, while any are left.
+  let left = POOL.filter(b => b.id !== boardId && !plus.set.includes(b.id));
+  if (!left.length) left = POOL.filter(b => b.id !== boardId && !played.includes(b.id));
   if (!left.length) left = POOL.filter(b => b.id !== boardId);
   drawn = left[Math.floor(Math.random() * left.length)];
   return drawn;
@@ -757,9 +784,10 @@ function fit() {
 // then the zoom window.
 function aim() {
   const W = viewW, H = viewH, { top, right, land, portrait, aw, ah } = frame0;
-  // The glass is sized alone, the same on both boards: a phone held upright gives it about two thirds of its width,
-  // with room above and below for swipes; the cube and its feet together are centred in the play area.
-  const wantW = portrait ? Math.min(W * 0.665, aw) : aw * 0.58, wantH = portrait ? ah * 0.51 : land ? ah * 0.7 : ah * 0.6;
+  // The glass is sized alone, the same on both boards: held upright it takes up to two thirds of the width, but on a
+  // narrow phone it leaves about 88 px each side (never less than half the width for itself) so there is room beside
+  // it to swipe a roll, as well as above and below; the cube and its feet together are centred in the play area.
+  const wantW = portrait ? Math.min(W * 0.665, aw, Math.max(W * 0.52, W - 176)) : aw * 0.58, wantH = portrait ? ah * 0.51 : land ? ah * 0.7 : ah * 0.6;
   const hs = (n || 2) / 2 - SEAT, T = V3(0, FOOT + hs, 0), yaw = YAW + look.yaw, pitch = look.pitch;
   const dir = V3(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
   const glassPts = [], r = FEET.width; for (let i = 0; i < 8; i++) glassPts.push(V3(i & 1 ? hs : -hs, FOOT + (i & 2 ? 2 * hs : 0), i & 4 ? hs : -hs));
@@ -812,8 +840,8 @@ function resetLook(instant) {
 // a little and back. At most twice, the second time on another board, and never once the view has been turned.
 let lastPointer = matchMedia('(hover: hover) and (pointer: fine)').matches ? 'mouse' : 'touch', lookHint = null, lookHintDue = null;
 const glyphs = {
-  touch: '<svg viewBox="0 0 72 56" aria-hidden="true"><path class="arc" d="M8.6 28.8A80 80 0 0 1 63.4 28.8"/><g class="dots"><g class="up"><circle cx="29" cy="40" r="5.5"/><circle cx="43" cy="40" r="5.5"/></g></g></svg>',
-  mouse: '<svg viewBox="0 0 72 56" aria-hidden="true"><path class="arc" d="M10.1 13.6A94 94 0 0 1 61.9 13.6"/><g class="mouse"><g class="up"><rect x="27" y="24" width="18" height="28" rx="9"/><path d="M36 24v11M27 35h18"/><path class="lit" d="M36 24a9 9 0 0 1 9 9v2h-9z"/></g></g></svg>'
+  touch: '<svg viewBox="0 0 72 56" aria-hidden="true"><path class="arc" d="M8.6 28.8A80 80 0 0 1 63.4 28.8"/><path class="arc-head" d="M13.4 30.1 8.6 28.8l2.9-4.1M58.6 30.1l4.8-1.3-2.9-4.1"/><g class="dots"><g class="up"><circle cx="29" cy="40" r="5.5"/><circle cx="43" cy="40" r="5.5"/></g></g></svg>',
+  mouse: '<svg viewBox="0 0 72 56" aria-hidden="true"><path class="arc" d="M10.1 13.6A94 94 0 0 1 61.9 13.6"/><path class="arc-head" d="M14.8 15.2 10.1 13.6l3.2-3.9M57.2 15.2l4.7-1.6-3.2-3.9"/><g class="mouse"><g class="up"><rect x="27" y="24" width="18" height="28" rx="9"/><path d="M36 24v11M27 35h18"/><path class="lit" d="M36 24a9 9 0 0 1 9 9v2h-9z"/></g></g></svg>'
 };
 function markLooked() { if (prefs.looked) return; prefs.looked = true; save(); endLookHint(); }
 function endLookHint() { if (!lookHint) return; clearTimeout(lookHint.timer); lookHint.el.remove(); lookHint = null; }
@@ -824,12 +852,15 @@ function maybeLookHint() {
   if (due !== boardId || corrupt || prefs.looked || prefs.hintCount >= 2 || prefs.hintBoard === boardId || history.length < 3 || state.out || lookHint || sheetOpen()) return;
   prefs.hintCount++; prefs.hintBoard = boardId; save();
   const kind = lastPointer, still = reduced(), el = document.createElement('div');
-  el.id = 'look-hint'; el.className = 'look-hint ' + kind + (still ? ' still' : ''); el.setAttribute('aria-hidden', 'true'); el.innerHTML = glyphs[kind];
+  el.id = 'look-hint'; el.className = 'look-hint ' + kind + (still ? ' still' : ''); el.setAttribute('role', 'img'); el.setAttribute('aria-label', kind === 'touch' ? 'Turn the view: drag with two fingers' : 'Turn the view: right-drag'); el.innerHTML = glyphs[kind];
   // Bottom centre of the play area, above the toolbar and the Next disc's space; if the cube or that space reaches it
   // there (a short landscape screen, or zoomed in), it moves to whichever side of the cube has more room.
   const right = viewW - frame0.right; el.style.left = (right / 2 - 36) + 'px'; $('#play').append(el);
+  // Upright or at a desk it stands in the middle of the gap between the cube's feet and the Next disc's space.
+  { const b = bounds(), s = nextSlot(), h = el.offsetHeight, gap = s.y - (b.y + b.height);
+    if (!frame0.land && gap >= h + 8) el.style.bottom = (viewH - s.y + (gap - h) / 2) + 'px'; }
   const r = el.getBoundingClientRect(), b = bounds(), s = nextSlot(), near = (q, pad) => r.left < q.x + q.width + pad && r.right > q.x - pad && r.top < q.y + q.height + pad && r.bottom > q.y - pad;
-  if (near(b, 8) || near(s, 4))
+  if (near(b, 4) || near(s, 4))
     el.style.left = (b.x > right - (b.x + b.width) ? Math.max(8, b.x / 2 - r.width / 2) : Math.min(right - r.width - 8, (b.x + b.width + right) / 2 - r.width / 2)) + 'px';
   lookHint = { el, kind, timer: setTimeout(endLookHint, 3200) };
   if (!still) { stopLook(); look.anim = { sway: true, from: { yaw: look.yaw }, to: { yaw: look.yaw + 15 * Math.PI / 180 }, t0: performance.now(), dur: 2600 }; kick(); }
@@ -961,7 +992,7 @@ function setRamp(r) { sel.ramp = r; const k = r >= 1 ? 1 : 0.5 + 0.32 * r; selLi
 function showWhole(from) { clearSel(); sel.mode = 'whole'; sel.from = from; U.uWhole.value = 0.42; kick(); }
 const flickSpeed = (g, ux, uy) => { const now = g.samples[g.samples.length - 1], old = g.samples.find(s => now.t - s.t <= 90) || now, dt = now.t - old.t; return dt > 0 ? ((now.x - old.x) * ux + (now.y - old.y) * uy) / dt : 0; };
 
-const control = t => !!(t && t.closest && t.closest('button,a,select,input,textarea,label,summary,dialog'));
+const control = t => !!(t && t.closest && t.closest('button,[role="button"],a,select,input,textarea,label,summary,dialog'));
 const sheetOpen = () => !!document.querySelector('dialog[open]');
 const html = document.documentElement;
 // One finger on the cube turns a slice; one finger anywhere off it rolls the whole cube. Looking around takes two
@@ -1138,7 +1169,7 @@ function pressHint() {
 }
 function showHint(move) {
   hint = move; updateHintButton();
-  if (move === 'undo') { announce('Undo is the way back.'); return; }
+  if (move === 'undo') { announce('Undo a move first. Press Hint again to undo it.'); return; }
   if (move[0] === 'tip') {
     // An arrow beside the cube, or on top of it when the floor beyond lies behind it, and the cube leans that way.
     const w = worldDir(move[1], orient); hintObj = rollArrow(w, whiteMat); leanGoal.copy(w).multiplyScalar(0.12);
@@ -1147,7 +1178,7 @@ function showHint(move) {
     showSlice(AXES.indexOf(move[0]), move[1], null, move[2], 'hint'); setRamp(1);
     hintObj = new THREE.Group(); cubeRoot.add(hintObj);
   }
-  announce('Hint shown; press Hint again to play it.'); kick();
+  announce('Hint: ' + (move[0] === 'tip' ? 'roll ' + sideWord(worldDir(move[1], orient)) : 'turn ' + turnWords(move)) + '. Press Hint again to play it.'); kick();
 }
 function updateHintButton() { $('#hint-btn').setAttribute('aria-pressed', String(!!hint || !!hintWorker)); $('#hint-btn').disabled = !!state && state.out; $('#undo-btn').classList.toggle('hinted', hint === 'undo'); }
 
@@ -1158,14 +1189,17 @@ const sizeWords = { 2: '2 by 2 by 2', 3: '3 by 3 by 3' };
 function updateUI() {
   if (!state) return;
   const i = BOARDS.findIndex(b => b.id === boardId);
-  // A New Game+ board shows the infinity sign where a campaign board shows its number, as Tilt and Cast do.
-  $('#readout').textContent = (i < 0 ? '∞' : (i + 1) + ' / ' + BOARDS.length) + ' · ' + history.length + ' / ' + board.par;
+  // A New Game+ board shows +k / 25, the pool boards solved, where a campaign board shows its number; once all are, the
+  // infinity sign, as Tilt and Cast do (+25 / 25 still on a solved board). It adds the campaign and the wins after it.
+  $('#readout').textContent = (i < 0 ? (!setDone() || state.out ? '+' + plus.set.length + ' / ' + POOL.length : '∞') : (i + 1) + ' / ' + BOARDS.length) + ' · ' + history.length + ' / ' + board.par +
+    (i < 0 ? ' · ' + BOARDS.length + (plus.wins ? ' + ' + plus.wins : '') + ' ✓' : '');
   $('#undo-btn').disabled = !history.length && !busy();
   $('#next-btn').hidden = !showNext;
   // With the campaign finished, the arrow from a campaign board starts New Game+, under one line that says so.
   if (showNext) $('#next-btn').setAttribute('aria-label', i >= 0 && POOL.includes(nextOf()) ? 'Start New Game+' : 'Next board');
-  const end = showNext && state.out && i >= 0 && campaignDone() && (finale || i === BOARDS.length - 1);
-  $('#end-line').textContent = end ? 'All ' + BOARDS.length + ' boards solved.' : ''; $('#end-line').hidden = !end;
+  // The solve that puts the last pool board in the set ends on the whole count.
+  const whole = showNext && state.out && i < 0 && setEnd, end = whole || showNext && state.out && i >= 0 && campaignDone() && (finale || i === BOARDS.length - 1);
+  $('#end-line').textContent = end ? 'All ' + (whole ? BOARDS.length + POOL.length : BOARDS.length) + ' boards solved.' : ''; $('#end-line').hidden = !end;
   canvas.setAttribute('aria-label', 'Glass cube ' + sizeWords[n] + ', ' + boardName().toLowerCase() + ', ' + movesWord(history.length) + ', par ' + board.par + (state.out ? ', solved' : ''));
   const sel = $('#board-select'); sel.value = i < 0 ? '' : boardId;
   for (const o of sel.options) o.textContent = (BOARDS.findIndex(b => b.id === o.value) + 1) + ' / ' + BOARDS.length + (completed.includes(o.value) ? ' · solved' : '');
@@ -1195,9 +1229,9 @@ function turnWords(move) {
 }
 function announceMove(move, tr) {
   const what = move[0] === 'tip' ? 'roll ' + sideWord(worldDir(move[1], orient)) : 'turn ' + turnWords(move);
-  announce('Move ' + history.length + ': ' + what + '. ' + (tr.out ? 'The marble leaves.' : tr.path.length > 1 ? 'The marble falls ' + (tr.path.length - 1) + '.' : 'The marble stays.'));
+  announce('Move ' + history.length + ': ' + what + '. ' + (tr.out ? 'The marble is out.' : tr.path.length > 1 ? 'The marble falls ' + (tr.path.length - 1) + (tr.path.length === 2 ? ' cube.' : ' cubes.') : 'The marble stays put.'));
 }
-function announceSolved() { announce('Solved in ' + movesWord(history.length) + '; par ' + board.par + '.' + (!inPool() && campaignDone() ? ' Every board is solved.' : '')); }
+function announceSolved() { announce('Solved in ' + movesWord(history.length) + '. Par ' + board.par + '.' + (!inPool() && campaignDone() ? ' Every board is solved.' : inPool() && setEnd ? ' All ' + (BOARDS.length + POOL.length) + ' boards solved.' : '')); }
 
 for (const b of BOARDS) { const o = document.createElement('option'); o.value = b.id; $('#board-select').append(o); }
 $('#board-select').onchange = e => { go(e.target.value); $('#settings').close(); };
@@ -1225,6 +1259,7 @@ kick();
 window.__cubeMaze = {
   boards: BOARDS, pool: POOL,
   get played() { return played.slice(); },
+  get plus() { return JSON.parse(JSON.stringify(plus)); },
   get board() { return boardId; },
   get state() { return { n, masks: state.masks.slice(), spout: state.spout.slice(), marble: state.marble, g: state.g, out: state.out, moves: history.length, history: history.map(m => m.slice()), par: board.par, solved: state.out, busy: busy() || !!gesture, queued: queue.length, hint: hint && (hint === 'undo' ? 'undo' : hint.slice()), searching: !!hintWorker, next: showNext, completed: completed.slice() }; },
   go, tip(d) { enqueue({ kind: 'tip', dir: d }); }, turn(axis, l, dir) { enqueue({ kind: 'turn', move: [axis, l, dir] }); }, undo, restart, pressHint,

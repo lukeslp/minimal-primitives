@@ -518,7 +518,7 @@
       take(id, performance.now()); return;
     }
     hint = E.next(board, state, mode(), order()); if (!sel.ids.includes(hint)) { hint = null; return; }
-    announce(typeof hint === 'number' ? 'Hint: the marked cell. Press Hint again to take it.' : hint === 'out' ? 'Hint: back to the board. Press Hint again to take it.' : 'Hint: the marked row. Press Hint again to take it.');
+    announce(typeof hint === 'number' ? 'Hint: the marked cell. Press Hint again to choose it.' : hint === 'out' ? 'Hint: back to the board. Press Hint again to go back.' : 'Hint: the marked row. Press Hint again to open it.');
     chrome();
   }
 
@@ -622,7 +622,7 @@
   const switchPointers = new Set();
   const letGo = e => { if (switchPointers.delete(e.pointerId)) { lastRelease = e.timeStamp; endHold('p' + e.pointerId); } };
   document.addEventListener('pointerup', letGo); document.addEventListener('pointercancel', letGo);
-  const chromeTarget = t => t.closest && t.closest('button,select,a,label,dialog,input,textarea');
+  const chromeTarget = t => t.closest && t.closest('button,[role="button"],select,a,label,dialog,input,textarea');
   document.addEventListener('pointerdown', e => {
     lastInput = 'pointer';
     if (chromeTarget(e.target) || (e.pointerType === 'mouse' && e.button !== 0)) return;
@@ -665,7 +665,7 @@
     // A new way of choosing starts the current choice afresh, on the board.
     if (k === 'choose' && mode() !== before) { state = { ...state, view: -1 }; zoom = { from: 0, to: 0, start: 0, row: -1 }; begin(); fade = new Map(); fit(); }
     chrome(); save();
-    announce({ theme: 'Theme changed.', motion: 'Motion setting changed.', rewards: colourOn() ? 'Color rewards.' : 'Calm: paper and ink only.', choose: `Choosing by ${mode()}${prefs.choose === 'auto' ? ', chosen for this board and speed' : ''}. Par ${par()}.`, adapt: prefs.adapt === 'on' ? 'Adapting to your timing.' : 'Using the starting timing.', sound: prefs.sound === 'on' ? 'Sound on.' : 'Sound off.', hold: prefs.hold === 'off' ? 'Long press: take back off.' : `Hold ${Number(prefs.hold) / 1000} seconds to take back a step.`, release: prefs.release === 'off' ? 'Release time off.' : `Presses within ${Number(prefs.release) / 1000} seconds of a release are ignored.` }[k]);
+    announce({ theme: 'Theme changed.', motion: 'Motion setting changed.', rewards: colourOn() ? 'Color rewards.' : 'Calm rewards, no color.', choose: `${prefs.choose === 'auto' ? 'Auto: choosing' : 'Choosing'} by ${mode()}${prefs.choose === 'auto' ? ' on this board at this speed' : ''}. Par ${par()}.`, adapt: prefs.adapt === 'on' ? 'Adapting to your timing.' : 'Using the starting timing.', sound: prefs.sound === 'on' ? 'Sound on.' : 'Sound off.', hold: prefs.hold === 'off' ? 'Long press: take back off.' : `Hold ${Number(prefs.hold) / 1000} seconds to take back a step.`, release: prefs.release === 'off' ? 'Release time off.' : `Presses within ${Number(prefs.release) / 1000} seconds of a release are ignored.` }[k]);
   });
   $('#speed').addEventListener('input', e => setSpeed(Number(e.target.value), false));
   motionQuery.addEventListener('change', applyPrefs); darkQuery.addEventListener('change', applyPrefs);

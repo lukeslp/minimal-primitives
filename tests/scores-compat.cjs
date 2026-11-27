@@ -151,7 +151,13 @@ async function transportTests() {
       await frame.locator('#score-submit').waitFor({ state: 'visible' });
       await frame.waitForFunction(() => document.querySelector('#scores-status').textContent !== 'Loading…');
     };
-    const close = async frame => { await frame.getByRole('button', { name: 'Close Scores', exact: true }).click(); };
+    // The sheet's close event (a queued task) hands focus back to Settings. Under load it can land after the next
+    // step has focused a board cell, and that cell's Enter then opens Settings instead; so the step waits for it.
+    const close = async frame => {
+      const button = frame.getByRole('button', { name: 'Close Scores', exact: true });
+      await button.evaluate(b => { window.__scoresClosed = new Promise(r => b.closest('dialog').addEventListener('close', () => setTimeout(r, 0), { once: true })); });
+      await button.click(); await frame.evaluate(() => window.__scoresClosed);
+    };
     // Since game-riffs 2ba8a67 a solved board shows the arrow alone; Scores opens from Settings.
     const openSolved = async frame => {
       await frame.locator('#settings-btn').click();

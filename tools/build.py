@@ -74,6 +74,8 @@ def library_tiles(index, games, output):
                       'drawing': versioned(tile['lines']) if tile.get('lines') else None,
                       # Where the game keeps its record and the ids of its current main campaign (finished-tile color).
                       'set': tile.get('set'),
+                      # The card's words once it is finished, where the game has its own ("Every size cleared.").
+                      'done': tile.get('done'),
                       # The game's own solved board in color, shown in place of the picture once the set is finished.
                       'solved': {'dark': versioned(tile['solved']['dark']), 'light': versioned(tile['solved']['light']),
                                  'fill': tile['solved']['fill']} if tile.get('solved') else None,

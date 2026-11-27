@@ -3,7 +3,7 @@
 'use strict';
 const intros=[
  {id:'intro-1',w:6,h:1,centres:[[3,1],[9,1]],prompt:'Draw one line between the dots.'},
- {id:'intro-2',w:4,h:3,centres:[[3,3],[7,3]],prompt:'Continue the boundary from top to bottom.'},
+ {id:'intro-2',w:4,h:3,centres:[[3,3],[7,3]],prompt:'Finish the line from top to bottom.'},
  {id:'intro-3',w:3,h:3,centres:[[3,3],[4,1],[2,5]],prompt:'Each shape must match after a half-turn.'}
 ];
 function topology(p){const t=G.topology(p),edges=[],adj=Array.from({length:t.n},()=>[]);for(let y=0;y<p.h;y++)for(let x=0;x<p.w;x++){const a=y*p.w+x;for(const [b,vertical]of[[x<p.w-1?a+1:-1,true],[y<p.h-1?a+p.w:-1,false]])if(b>=0){const locked=t.cores.some(c=>c.includes(a)&&c.includes(b)),e=edges.length;edges.push({a,b,vertical,x:vertical?x+1:x,y:vertical?y:y+1,locked});adj[a].push({b,e});adj[b].push({b:a,e});}}return{...t,edges,adj};}

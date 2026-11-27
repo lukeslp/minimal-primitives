@@ -4,7 +4,7 @@
   const $=s=>document.querySelector(s), root=$('#practice'), row=$('#practice-row');
   const lessons=[
     {title:'One run',clue:'5',task:'Drag across all five.',answer:[1,1,1,1,1],done:'That’s one run of five.'},
-    {title:'Leave a gap',clue:'3 1',task:'Three, a gap, then one. Hold the gap to mark it empty.',answer:[1,1,1,2,1],done:'Three, a gap, one.'},
+    {title:'Leave a gap',clue:'3 1',task:'Three, a gap, then one. Double-tap, hold or right-click the gap to mark it empty.',answer:[1,1,1,2,1],done:'Three, a gap, one.'},
     {title:'Only what is certain',clue:'4',task:'A 4 fits two ways. Fill only the squares both share.',answer:[0,1,1,1,0],done:'Only the middle three are certain.'}
   ];
   const s={cells:new Int8Array(5),undo:[],mark:false,lastTap:null,drag:null,pending:null};

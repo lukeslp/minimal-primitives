@@ -20,7 +20,7 @@ button:focus-visible,select:focus-visible,.sheet summary:focus-visible{outline:2
 #restart-btn{position:fixed;top:max(0px,env(safe-area-inset-top));left:8px;z-index:2}
 
 /* The board: a square of cells, a count at the end of each row and under each column. */
-#board-shell{position:absolute;inset:56px 0 116px;display:flex;overflow:hidden}
+#board-shell{position:absolute;inset:56px 0 calc(116px + var(--safe-lift)) 0;display:flex;overflow:hidden}
 .board-stage{flex:none;margin:auto}
 /* touch-action:none lets a finger drag across the cells to dot them instead of panning the page. */
 .board{--gut:18px;--foot:24px;--clue:14px;position:relative;display:grid;grid-template-columns:repeat(var(--w),var(--cell)) var(--gut);grid-template-rows:repeat(var(--h),var(--cell)) var(--foot);padding-left:var(--gut);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}
@@ -95,7 +95,9 @@ body[data-control-frame] #completion{display:none}
 @keyframes next-reveal{from{opacity:0;translate:0 4px}to{opacity:1;translate:0 0}}
 @keyframes pulse{50%{opacity:.3}}
 
-#feedback{position:fixed;bottom:62px;left:16px;right:16px;min-height:36px;margin:0;display:grid;place-items:center;text-align:center;color:var(--sub);font:14px/1.3 var(--sans);pointer-events:none}
+/* Safe area: the toolbar stands max(6px, inset) from the bottom, so the hint line and the board above it rise with it by --safe-lift (0px without an inset; until 2026-11-21 a long hint ran into the toolbar on an iPhone). */
+:root{--safe-lift:calc(max(6px,env(safe-area-inset-bottom)) - 6px);--safe-side:0px}
+#feedback{position:fixed;bottom:calc(62px + var(--safe-lift));left:16px;right:16px;min-height:36px;margin:0;display:grid;place-items:center;text-align:center;color:var(--sub);font:14px/1.3 var(--sans);pointer-events:none}
 .toolbar{position:fixed;bottom:max(6px,env(safe-area-inset-bottom));left:8px;right:8px;display:flex;justify-content:space-between}
 .toolbar>div{display:flex}
 .ib{display:inline-grid;place-items:center;width:48px;height:48px;min-width:48px;min-height:48px;border:0;background:none;padding:12px;color:var(--ink);transition:opacity .15s,transform .1s}
@@ -130,11 +132,11 @@ body[data-control-frame] #completion{display:none}
 kbd{font:500 14px/1 var(--mono)}
 @media(max-width:480px){.sheet-head{padding:8px 12px}.sheet-body{padding:16px}}
 
-@media(orientation:landscape) and (max-height:500px){
-  #board-shell{inset:44px 72px 64px}
+@media(orientation:landscape) and (max-height:500px){:root{--safe-lift:max(0px,env(safe-area-inset-bottom) - 14px);--safe-side:calc(max(8px,env(safe-area-inset-right)) - 8px)}
+  #board-shell{inset:44px calc(72px + var(--safe-side)) calc(64px + var(--safe-lift)) 72px}
   .toolbar{left:auto;right:8px;top:12px;bottom:12px;flex-direction:column;width:48px}
   .toolbar>div{flex-direction:column}
-  #feedback{left:64px;right:136px;bottom:14px;font-size:13px}
+  #feedback{left:max(64px,env(safe-area-inset-left));right:calc(136px + var(--safe-side));bottom:calc(14px + var(--safe-lift));font-size:13px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 :root[data-motion=reduce] *,:root[data-motion=reduce] *::before,:root[data-motion=reduce] *::after{animation:none!important;transition:none!important}

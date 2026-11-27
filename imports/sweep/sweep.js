@@ -561,7 +561,7 @@
     swDown('k:' + (e.code || e.key), e.key === 'Enter' ? 'select' : 'step', e.timeStamp);
   });
   document.addEventListener('keyup', e => swUp('k:' + (e.code || e.key), e.timeStamp));
-  const chromeTarget = t => t.closest && t.closest('button,select,a,label,dialog,input,textarea');
+  const chromeTarget = t => t.closest && t.closest('button,[role="button"],select,a,label,dialog,input,textarea');
   document.addEventListener('pointerdown', e => {
     lastInput = 'pointer';
     if (chromeTarget(e.target) || (e.pointerType === 'mouse' && e.button !== 0)) return;

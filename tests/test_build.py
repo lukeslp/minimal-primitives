@@ -11,6 +11,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 from transforms import open_outside, replace_once, transform
+import hex_recipe
 
 
 class ExportTests(unittest.TestCase):
@@ -28,6 +29,48 @@ class ExportTests(unittest.TestCase):
         for text in ['missing', 'anchor anchor']:
             with self.assertRaises(ValueError):
                 replace_once(text, 'anchor', 'changed', 'fixture')
+
+    def test_hex_menu_transforms_adopt_existing_fixes_and_reject_drift(self):
+        path = 'hexsweeper/bounded.html'
+        source = (ROOT / 'imports' / path).read_text()
+        fixes = [
+            (hex_recipe.menu_footer, '<a href="https://lukesteuber.com" target="_blank" rel="noopener noreferrer">Luke Steuber</a>'),
+            (hex_recipe.menu_instructions, hex_recipe.MENU_INSTRUCTIONS),
+            (hex_recipe.menu_dialog, hex_recipe.MENU_LIFECYCLE),
+        ]
+        game = next(g for g in json.loads((ROOT / 'sources.json').read_text())['games'] if g['id'] == 'hexsweeper')
+        for fix, anchor in fixes:
+            with self.subTest(fix=fix.__name__):
+                fixed = fix(source, path)
+                self.assertEqual(fix(fixed, path), fixed)
+                self.assertEqual(transform(game, path, fixed), transform(game, path, source))
+                for drifted in [source.replace(anchor, ''), source.replace(anchor, anchor + anchor)]:
+                    with self.assertRaises(ValueError):
+                        fix(drifted, path)
+        fixed = source
+        for fix, _ in fixes:
+            fixed = fix(fixed, path)
+        self.assertEqual(transform(game, path, fixed), transform(game, path, source))
+        infinite = (ROOT / 'imports/hexsweeper/infinite.html').read_text()
+        self.assertNotIn('id="modal-overlay"', infinite)
+        self.assertNotIn('menuFocusReturn', transform(game, 'hexsweeper/infinite.html', infinite))
+
+    def test_hex_menu_built_text_and_source_rule_id(self):
+        game = next(g for g in json.loads((ROOT / 'sources.json').read_text())['games'] if g['id'] == 'hexsweeper')
+        path = 'hexsweeper/bounded.html'
+        page = transform(game, path, (ROOT / 'imports' / path).read_text())
+        footer = re.search(r'<nav class="menu-links".*?</nav>', page, re.S).group()
+        for domain in ['lukesteuber.com', 'datapoems.io']:
+            self.assertIn(f'<a href="https://{domain}" target="_blank" rel="noopener noreferrer">{domain}</a>', footer)
+        self.assertNotIn('>Luke Steuber<', footer)
+        self.assertNotIn('>Data Poems<', footer)
+        self.assertIn(hex_recipe.MENU_INSTRUCTIONS_NEXT, page)
+        self.assertIn(hex_recipe.MENU_INPUT_CSS, page)
+        self.assertNotIn('flag: right-click, Ctrl-click, or long-hold', page)
+        rules = next(f['sha256'][:16] for f in game['files'] if f['path'] == path)
+        self.assertIn(rules, page)
+        fixtures = json.loads((ROOT / 'tests/hex-fixtures/proofs.json').read_text())['cases']
+        self.assertEqual(next(f for f in fixtures if f['name'] == 'classic')['identity']['rulesVersion'], rules)
 
     def test_outside_links_and_root_paths_fail_loudly(self):
         self.assertEqual(open_outside('<a href="https://x.test">x</a>', 'f'), '<a href="https://x.test" target="_blank" rel="noopener">x</a>')
@@ -49,6 +92,12 @@ class ExportTests(unittest.TestCase):
         self.assertEqual(first, (ROOT / 'build/minimal-primitives-browser.zip').read_bytes())
         with zipfile.ZipFile(ROOT / 'build/minimal-primitives-browser.zip') as archive:
             self.assertIn('index.html', archive.namelist())
+            menu = archive.read('games/hexsweeper/bounded.html').decode()
+            self.assertIn(hex_recipe.MENU_INSTRUCTIONS_NEXT, menu)
+            self.assertIn(hex_recipe.MENU_INPUT_CSS, menu)
+            self.assertIn(hex_recipe.MENU_LIFECYCLE_NEXT, menu)
+            for domain in ['lukesteuber.com', 'datapoems.io']:
+                self.assertIn(f'<a href="https://{domain}" target="_blank" rel="noopener noreferrer">{domain}</a>', menu)
             catalog = json.loads(archive.read('catalog.json'))
             self.assertEqual(len(catalog), len(json.loads((ROOT / 'sources.json').read_text())['games']))
             self.assertEqual(sum(1 for game in catalog if game.get('group') == 'accessible'), 8)
@@ -285,32 +334,47 @@ class LibraryIndexTests(unittest.TestCase):
             if not campaign:
                 continue
             key, field, ids = campaign
-            self.assertIn(field, ('completed', 'finished', 'done', 'solved'), tile['name'])
+            # Hexsweeper's record is itself the map of size to best time (field null, APP_LIFE in tools/import-index.py).
+            self.assertIn(field, (None,) if tile['game'] == 'hexsweeper' else ('completed', 'finished', 'done', 'solved'), tile['name'])
             self.assertEqual(len(ids), len(set(ids)), tile['name'] + ' lists each board once')
-            source = '\n'.join(p.read_text() for p in (ROOT / 'imports' / tile['game']).glob('*.js'))
-            for word in [key] + ids:
+            folder = ROOT / 'imports' / tile['game']
+            source = '\n'.join(p.read_text() for p in sorted([*folder.rglob('*.js'), *folder.rglob('*.mjs')]))
+            self.assertRegex(source, r'[\'"]%s[\'"]' % re.escape(key), tile['name'])
+            if tile['game'] == 'bending':
+                # Bending's ids are its boards' own names (campaign.mjs fingerprint), worked out by its modules.
+                script = ("const u=f=>new URL(f,%s).href;const {boards}=await import(u('boards.mjs')),{fingerprint}=await import(u('campaign.mjs'));"
+                          "console.log(JSON.stringify(boards.map(fingerprint)));") % json.dumps(folder.as_uri() + '/')
+                self.assertEqual(json.loads(subprocess.check_output(['node', '--input-type=module', '-e', script])), ids, tile['name'])
+                continue
+            for word in ids:
                 self.assertRegex(source, r'[\'"]%s[\'"]' % re.escape(word), tile['name'])
-            order = ROOT / 'imports' / tile['game'] / 'campaign.js'
+            # Tangles lists its course in course.js (its campaign.js holds board data). Since the index at 298f3e8 its set
+            # is the course's last board alone, as its own beaten() counts the campaign done.
+            order = folder / ('course.js' if tile['game'] == 'tangles' else 'campaign.js')
             if order.exists():
-                self.assertEqual(re.findall(r"'([\w-]+)'", re.findall(r"\[((?:\s*'[\w-]+'\s*,?)+)\s*\]", order.read_text())[-1]), ids, tile['name'])
+                listed = re.findall(r"'([\w-]+)'", re.findall(r"\[((?:\s*'[\w-]+'\s*,?)+)\s*\]", order.read_text())[-1])
+                self.assertEqual(listed[-1:] if tile['game'] == 'tangles' else listed, ids, tile['name'])
         sets = {t['name']: t['set'] for t in self.tiles if t.get('set')}
         self.assertEqual({name: len(s[2]) for name, s in sets.items()}, {'Slant': 54, 'Notan': 53, 'Bridges': 50, 'Akari': 50,
                          'Spiral Galaxies': 25, 'Cast': 25, 'Folding': 25, 'Towers': 42, 'Weaves': 16, 'Tilt': 25, 'Horologist': 25, 'Tents': 38,
-                         'Shoo': 25, 'Balance': 39})
+                         'Shoo': 25, 'Balance': 39, 'Tangles': 1, 'Bending': 25, 'Hexsweeper': 5})
+        # Hexsweeper's are the five sphere sizes, in the game's own order (SIZE_ORDER in sphere/sphere.js).
+        self.assertEqual(sets['Hexsweeper'], ['hexsweeper-sphere-best-v1', None, ['xsmall', 'easy', 'medium', 'hard', 'xlarge']])
+        self.assertEqual([t.get('done') for t in self.tiles if t.get('done')], ['Every size cleared.'])
         # Weaves (game-riffs 29b29ad) counts the sixteen boards of its course (course-data.js `order`), in course order.
         course = json.loads(re.search(r'"order":\s*(\[[^\]]*\])', (ROOT / 'imports/weaves/course-data.js').read_text()).group(1))
         self.assertEqual(sets['Weaves'], ['weave-minimal.v1', 'finished', course])
 
     def test_finished_tiles_show_a_bundled_solved_picture(self):
-        # A finished game's tile shows that game's own solved board, bundled with the app: the eleven the index names
-        # (Akari and Weaves since the index at 95debc8),
+        # A finished game's tile shows that game's own solved board, bundled with the app: the fourteen the index names
+        # (Akari and Weaves since the index at 95debc8, Tangles and Horologist since b3323f7, Hexsweeper since 298f3e8),
         # and Notan, whose record the package can read and the web page cannot (APP_LIFE in tools/import-index.py).
         solved = {t['name']: t for t in self.tiles if t.get('solved')}
-        self.assertEqual(list(solved), ['Slant', 'Notan', 'Bridges', 'Akari', 'Spiral Galaxies', 'Cast', 'Folding', 'Towers', 'Weaves', 'Tents', 'Shoo', 'Balance'])
+        self.assertEqual(list(solved), ['Slant', 'Notan', 'Hexsweeper', 'Bridges', 'Akari', 'Towers', 'Weaves', 'Folding', 'Spiral Galaxies', 'Cast', 'Tangles', 'Horologist', 'Tents', 'Shoo', 'Balance'])
         for name, tile in solved.items():
             self.assertTrue(tile['set'], name + ' can be finished')
             self.assertTrue(0.5 <= tile['solved']['fill'] <= 0.8, name)
-        self.assertEqual({t['name'] for t in self.tiles if t.get('set') and not t.get('solved')}, {'Tilt', 'Horologist'},
+        self.assertEqual({t['name'] for t in self.tiles if t.get('set') and not t.get('solved')}, {'Tilt', 'Bending'},
                          'the games that finish without color keep the one-color mark')
         # Notan's campaign is its ramp, every board its pinned levels.js lists, kept under ink.v1 as a map of board to
         # best time; its New Game+ boards (plus-levels.js) never finish the tile.
@@ -372,8 +436,13 @@ class LibraryIndexTests(unittest.TestCase):
         # Every link Tangles makes to its Experiments is an ordinary link to that page. The handshake goes with it
         # in the one place that carries it for every game (adapters/bootstrap.js), not in Tangles' own adapter.
         listing = (ROOT / 'imports/tangles/experiments-list.js').read_text()
-        self.assertGreaterEqual(listing.count('./experiments.html?'), 3)
+        self.assertGreaterEqual(listing.count('./experiments.html?'), 2)
         self.assertEqual(listing.count('experiments.html'), listing.count('./experiments.html?'))
+        # Since game-riffs PR 250 New Game+ opens from a button in Settings and from the last board's disc, both by
+        # script in loop.js; the package hands the handshake on in both (tools/transforms.py).
+        loop = transform(game, 'tangles/loop.js', (ROOT / 'imports/tangles/loop.js').read_text())
+        self.assertEqual(loop.count("location.href = './experiments.html?plus' + (window.MinimalBridge && MinimalBridge.nonce ? '&minimal=' + MinimalBridge.nonce : '');"), 2)
+        self.assertNotIn("location.href = './experiments.html?plus';", loop)
         self.assertNotIn("addEventListener('click'", (ROOT / 'adapters/private/tangles.js').read_text())
         self.assertIn("url.searchParams.set('minimal', nonce);\n    a.setAttribute('href', url.href);", (ROOT / 'adapters/bootstrap.js').read_text())
 
@@ -701,7 +770,7 @@ class PackageOffersOnlyWhatWorksTests(unittest.TestCase):
         # showing the choice unavailable with its own sentence; and no page's policy allows the connection.
         from camera_recipe import GAZE_BRIDGE, INLINE_FRAMES, no_eye_tracker
         frames = sorted(self.full.glob('games/*/controls.js')) + [self.full / 'games' / path for path in sorted(INLINE_FRAMES)]
-        self.assertGreaterEqual(len(frames), 31)
+        self.assertGreaterEqual(len(frames), 30)
         for path in frames:
             text = path.read_text()
             self.assertEqual(text.count('const camOK=cameraAllowed(),trackOK=false,'), 1, path)
@@ -813,7 +882,7 @@ class PackageOffersOnlyWhatWorksTests(unittest.TestCase):
             # No static block ships at all today; one would need the target to stay at 16.4 or later.
             self.assertNotRegex(text, r'\bstatic\s*\{', name)
         # Newer calls that would stop a game on iOS 17.0 stay behind a check for themselves, and some do not ship.
-        guarded = {'requestIdleCallback': r"window\.requestIdleCallback\s*\|\||'requestIdleCallback' in window",
+        guarded = {'requestIdleCallback': r"window\.requestIdleCallback\s*(?:\|\||\?)|'requestIdleCallback' in window",
                    'getCoalescedEvents': r'getCoalescedEvents\?\.\(', 'checkVisibility': r'\.checkVisibility\s*\?',
                    'AbortSignal.any': r'typeof AbortSignal\.any', 'Float16Array': r'typeof Float16Array'}
         for name, text in scripts.items():

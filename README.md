@@ -19,7 +19,7 @@ with the games a tile's card names under "Also" opening from that card:
   (Constellations on its card), Akari, Spiral Galaxies, Cast, Tangles (its
   Experiments, six other tilings, open from its Settings), Fold, Bending,
   Towers, Weaves, Tilt (Tilt · 3D and Cube Maze on its card), Horologist,
-  Tents, Shoo · Minimal, Balance and Delve.
+  Tents, Shoo · Minimal and Balance.
 - A motor-accessible set: Glance, Glyph, Pursuit, Shoo and Nod, which can be
   played with head or eye pointing through the front camera, and Noon, Sweep
   and Ticker, which are played with one switch.
@@ -44,7 +44,7 @@ switch. Each game is built on one or two of them. See
 | Full | `python3 tools/build.py` | `build/html`, `build/minimal-primitives-browser.zip` | Browser, desktop, the direct-download and Google Play Android app, the iOS app |
 | Camera-free | `python3 tools/build.py --variant fdroid` (`--no-zip` for Android) | `build/html-fdroid`, `build/minimal-primitives-fdroid.zip` | F-Droid |
 
-The full build adds camera input to the 29 games: head and eye pointing through
+The full build adds camera input to the 28 games: head and eye pointing through
 MediaPipe Face Landmarker, which runs in the page, and frames never leave the
 device. The camera-free build is defined in `variants.json`. It leaves out
 MediaPipe and the camera and eye-tracker inputs and keeps every game and every

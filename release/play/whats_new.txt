@@ -1,11 +1,7 @@
-Spiral Galaxies stays steady on Android: its diamonds and controls no longer flicker away. Growing a galaxy also fills the squares around its diamond.
+Hexsweeper's menu now gives touch or mouse instructions to match your device, and closes with Escape.
 
-Every game ends with the same continue arrow, shown the moment you solve.
+Balance now goes on with new boards after its last one. Spiral Galaxies' New Game+ no longer hands back boards you already solved.
 
-Clearer endings.
-
-Towers boards can always be solved by reasoning.
-
-Weaves continues into optional cloths after its course.
+In Spiral Galaxies, the board no longer blanks out for a moment when a drag finishes the first shape on a board. The faint stars now hold still; the bright ones still twinkle.
 
 Saved boards and progress are kept.
